@@ -52,37 +52,34 @@ static void walker_finish(struct walker *);
 static void walker_next(struct walker *);
 static void walker_rise(struct walker *);
 static void walker_visit(struct walker *, bit);
-static void walker_walk(struct walker *, struct node *);
+static void walker_walk(struct walker *, void *, size_t);
 
 void
 attach_node(struct walker *wal, struct node *el_node, struct node *sib_node)
 {
 	struct node *cur_node;
 	struct set *set;
-	uintptr_t *cur_chld;
-	uintptr_t *dest_tag;
+	uintptr_t *dest_tag_ptr;
 	bit b;
 	
 	el_node->crit = node_diff(el_node, sib_node);
 	b = bit_index_node(el_node, el_node->crit);
 	el_node->chld[b] = tag_leaf(el_node);
 	
-	do {
-		walker_rise(wal);
-		if (is_set(wal->cur)) {
-			set = set_from_tag(wal->cur);
-			dest_tag = &set->root;
-			break;
-		}
-		
-		cur_node = node_from_tag(wal->cur);
-		cur_chld = cur_node->chld;
-		dest_tag = cur_chld + wal->bit;
-	} while (cur_node->crit > el_node->crit);
+	while (walker_rise(wal), !is_set(wal->cur)) {
 
+		cur_node = node_from_tag(wal->cur);
+		dest_tag_ptr = cur_node->chld + wal->bit;
+		if (cur_node->crit < el_node->crit) goto attach;
+	}
+
+	set = set_from_tag(wal->cur);
+	dest_tag_ptr = &set->root;
+
+ attach:
 	b = !el_node->chld[1];
-	el_node->chld[b] = *dest_tag;
-	*dest_tag = tag_node(el_node);
+	el_node->chld[b] = *dest_tag_ptr;
+	*dest_tag_ptr = tag_node(el_node);
 }
 
 bit
@@ -107,7 +104,7 @@ node_antilocate_match(struct walker *wal, struct node *key_node)
 {
 	struct node *match_node;
 
-	walker_walk(wal, key_node);
+	walker_walk(wal, key_node->obj, key_node->size);
 	match_node = node_from_tag(wal->cur);
 
 	if (!nodes_are_matches(key_node, match_node)) {
@@ -154,6 +151,7 @@ walker_begin(struct walker *wal, struct set *set)
 	wal->prev = tag_set(set);
 	wal->cur = set->root;
 	wal->ord = 0;
+	wal->bit = 0;
 }
 
 void
@@ -168,12 +166,17 @@ void
 walker_rise(struct walker *wal)
 {
 	struct node *cur_node;
+	struct set *set;
 	uintptr_t *cur_chld;
 	uintptr_t temp_tag;
 	bit b;
 
 	if (is_set(wal->prev)) {
-		wal->cur = wal->prev;
+		temp_tag = wal->prev;
+		set = set_from_tag(wal->prev);
+		wal->prev = 0;
+		set->root = wal->cur;
+		wal->cur = temp_tag;
 		wal->prev = 0;
 		wal->ord = 1;
 		return;
@@ -230,14 +233,14 @@ walker_next(struct walker *wal)
 }
 
 void
-walker_walk(struct walker *wal, struct node *key_node)
+walker_walk(struct walker *wal, void *key, size_t len)
 {
 	struct node *cur_node;
 	bit b;
 
 	while (is_node(wal->cur)) {
 		cur_node = node_from_tag(wal->cur);
-		b = bit_index_node(key_node, cur_node->crit);
+		b = bit_index_bytes(key, len, cur_node->crit);
 		walker_visit(wal, b % 2);
 	}
 }
@@ -301,6 +304,12 @@ set_free(struct set *set)
 
 		walker_next(wal);
 	}
+}
+
+void *
+set_rm(struct set *set, void *key, size_t len)
+{
+	return 0;
 }
 
 bool

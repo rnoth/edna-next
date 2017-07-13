@@ -4,12 +4,15 @@
 #include <set.c>
 
 static void test_alloc(struct set *);
-static void test_compare();
-static void test_dict();
-static void test_index();
-static void test_n_strings();
-static void test_tag();
-static void test_two_strings();
+static void test_compare(void);
+static void test_dict(struct set *);
+static void test_free(struct set *);
+static void test_index(void);
+static void test_n_strings(char**);
+//static void test_remove();
+//static void test_remove_dict(struct set *);
+static void test_tag(void);
+static void test_two_strings(void);
 
 struct unit_test tests[] = {
 	{.msg = "should be able to allocate & free sets",
@@ -27,7 +30,15 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_n_strings),
 	 .ctx = (char*[]){"one", "two", "three", "four",0}},
 	{.msg = "should be able to add a whole dictionary",
-	 .fun = unit_list(test_dict),},
+	 .fun = unit_list(test_dict, test_free),
+	 .ctx = (struct set[]){0}},
+	#if 0
+	{.msg = "should be able to remove strings",
+	 .fun = unit_list(test_remove),},
+	{.msg = "should be able to remove a lot of strings",
+	 .fun = unit_list(test_dict, test_remove_dict, test_free),
+	 .ctx = (struct set[]){0}},
+	#endif
 };
 
 void
@@ -40,7 +51,6 @@ test_alloc(struct set *t)
 	unit_ok(nod = node_of(p));
 
 	unit_ok((int*)nod->obj == p);
-	unit_ok(nod->size == sizeof *p);
 	unit_ok(!nod->chld[0]);
 	unit_ok(!nod->chld[1]);
 
@@ -68,9 +78,8 @@ test_compare()
 }
 
 void
-test_dict()
+test_dict(struct set *t)
 {
-	struct set t[1] = {{0}};
 	char b[256];
 	char *s;
 	FILE *f;
@@ -79,8 +88,7 @@ test_dict()
 
 	while (fgets(b, 256, f)) {
 		b[strlen(b)-1] = 0;
-		unit_ok(s = set_alloc(strlen(b) + 1));
-		strcpy(s, b);
+		unit_ok(s = set_str(b));
 		unit_try(set_add(t, s));
 	}
 
@@ -92,11 +100,15 @@ test_dict()
 		            "assertion false: "
 		            "set_has(t, \"%s\", strlen(\"%s\"))",
 		            b, b);
-		unit_ok(set_has(t, b, strlen(b) + 1));
 	}
 
 	fclose(f);
-	set_free(t);
+}
+
+void
+test_free(struct set *t)
+{
+	unit_try(set_free(t));
 }
 
 void
@@ -106,6 +118,55 @@ test_index()
 	unit_expect(1, (bit_index_bytes((uint8_t[]){255}, 1, 5)));
 	unit_expect(1, (bit_index_bytes((uint8_t[]){128}, 1, 0)));
 	unit_expect(1, (bit_index_bytes((uint8_t[20]){[15]=16}, 20, 123)));
+}
+
+void
+test_remove()
+{
+	char *strs[] = {"human", "error", 0};
+	struct set set[1] = {{0}};
+	int i;
+	char *p;
+
+	for (i=0; strs[i]; ++i) {
+		unit_ok(p = set_str(strs[i]));
+		unit_try(set_add(set, p));
+	}
+
+	for (i=0; strs[i]; ++i) {
+		unit_ok(set_has(set, strs[i], strlen(strs[i])+1))
+		unit_ok(set_rm(set, strs[i], strlen(strs[i])+1));
+		unit_ok(!set_rm(set, strs[i], strlen(strs[i])+1))
+	}
+}
+
+void
+test_remove_dict(struct set *t)
+{
+	char b[256];
+	FILE *f;
+	size_t n;
+	long i;
+
+	unit_ok(f = fopen("words", "r"));
+
+	while (fgets(b, 256, f) && fgets(b, 256, f)) {
+		n = strlen(b) + 1;
+		b[n-2] = 0;
+		--n;
+		unit_ok(set_has(t,b,n));
+		unit_ok(set_rm(t,b,n));
+		unit_ok(!set_has(t,b,n));
+		unit_ok(!set_rm(t,b,n));
+	}
+
+	rewind(f);
+
+	for (i=0; fgets(b, 256, f); ++i) {
+		n = strlen(b) + 1;
+		b[n---1] = 0;
+		unit_expect(i%2, set_has(t,b,n));
+	}
 }
 
 void
