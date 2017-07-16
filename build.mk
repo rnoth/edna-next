@@ -1,10 +1,24 @@
-compile     = $(shell $(CC) $(CFLAGS) -c -o $1 $2 || echo false)
-makedeps    = $(shell makedepend -Y. -o.c.o -f - $2 2>/dev/null | sed 1,2d > $1)
-add-syms    = $(if $(wildcard $2), $(call do-syms,$1,$2))
-do-syms     = $(call add-defs,$1,$2) $(call add-undefs,$1,$2)
-link        = $(shell $(CC) $(CFLAGS) -o $1 $(call get-deps,$2) $3 || echo false)
-test        = $(eval $$(shell $1))
-enque       = $(eval $(shell printf '%s\n' "test-list := $1 $(test-list)" | tee queue.d))
+define compile
+	$(eval obj := $1)
+	$(eval dep := $(1:.c.o=.c.d))
+	$(eval src := $2)
+
+	$(info CC $(obj))
+	$(call make-deps,$(dep),$(src))
+	$(eval err := $(shell $(CC) $(CFLAGS) -c -o $(obj) $(src);
+		printf '%d' $$?))
+	$(if $(filter-out 0, $(err)), $(error compile failed))
+	$(call write-syms,$(dep),$(obj))
+endef
+
+define make-deps
+	$(shell makedepend -Y. -o.c.o -f - $2 2>/dev/null | sed 1,2d > $1)
+endef
+
+define write-syms
+	$(call add-defs,$1,$2)
+	$(call add-undefs,$1,$2)
+endef
 
 add-defs    = $(shell printf 'defs-%s := %s\n' "$2" "$(call make-defs,$2)" >> $1)
 add-undefs  = $(shell printf 'undefs-%s := %s\n' "$2" "$(call make-undefs,$2)" >> $1)
@@ -14,6 +28,26 @@ make-undefs = $(eval undefs-$1 := $(call scan-undefs,$1)) $(undefs-$1)
 
 scan-defs   = $(shell nm -g $1 | awk '/^[^ ]+ [^U]/ { print $$3 }')
 scan-undefs = $(shell nm -u $1 | awk '{ print $$2 }')
+
+define link
+	$(eval bin := $1)
+	$(eval dep := $(bin).d)
+	$(eval req := $(call get-deps,$2))
+
+	$(info LD $(bin))
+	$(eval err := $(shell $(CC) $(CFLAGS) -o $(bin) $(req);
+		printf '%d' $$?))
+	$(if $(filter-out 0,$(err)), $(error link failed))
+	$(call write-deps,$(dep),$(bin))
+endef
+
+test        = $(eval $$(shell $1))
+enque       = $(shell printf '$$(eval %s)\n' "$1" >> queue.d))
+requires    = $(eval reqs-$1 += $2) $(depends $1,$2)
+depends     = $(eval $1: $2)
+reqs-of     = $(reqs-$1)
+post-exec   = $(eval $1-post-exec-thunk := $2)
+pre-exec    = $(eval $1-pre-exec-thunk := $2)
 
 get-defs    = $(foreach obj,$1,$(defs-$(obj)))
 get-undefs  = $(foreach obj,$1,$(undefs-$(obj)))
