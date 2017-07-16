@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <util.h>
 
@@ -44,4 +45,10 @@ open_pty(int fd)
 	if (err == -1) return -1;
 
 	return 0;
+}
+
+int
+msleep(size_t t)
+{
+	return nanosleep((struct timespec[]){0, t * 1000 * 1000}, 0);
 }
