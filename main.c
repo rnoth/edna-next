@@ -28,12 +28,12 @@ static struct file input[1];
 int
 exec_ln(void)
 {
-	int err;
 	char ch;
 
 	do { // FIXME: not unicode-aware
-		err = file_read_into_buffer(input, &ch, 1);
-		if (err) return err;
+		ch = file_get_char(input);
+		if (ch < 0) return -ch;
+		if (ch == '\n') return 0;
 	} while (isspace(ch));
 
 	switch (ch) {
@@ -41,6 +41,7 @@ exec_ln(void)
 		return -1;
 	default:
 		file_discard_line(input);
+		dprintf(1, "?\n");
 		return 0;
 	}
 }
@@ -63,9 +64,6 @@ run(void)
 	err = exec_ln();
 	if (err) return err;
 
-	err = dprintf(1, "?\n");
-	if (err < 0) return errno;
-	
 	return 0;
 }
 
