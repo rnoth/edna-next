@@ -32,15 +32,17 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna, quit_edna),},
 
 	{.msg = "should produce errors on unknown commands",
-	 .fun = unit_list(spawn_edna, send_line,
-	                  expect_error, quit_edna),
-	 .ctx = "unknown",},
-	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line,
-	                  expect_prompt, send_line,
+	                  expect_error, quit_edna),
+	 .ctx = "unknown\n",},
+
+	{.msg = "should read multiple lines",
+	 .fun = unit_list(spawn_edna,
+	                  expect_prompt, send_line, expect_error,
+	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna),
-	 .ctx = "hi hi",},
+	 .ctx = "hi hi\n",},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
@@ -86,7 +88,7 @@ expect_prompt()
 	char buf[256];
 
 	msleep(1);
-	ok(res = read(edna_pty, buf, 256 - 1));
+	ok(res = read(edna_pty, buf, 255));
 	buf[res] = 0;
 	okf(*buf == ':', "expected a prompt (':'), got \"%s\"", buf);
 	if (res > 1) {
@@ -97,15 +99,15 @@ expect_prompt()
 void
 expect_error()
 {
-	char buffer[256];
+	char buffer[4] = {0};
 	ssize_t res;
 	
-	ok(res = read(edna_pty, buffer, 255));
-	ok(res > 0);
+	ok(res = read(edna_pty, buffer, 3));
+	okf(res > 0, "read failed");
 
-	buffer[res] = 0;
-
-	okf(!strcmp(buffer, "?\n"), "expected \"?\\n\" on error");
+	okf(!strcmp(buffer, "?\r\n"),
+	    "expected \"?\\r\\n\" on error, got %s",
+	    buffer);
 }
 
 void
@@ -134,10 +136,12 @@ send_line(char *ln)
 	char *buffer;
 
 	length = strlen(ln);
-	ok(buffer = malloc(length));
+	ok(buffer = malloc(length + 1));
 	dprintf(edna_pty, "%s", ln);
-	expect(length, read(edna_pty, buffer, length));
+	expect(length + 1, read(edna_pty, buffer, length + 1));
 	free(buffer);
+
+	msleep(1);
 }
 
 void
