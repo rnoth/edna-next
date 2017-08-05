@@ -42,7 +42,7 @@ file_copy_into_buffer(struct file *handle, char *buffer, size_t length)
 	rem = handle->length - handle->offset;
 
 	min = umin(length, rem);
-	memcpy(buffer, handle->buffer, min);
+	memcpy(buffer, handle->buffer+handle->offset, min);
 
 	handle->offset += min;
 
