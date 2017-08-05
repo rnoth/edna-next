@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <unit.h>
 #include <util.h>
 #include <set.c>
@@ -47,12 +48,12 @@ test_alloc(struct set *t)
 	struct node *nod;
 	int *p;
 
-	unit_ok(set_ctor(&p));
-	unit_ok(nod = node_of(p));
+	ok(set_ctor(&p));
+	ok(nod = node_of(p));
 
-	unit_ok((int*)nod->obj == p);
-	unit_ok(!nod->chld[0]);
-	unit_ok(!nod->chld[1]);
+	ok((int*)nod->obj == p);
+	ok(!nod->chld[0]);
+	ok(!nod->chld[1]);
 
 	free(nod);
 }
@@ -64,17 +65,17 @@ test_compare()
 	struct node *rit;
 	int *p;
 
-	unit_ok(set_ctor(&p));
+	ok(set_ctor(&p));
 	*p = 56;
 	lef = node_of(p);
-	unit_ok(set_ctor(&p));
+	ok(set_ctor(&p));
 	*p = 56;
 	rit = node_of(p);
 
-	unit_ok(nodes_are_matches(lef, rit));
+	ok(nodes_are_matches(lef, rit));
 
-	unit_try(free(lef));
-	unit_try(free(rit));
+	try(free(lef));
+	try(free(rit));
 }
 
 void
@@ -84,19 +85,19 @@ test_dict(struct set *t)
 	char *s;
 	FILE *f;
 
-	unit_ok(f = fopen("words", "r"));
+	ok(f = fopen("words", "r"));
 
 	while (fgets(b, 256, f)) {
 		b[strlen(b)-1] = 0;
-		unit_ok(s = set_str(b));
-		unit_try(set_add(t, s));
+		ok(s = set_str(b));
+		try(set_add(t, s));
 	}
 
 	rewind(f);
 
 	while (fgets(b, 256, f)) {
 		b[strlen(b)-1] = 0;
-		unit_ok_fmt(set_has(t, b, strlen(b) + 1),
+		okf(set_has(t, b, strlen(b) + 1),
 		            "assertion false: "
 		            "set_has(t, \"%s\", strlen(\"%s\"))",
 		            b, b);
@@ -108,16 +109,16 @@ test_dict(struct set *t)
 void
 test_free(struct set *t)
 {
-	unit_try(set_free(t));
+	try(set_free(t));
 }
 
 void
 test_index()
 {
-	unit_expect(0, (bit_index_bytes((uint8_t[10]){0}, 10, 65)));
-	unit_expect(1, (bit_index_bytes((uint8_t[]){255}, 1, 5)));
-	unit_expect(1, (bit_index_bytes((uint8_t[]){128}, 1, 0)));
-	unit_expect(1, (bit_index_bytes((uint8_t[20]){[15]=16}, 20, 123)));
+	expect(0, (bit_index_bytes((uint8_t[10]){0}, 10, 65)));
+	expect(1, (bit_index_bytes((uint8_t[]){255}, 1, 5)));
+	expect(1, (bit_index_bytes((uint8_t[]){128}, 1, 0)));
+	expect(1, (bit_index_bytes((uint8_t[20]){[15]=16}, 20, 123)));
 }
 
 void
@@ -129,14 +130,14 @@ test_remove()
 	char *p;
 
 	for (i=0; strs[i]; ++i) {
-		unit_ok(p = set_str(strs[i]));
-		unit_try(set_add(set, p));
+		ok(p = set_str(strs[i]));
+		try(set_add(set, p));
 	}
 
 	for (i=0; strs[i]; ++i) {
-		unit_ok(set_has(set, strs[i], strlen(strs[i])+1))
-		unit_ok(set_rm(set, strs[i], strlen(strs[i])+1));
-		unit_ok(!set_rm(set, strs[i], strlen(strs[i])+1))
+		ok(set_has(set, strs[i], strlen(strs[i])+1))
+		ok(set_rm(set, strs[i], strlen(strs[i])+1));
+		ok(!set_rm(set, strs[i], strlen(strs[i])+1))
 	}
 }
 
@@ -148,16 +149,16 @@ test_remove_dict(struct set *t)
 	size_t n;
 	long i;
 
-	unit_ok(f = fopen("words", "r"));
+	ok(f = fopen("words", "r"));
 
 	while (fgets(b, 256, f) && fgets(b, 256, f)) {
 		n = strlen(b) + 1;
 		b[n-2] = 0;
 		--n;
-		unit_ok(set_has(t,b,n));
-		unit_ok(set_rm(t,b,n));
-		unit_ok(!set_has(t,b,n));
-		unit_ok(!set_rm(t,b,n));
+		ok(set_has(t,b,n));
+		ok(set_rm(t,b,n));
+		ok(!set_has(t,b,n));
+		ok(!set_rm(t,b,n));
 	}
 
 	rewind(f);
@@ -165,7 +166,7 @@ test_remove_dict(struct set *t)
 	for (i=0; fgets(b, 256, f); ++i) {
 		n = strlen(b) + 1;
 		b[n---1] = 0;
-		unit_expect(i%2, set_has(t,b,n));
+		expect(i%2, set_has(t,b,n));
 	}
 }
 
@@ -177,17 +178,17 @@ test_tag()
 	uintptr_t tag;
 	int *p;
 
-	unit_ok(set_ctor(&p));
-	unit_try(node = node_of(p));
+	ok(set_ctor(&p));
+	try(node = node_of(p));
 
-	unit_ok(tag = tag_node(node));
-	unit_ok(node == node_from_tag(tag));
+	ok(tag = tag_node(node));
+	ok(node == node_from_tag(tag));
 
-	unit_ok(tag = tag_leaf(node));
-	unit_ok(node == node_from_tag(tag));
+	ok(tag = tag_leaf(node));
+	ok(node == node_from_tag(tag));
 
-	unit_ok(back = tag_back(tag));
-	unit_ok(tag == tag_from_back(back));
+	ok(back = tag_back(tag));
+	ok(tag == tag_from_back(back));
 
 	free(node);
 }
@@ -202,20 +203,20 @@ test_two_strings()
 	int i;
 
 	for (i=0; strs[i]; ++i) {
-		unit_ok(s = set_alloc(strlen(strs[i]) + 1));
+		ok(s = set_alloc(strlen(strs[i]) + 1));
 		strcpy(s, strs[i]);
-		unit_try(set_add(set, s));
-		unit_ok(set->root);
+		try(set_add(set, s));
+		ok(set->root);
 	}
 
 	nod = node_from_tag(set->root);
-	unit_expect(4, nod->crit);
+	expect(4, nod->crit);
 	nod = node_from_tag(nod->chld[0]);
 
-	unit_ok(set_has(set, strs[0], strlen(strs[0]) + 1));
-	unit_ok(set_has(set, strs[1], strlen(strs[1]) + 1));
+	ok(set_has(set, strs[0], strlen(strs[0]) + 1));
+	ok(set_has(set, strs[1], strlen(strs[1]) + 1));
 
-	unit_try(set_free(set));
+	try(set_free(set));
 }
 
 void
@@ -227,13 +228,13 @@ test_n_strings(char **strs)
 
 	
 	for (i=0; strs[i]; ++i) {
-		unit_ok(s = set_alloc(strlen(strs[i]) + 1));
+		ok(s = set_alloc(strlen(strs[i]) + 1));
 		strcpy(s, strs[i]);
-		unit_try(set_add(set, s));
+		try(set_add(set, s));
 	}
 
 	for (i=0; strs[i]; ++i) {
-		unit_ok(set_has(set, strs[i], strlen(strs[i]) + 1));
+		ok(set_has(set, strs[i], strlen(strs[i]) + 1));
 	}
 
 	set_free(set);
@@ -242,6 +243,6 @@ test_n_strings(char **strs)
 int
 main(int argc, char **argv)
 {
-	unit_parse_args(argv);
+	unit_parse_argv(argv);
 	return unit_run_tests(tests, arr_len(tests));
 }

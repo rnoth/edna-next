@@ -15,8 +15,10 @@ extern char **environ;
 
 static void kill_edna();
 static void expect_prompt();
-static void insert_line();
-static void print_line();
+static void expect_error();
+static void insert_line(char *ln);
+static void print_line(char *ln);
+static void send_line(char *ln);
 static void send_eof();
 static void spawn_edna();
 static void quit_edna();
@@ -28,11 +30,24 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna, send_eof),},
 	{.msg = "should be able to quit",
 	 .fun = unit_list(spawn_edna, quit_edna),},
+
+	{.msg = "should produce errors on unknown commands",
+	 .fun = unit_list(spawn_edna, send_line,
+	                  expect_error, quit_edna),
+	 .ctx = "unknown",},
+	{.msg = "should read multiple lines",
+	 .fun = unit_list(spawn_edna,
+	                  expect_prompt, send_line,
+	                  expect_prompt, send_line,
+	                  expect_prompt, quit_edna),
+	 .ctx = "hi hi",},
+
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
-	                  expect_prompt, kill_edna),},
+	                  expect_prompt, kill_edna),
+	 .ctx = "Hello, world!",},
 };
 
 static pid_t edna_pid;
@@ -71,11 +86,26 @@ expect_prompt()
 	char buf[256];
 
 	msleep(1);
-	res = read(edna_pty, buf, 256);
-	unit_ok_fmt(*buf == ':', "expected a prompt (':'), got %s", buf);
+	ok(res = read(edna_pty, buf, 256 - 1));
+	buf[res] = 0;
+	okf(*buf == ':', "expected a prompt (':'), got \"%s\"", buf);
 	if (res > 1) {
 		unit_fail_fmt("unexpected trailing string after prompt: %s", buf+1);
 	}
+}
+
+void
+expect_error()
+{
+	char buffer[256];
+	ssize_t res;
+	
+	ok(res = read(edna_pty, buffer, 255));
+	ok(res > 0);
+
+	buffer[res] = 0;
+
+	okf(!strcmp(buffer, "?\n"), "expected \"?\\n\" on error");
 }
 
 void
@@ -89,25 +119,39 @@ print_line(char *ln)
 {
 	size_t len = strlen(ln)+1;
 	char *buf;
-	unit_ok(buf = malloc(len));
+
+	ok(buf = malloc(len));
 	read(edna_pty, buf, len-1);
 	buf[len] = 0;
 
-	unit_ok(!strcmp(buf, ln));
+	ok(!strcmp(buf, ln));
+}
+
+void
+send_line(char *ln)
+{
+	ssize_t length;
+	char *buffer;
+
+	length = strlen(ln);
+	ok(buffer = malloc(length));
+	dprintf(edna_pty, "%s", ln);
+	expect(length, read(edna_pty, buffer, length));
+	free(buffer);
 }
 
 void
 send_eof()
 {
 	dprintf(edna_pty, "\x04");
-	unit_ok(waitpid(edna_pid, 0, 0));
+	ok(waitpid(edna_pid, 0, 0));
 }
 
 void
 quit_edna()
 {
 	dprintf(edna_pty, "q\n");
-	unit_ok(waitpid(edna_pid, 0, 0));
+	ok(waitpid(edna_pid, 0, 0));
 }
 
 void
@@ -152,6 +196,6 @@ spawn_edna()
 int
 main(int argc, char **argv)
 {
-	unit_parse_args(argv);
+	unit_parse_argv(argv);
 	return unit_run_tests(tests, arr_len(tests));
 }
