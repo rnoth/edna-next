@@ -18,15 +18,15 @@
 
 #define unit_list(...) ((void (*[])()){__VA_ARGS__, 0x0})
 
-#define unit_try(EXPR) do {   \
+#define try(EXPR) do {   \
 	unit_set_expr(#EXPR); \
 	EXPR;                 \
 	unit_unset_expr();    \
 } while (0)
 
-#define unit_ok(EXPR) unit_ok_fmt(EXPR, "assertion false: \"%s\"", #EXPR); 
+#define ok(EXPR) okf(EXPR, "assertion false: \"%s\"", #EXPR); 
 
-#define unit_ok_fmt(EXPR, ...) do {      \
+#define okf(EXPR,  ...) do {      \
 	char msg[256];                   \
 	snprintf(msg, 256, __VA_ARGS__); \
 	_unit_ok(EXPR, msg);             \
@@ -43,7 +43,7 @@
 	unit_unset_expr();       \
 } while (0)
 
-#define unit_expect(VAL, EXPR) do { \
+#define expect(VAL, EXPR) do { \
 	int unit_res;                                \
 	unit_set_expr(#EXPR);                        \
 	unit_res = (EXPR);                           \
@@ -68,7 +68,7 @@ void unit_error(char *);
 void unit_fail(char *);
 void unit_set_expr(char *);
 void unit_unset_expr(void);
-void unit_parse_args(char **);
+void unit_parse_argv(char **);
 int  unit_run_tests(struct unit_test *, size_t);
 
 #endif

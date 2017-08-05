@@ -18,6 +18,7 @@ size_t unit_opt_test_num = 0;
 
 static char current_expr[256];
 static char error_message[256];
+static jmp_buf escape_hatch;
 static jmp_buf checkpoint;
 
 #define throw(BLAME) do { int _ = errno; perror(BLAME); return _; } while (0)
@@ -65,17 +66,19 @@ report_error(int sig)
 	case SIGABRT:
 		why = "aborted";
 		break;
+	case SIGTRAP:
+	default:
+		why = "trapped";
+		break;
 	}
-	
-	snprintf(error_message, 256, "%s executing: %s", why, current_expr);
-	raise(SIGHUP);
+
+	dprintf(2, "error\n    %s executing: %s\n", why, current_expr);
+	longjmp(escape_hatch, 0);
 }
 
 void
 report_failure()
 {
-	fprintf(stderr, "failed\n");
-	fprintf(stderr, "    %s\n", error_message);
 	longjmp(checkpoint, 0);
 }
 
@@ -84,16 +87,38 @@ run_test(struct unit_test *te)
 {
 	size_t i;
 	
-	fprintf(stderr, "%s...", te->msg);
-	fflush(stdout);
+	dprintf(2, "%s...", te->msg);
 
 	for (i=0; te->fun[i]; ++i) {
 		alarm(unit_opt_timeout);
 		te->fun[i](te->ctx);
 		alarm(0);
+		if (setjmp(checkpoint)) goto failed;
 	}
 
-	fprintf(stderr, "ok\n");
+	dprintf(2, "ok\n");
+	return;
+
+ failed:
+	dprintf(2, "failed\n    %s\n", error_message);
+	longjmp(escape_hatch, 0);
+}
+
+void
+unit_error(char *error)
+{
+	dprintf(2, "%s", error);
+	longjmp(escape_hatch, 0);
+}
+
+void
+unit_perror(char *blame)
+{
+	char buffer[256];
+
+	snprintf(buffer, 256, "%s: %s", blame, strerror(errno));
+
+	unit_error(buffer);
 }
 
 void
@@ -109,22 +134,6 @@ unit_unset_expr(void)
 }
 
 void
-unit_perror(char *msg)
-{
-	fprintf(stderr, "error\n");
-	fprintf(stderr, "%s: %s", msg, strerror(errno));
-	*(volatile int *)0;
-}
-
-void
-unit_error(char *msg)
-{
-	fprintf(stderr, "error\n");
-	fprintf(stderr, "%s\n", msg);
-	*(volatile int *)0;
-}
-
-void
 unit_fail(char *msg)
 {
 	snprintf(error_message, 256, "%s", msg);
@@ -132,7 +141,7 @@ unit_fail(char *msg)
 }
 
 void
-unit_parse_args(char **argv)
+unit_parse_argv(char **argv)
 {
 	while (*++argv) {
 		if (argv[0][0] != '-') break;
@@ -147,7 +156,7 @@ unit_parse_args(char **argv)
 			unit_opt_timeout = strtoul(*++argv, 0, 10);
 			break;
 		default:
-			fprintf(stderr, "unknown option: %s (ignoring)", *argv);
+			dprintf(2, "unknown option: %s (ignoring)", *argv);
 		}
 	}
 }
@@ -161,7 +170,9 @@ unit_run_tests(struct unit_test *tl, size_t len)
 	err = trap_failures();
 	if (err) return err;
 
-	if (setjmp(checkpoint)) return 0;
+	if (setjmp(escape_hatch)) {
+		return -1;
+	}
 
 	if (unit_opt_test_num) run_test(tl + unit_opt_test_num - 1);
 	else for (i=0; i<len; ++i) run_test(tl + i);
