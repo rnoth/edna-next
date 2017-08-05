@@ -153,12 +153,10 @@ unit_parse_args(char **argv)
 }
 
 int
-unit_run_tests(char **argv, struct unit_test *tl, size_t len)
+unit_run_tests(struct unit_test *tl, size_t len)
 {
 	size_t i;
 	int err;
-	
-	unit_parse_args(argv);
 	
 	err = trap_failures();
 	if (err) return err;

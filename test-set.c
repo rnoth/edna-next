@@ -242,5 +242,6 @@ test_n_strings(char **strs)
 int
 main(int argc, char **argv)
 {
-	return unit_run_tests(argv, tests, arr_len(tests));
+	unit_parse_args(argv);
+	return unit_run_tests(tests, arr_len(tests));
 }
