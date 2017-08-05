@@ -1,20 +1,10 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
 
 #include <edna.h>
-
-struct edna {
-	struct piece *txt;
-};
-
-struct piece {
-	struct piece *next;
-	struct piece *prev;
-	char  *str;
-	size_t len;
-};
 
 struct command {
 	char *name;
@@ -26,28 +16,20 @@ struct piece *txt_ctor(void);
 void edna_dtor(struct edna *);
 void txt_dtor(struct piece *);
 
-struct edna *
-edna_ctor(void)
+int
+edna_init(struct edna *edna)
 {
-	struct edna *ret;
+	edna->txt = txt_ctor();
 
-	ret = malloc(sizeof *ret);
-	if (!ret) return 0;
+	if (!edna->txt) return ENOMEM;
 
-	ret->txt = txt_ctor();
-	if (!ret->txt) {
-		free(ret);
-		return 0;
-	}
-
-	return ret;
+	return 0;
 }
 
 void
-edna_dtor(struct edna *ctx)
+edna_fini(struct edna *edna)
 {
-	txt_dtor(ctx->txt);
-	free(ctx);
+	txt_dtor(edna->txt);
 }
 
 struct piece *
@@ -75,3 +57,4 @@ txt_dtor(struct piece *txt)
 	next = txt->next;
 	while (next) free(txt), txt = next, next = txt->next;
 }
+
