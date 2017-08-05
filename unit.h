@@ -19,7 +19,7 @@
 #define unit_list(...) ((void (*[])()){__VA_ARGS__, 0x0})
 
 #define try(EXPR) do {   \
-	unit_set_expr(#EXPR); \
+	unit_set_expr(#EXPR,__LINE__); \
 	EXPR;                 \
 	unit_unset_expr();    \
 } while (0)
@@ -34,7 +34,7 @@
 
 #define _unit_ok(EXPR, MSG) do { \
 	bool unit_res;           \
-	unit_set_expr(#EXPR);    \
+	unit_set_expr(#EXPR, __LINE__); \
 	unit_res = !!(EXPR);     \
 	if (!unit_res) {         \
 		raise(SIGTRAP);  \
@@ -45,7 +45,7 @@
 
 #define expect(VAL, EXPR) do { \
 	int unit_res;                                \
-	unit_set_expr(#EXPR);                        \
+	unit_set_expr(#EXPR, __LINE__);              \
 	unit_res = (EXPR);                           \
 	if (unit_res != VAL) {                       \
 		raise(SIGTRAP);                      \
@@ -63,11 +63,12 @@ struct unit_test {
 	void *ctx;
 };
 
+void unit_set_expr(char *, int);
+void unit_unset_expr(void);
+
 void unit_perror(char *);
 void unit_error(char *);
 void unit_fail(char *);
-void unit_set_expr(char *);
-void unit_unset_expr(void);
 void unit_parse_argv(char **);
 int  unit_run_tests(struct unit_test *, size_t);
 

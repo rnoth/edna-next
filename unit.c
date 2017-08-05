@@ -16,6 +16,7 @@ static void run_test(struct unit_test *);
 unsigned unit_opt_timeout = 1;
 size_t unit_opt_test_num = 0;
 
+static int line_number;
 static char current_expr[256];
 static char error_message[256];
 static jmp_buf escape_hatch;
@@ -72,7 +73,8 @@ report_error(int sig)
 		break;
 	}
 
-	dprintf(2, "error\n    %s executing: %s\n", why, current_expr);
+	dprintf(2, "error\n    %s executing: %s (line %d)\n",
+	        why, current_expr, line_number);
 	longjmp(escape_hatch, 0);
 }
 
@@ -122,15 +124,17 @@ unit_perror(char *blame)
 }
 
 void
-unit_set_expr(char *expr)
+unit_set_expr(char *expr, int lineno)
 {
 	snprintf(current_expr, 256, "%s", expr);
+	line_number = lineno;
 }
 
 void
 unit_unset_expr(void)
 {
 	strcpy(current_expr, "(unknown expression)");
+	line_number = -1;
 }
 
 void
