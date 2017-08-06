@@ -1,16 +1,27 @@
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
 #include <unit.h>
 #include <util.h>
 
+#define rwritef(fd, ...) do { \
+	char _msg[256]={0}; \
+	char _msg1[256]={0}; \
+	int _len = snprintf(_msg, 256, __VA_ARGS__); \
+	expect(_len, write(fd, _msg, _len)); \
+	msleep(1); \
+	expect(_len, read(fd, _msg1, _len)); \
+	okf(!strncmp(_msg, _msg1, _len), \
+	    "expected input string to be echoed: %s\n", _msg); \
+} while (false)
 extern char **environ;
 
 static void kill_edna();
@@ -35,14 +46,14 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line,
 	                  expect_error, quit_edna),
-	 .ctx = "unknown\n",},
+	 .ctx = "unknown",},
 
 	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna),
-	 .ctx = "hi hi\n",},
+	 .ctx = "hi hi",},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
@@ -99,21 +110,21 @@ expect_prompt()
 void
 expect_error()
 {
-	char buffer[4] = {0};
+	char buffer[2] = {0};
 	ssize_t res;
 	
-	ok(res = read(edna_pty, buffer, 3));
+	ok(res = read(edna_pty, buffer, 2));
 	okf(res > 0, "read failed");
 
-	okf(!strcmp(buffer, "?\r\n"),
-	    "expected \"?\\r\\n\" on error, got %s",
+	okf(!strncmp(buffer, "?\n", 2),
+	    "expected \"?\\n\" on error, got %s",
 	    buffer);
 }
 
 void
 insert_line(char *ln)
 {
-	dprintf(edna_pty, "i\n%s\n.\n", ln);
+	rwritef(edna_pty, "i\n%s\n.\n", ln);
 }
 
 void
@@ -132,15 +143,7 @@ print_line(char *ln)
 void
 send_line(char *ln)
 {
-	ssize_t length;
-	char *buffer;
-
-	length = strlen(ln);
-	ok(buffer = malloc(length + 1));
-	dprintf(edna_pty, "%s", ln);
-	expect(length + 1, read(edna_pty, buffer, length + 1));
-	free(buffer);
-
+	rwritef(edna_pty, "%s\n", ln);
 	msleep(1);
 }
 
@@ -161,14 +164,17 @@ quit_edna()
 void
 spawn_edna()
 {
+	struct termios tattr[1];
 	int fd[2];
 	int res;
 
+	tcflush(edna_pty, TCIOFLUSH);
 	res = pipe(fd);
 	if (res) unit_perror("failed to create pipe");
 
-	edna_pty = mk_pty();
-	if (edna_pty == -1) unit_perror("couldn't alloc pty");
+	tcgetattr(edna_pty, tattr);
+	tattr->c_oflag &= ~OPOST;
+	tcsetattr(edna_pty, TCSANOW, tattr);
 
 	res = fork();
 	switch (res) {
@@ -200,6 +206,9 @@ spawn_edna()
 int
 main(int argc, char **argv)
 {
+	edna_pty = mk_pty();
+	if (edna_pty == -1) unit_perror("couldn't alloc pty");
+
 	unit_parse_argv(argv);
 	return unit_run_tests(tests, arr_len(tests));
 }
