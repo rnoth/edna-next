@@ -10,6 +10,7 @@ umin(unsigned long a, unsigned long b)
 	return a < b ? a : b;
 }
 
+char *asprintf(char *fmt, ...);
 int msleep(size_t);
 int mk_pty(void);
 int open_pty(int);

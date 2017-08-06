@@ -1,9 +1,28 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 #include <util.h>
+
+char *
+asprintf(char *fmt, ...)
+{
+	char *res;
+	size_t mem;
+	va_list args;
+
+	va_start(args, fmt);
+	mem = vsnprintf(0, 0, fmt, args);
+	res = malloc(mem + 1);
+	if (!res) return 0;
+
+	vsnprintf(res, mem + 1, fmt, args);
+
+	return res;
+}
 
 int
 mk_pty(void)
