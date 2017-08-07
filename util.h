@@ -8,6 +8,13 @@ typedef unsigned long ulong;
 typedef unsigned int uint;
 
 static inline
+int
+ucmp(ulong a, ulong b)
+{
+	return (a >= b) - (a <= b);
+}
+
+static inline
 ulong
 uclz(ulong a)
 {
@@ -33,4 +40,4 @@ char *asprintf(char *fmt, ...);
 int msleep(size_t);
 int mk_pty(void);
 int open_pty(int);
-#endif /* _util_ */
+#endif
