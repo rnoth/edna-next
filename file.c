@@ -60,7 +60,7 @@ file_discard_line(struct file *handle)
 
 	do {
 		ch = file_get_char(handle);
-		if (ch == -1) return 0;
+		if (ch == -1) return -1;
 		if (ch < 0) return -ch;
 	} while (ch != '\n');
 
@@ -120,4 +120,15 @@ file_read_into_buffer(struct file *handle, char *buffer, size_t length)
 	if (errno) return errno;
 
 	return 0;
+}
+
+int
+file_wait(struct file *handle)
+{
+	struct pollfd pollfd[1];
+
+	pollfd->events = POLLIN;
+	pollfd->fd = handle->filedes;
+
+	return poll(pollfd, 1, -1) != -1 ? errno : 0;
 }
