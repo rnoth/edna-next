@@ -75,14 +75,15 @@ attach_node(struct walker *walk, struct node *el_node,
 	b = bit_index_node(el_node, size, el_node->crit);
 	el_node->chld[b] = tag_leaf(el_node);
 	
-	while (walker_rise(walk), !is_set(walk->cur)) {
+	while (!is_set(walk->prev)) {
+		walker_rise(walk);
 
 		cur_node = node_from_tag(walk->cur);
 		dest_tag_ptr = cur_node->chld + walk->bit;
 		if (cur_node->crit < el_node->crit) goto attach;
 	}
 
-	set = set_from_tag(walk->cur);
+	set = set_from_tag(walk->prev);
 	dest_tag_ptr = &set->root;
 
  attach:
@@ -156,7 +157,7 @@ walker_begin(struct walker *wal, struct set *set)
 void
 walker_finish(struct walker *wal)
 {
-	while (!is_set(wal->cur)) {
+	while (wal->prev) {
 		walker_rise(wal);
 	}
 }
