@@ -167,6 +167,11 @@ walker_rise(struct walker *wal)
 	uintptr_t *chld;
 	bit b;
 
+	if (!wal->prev) {
+		wal->cur = 0;
+		return;
+	}
+
 	if (is_set(wal->prev)) {
 		wal->cur = wal->prev;
 		wal->prev = 0;
@@ -175,9 +180,9 @@ walker_rise(struct walker *wal)
 	
 	chld = node_from_tag(wal->prev)->chld;
 	b = is_back(chld[1]);
-
 	chld[b] = tag_from_back(chld[b]);
-	lrotate(chld + b, &wal->cur, &wal->prev);
+
+	lrotate(chld+b, &wal->cur, &wal->prev);
 
 	wal->bit = b;
 }
@@ -185,16 +190,11 @@ walker_rise(struct walker *wal)
 void
 walker_visit(struct walker *wal, bit b)
 {
-	struct node *cur_node;
-	uintptr_t *cur_chld;
-	uintptr_t temp_tag;
+	uintptr_t *chld;
 
-	cur_node = node_from_tag(wal->cur);
-	cur_chld = cur_node->chld;
-	temp_tag = wal->cur;
-	wal->cur = cur_chld[b];
-	cur_chld[b] = tag_back(wal->prev);
-	wal->prev = temp_tag;
+	chld = node_from_tag(wal->cur)->chld;
+	lrotate(chld+b, &wal->prev, &wal->cur);
+	chld[b] = tag_back(chld[b]);
 
 	wal->bit = b;
 }
