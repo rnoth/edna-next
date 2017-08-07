@@ -27,40 +27,43 @@ extern char **environ;
 static void kill_edna();
 static void expect_prompt();
 static void expect_error();
-static void insert_line(char *ln);
-static void print_line(char *ln);
+//static void insert_line(char *ln);
+//static void print_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
 static void spawn_edna();
 static void quit_edna();
+static void wait_edna();
 
 struct unit_test tests[] = {
 	{.msg = "should see a prompt",
 	 .fun = unit_list(spawn_edna, expect_prompt, kill_edna),},
 	{.msg = "should exit on eof",
-	 .fun = unit_list(spawn_edna, send_eof),},
+	 .fun = unit_list(spawn_edna, send_eof, wait_edna),},
 	{.msg = "should be able to quit",
-	 .fun = unit_list(spawn_edna, quit_edna),},
+	 .fun = unit_list(spawn_edna, quit_edna, wait_edna),},
 
 	{.msg = "should produce errors on unknown commands",
 	 .fun = unit_list(spawn_edna,
-	                  expect_prompt, send_line,
-	                  expect_error, quit_edna),
+	                  expect_prompt, send_line, expect_error,
+	                  quit_edna, wait_edna),
 	 .ctx = "unknown",},
 
 	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, send_line, expect_error,
-	                  expect_prompt, quit_edna),
+	                  expect_prompt, quit_edna, wait_edna),
 	 .ctx = "hi hi",},
 
+	#if 0
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
-	                  expect_prompt, kill_edna),
-	 .ctx = "Hello, world!",},
+	                  expect_prompt, quit_edna, wait_edna),
+	 .ctx = "Hello, world!\n",},
+	#endif
 };
 
 static pid_t edna_pid;
@@ -70,26 +73,10 @@ void
 kill_edna()
 {
 	int res;
-	int ws;
 
-	msleep(1);
-	res = waitpid(edna_pid, &ws, WNOHANG);
-	if (res == -1) unit_perror("wait failed");
-	else if (!res) {
-		res = kill(edna_pid, SIGTERM);
-		if (res) unit_perror("kill failed");
-		return;
-	}
-	
-	if (WIFSIGNALED(ws)) {
-		unit_fail_fmt("edna exited abnormally: killed by signal %d",
-		              WTERMSIG(ws));
-	}
-
-	if (WIFEXITED(ws)) {
-		unit_fail_fmt("edna exited unexpected: exited with code %d",
-			      WEXITSTATUS(ws));
-	}
+	res = kill(edna_pid, SIGTERM);
+	if (res) unit_perror("kill failed");
+	return;
 }
 
 void
@@ -124,20 +111,20 @@ expect_error()
 void
 insert_line(char *ln)
 {
-	rwritef(edna_pty, "i\n%s\n.\n", ln);
+	rwritef(edna_pty, "i\n%s", ln);
+	ok(write(edna_pty, "\x04", 1) == 1);
 }
 
 void
 print_line(char *ln)
 {
-	size_t len = strlen(ln)+1;
-	char *buf;
+	char buf[256];
+	size_t len = strlen(ln);
 
-	ok(buf = malloc(len));
-	read(edna_pty, buf, len-1);
-	buf[len] = 0;
+	rwritef(edna_pty, "p\n");
+	len = read(edna_pty, buf, len);
 
-	ok(!strcmp(buf, ln));
+	okf(!strncmp(buf, ln, len), "expected \"%s\", got \"%s\"", ln, buf);
 }
 
 void
@@ -151,14 +138,12 @@ void
 send_eof()
 {
 	dprintf(edna_pty, "\x04");
-	ok(waitpid(edna_pid, 0, 0));
 }
 
 void
 quit_edna()
 {
 	dprintf(edna_pty, "q\n");
-	ok(waitpid(edna_pid, 0, 0));
 }
 
 void
@@ -201,6 +186,26 @@ spawn_edna()
 	case  0: break;
 	}
 	close(fd[0]);
+}
+
+void
+wait_edna()
+{
+	int res;
+	int ws;
+
+	msleep(1);
+	res = waitpid(edna_pid, &ws, WNOHANG);
+	if (res == -1) unit_perror("wait failed");
+
+	if (!res) {
+		unit_fail("edna unexpectedly alive");
+	}
+
+	if (WIFSIGNALED(ws)) {
+		unit_fail_fmt("edna exited abnormally: killed by signal %d",
+		              WTERMSIG(ws));
+	}
 }
 
 int
