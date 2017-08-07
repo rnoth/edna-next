@@ -194,7 +194,7 @@ wait_edna()
 	int res;
 	int ws;
 
-	msleep(1);
+	msleep(10);
 	res = waitpid(edna_pid, &ws, WNOHANG);
 	if (res == -1) unit_perror("wait failed");
 
