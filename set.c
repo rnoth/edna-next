@@ -52,6 +52,13 @@ static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
 
 void
+shift(ulong *lef, ulong *mid, ulong rit)
+{
+	*lef = *mid;
+	*mid = rit;
+}
+
+void
 attach_node(struct walker *walk, struct node *el_node,
             struct node *sib_node, size_t size)
 {
@@ -153,27 +160,22 @@ walker_finish(struct walker *wal)
 void
 walker_rise(struct walker *wal)
 {
-	struct node *cur_node;
-	struct set *set;
-	uintptr_t *cur_chld;
+	uintptr_t *chld;
 	uintptr_t temp_tag;
 	bit b;
 
 	if (is_set(wal->prev)) {
-		temp_tag = wal->prev;
-		set = set_from_tag(wal->prev);
+		wal->cur = wal->prev;
 		wal->prev = 0;
-		set->root = wal->cur;
-		wal->cur = temp_tag;
 		return;
 	}
 	
-	cur_node = node_from_tag(wal->prev);
-	cur_chld = cur_node->chld;
-	b = is_back(cur_chld[1]);
+	chld = node_from_tag(wal->prev)->chld;
+	b = is_back(chld[1]);
 	temp_tag = wal->prev;
-       	wal->prev = tag_from_back(cur_chld[b]);
-	cur_chld[b] = wal->cur;
+       	wal->prev = tag_from_back(chld[b]);
+
+	chld[b] = wal->cur;
 	wal->cur = temp_tag;
 
 	wal->bit = b;
