@@ -168,6 +168,8 @@ test_two_strings()
 		ok(set->root);
 	}
 
+	expect(1, set->height);
+
 	node = node_from_tag(set->root);
 	expect(4, node->crit);
 	ok(!strcmp((char*)node->obj, goodbye));

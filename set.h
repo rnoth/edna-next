@@ -13,10 +13,8 @@ void set_add(struct set *set, struct set_node *new, size_t length);
 bool set_has(struct set *set, void *key, size_t length);
 
 void set_add_key(struct set *set, struct set_node *new,
-                 uint8_t *key, size_t length);
-void set_has_iter(struct set *set, struct set_context *ctx,
-                  void *key, size_t length);
-void *set_has_cont(struct set_context *ctx, void *val, size_t length);
+                 void *key, size_t length);
+void *set_query(struct set *set, void *key, size_t length);
 
 struct set {
 	uintptr_t root;
