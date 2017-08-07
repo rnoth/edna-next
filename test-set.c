@@ -1,115 +1,89 @@
 #include <stdio.h>
 #include <string.h>
+
 #include <unit.h>
 #include <util.h>
 #include <set.c>
 
-static void test_alloc(struct set *);
 static void test_compare(void);
 static void test_dict(struct set *);
-static void test_free(struct set *);
 static void test_index(void);
 static void test_n_strings(char**);
 //static void test_remove();
 //static void test_remove_dict(struct set *);
-static void test_tag(void);
 static void test_two_strings(void);
 
+struct set_str {
+	struct set_node node[1];
+	char str[];
+};
+
 struct unit_test tests[] = {
-	{.msg = "should be able to allocate & free sets",
-	 .fun = unit_list(test_alloc),
-	 .ctx = (struct set[]){0}},
 	{.msg = "should get sensible results from bit indexing functions",
 	 .fun = unit_list(test_index),},
 	{.msg = "should find that identical strings are identical",
 	 .fun = unit_list(test_compare)},
 	{.msg = "should be able to add strings",
 	 .fun = unit_list(test_two_strings)},
-	{.msg = "should have working tag functions",
-	 .fun = unit_list(test_tag)},
 	{.msg = "should be able to add multiple strings",
 	 .fun = unit_list(test_n_strings),
 	 .ctx = (char*[]){"one", "two", "three", "four",0}},
 	{.msg = "should be able to add a whole dictionary",
-	 .fun = unit_list(test_dict, test_free),
+	 .fun = unit_list(test_dict),
 	 .ctx = (struct set[]){0}},
 	#if 0
 	{.msg = "should be able to remove strings",
 	 .fun = unit_list(test_remove),},
 	{.msg = "should be able to remove a lot of strings",
-	 .fun = unit_list(test_dict, test_remove_dict, test_free),
+	 .fun = unit_list(test_dict, test_remove_dict),
 	 .ctx = (struct set[]){0}},
 	#endif
 };
 
 void
-test_alloc(struct set *t)
-{
-	struct node *nod;
-	int *p;
-
-	ok(set_ctor(&p));
-	ok(nod = node_of(p));
-
-	ok((int*)nod->obj == p);
-	ok(!nod->chld[0]);
-	ok(!nod->chld[1]);
-
-	free(nod);
-}
-
-void
 test_compare()
 {
-	struct node *lef;
-	struct node *rit;
-	int *p;
+	struct set_int {
+		struct set_node n[1];
+		int i;
+	} lef[1], rit[1];
 
-	ok(set_ctor(&p));
-	*p = 56;
-	lef = node_of(p);
-	ok(set_ctor(&p));
-	*p = 56;
-	rit = node_of(p);
+	lef->i = 56;
+	rit->i = 56;
 
-	ok(nodes_are_matches(lef, rit));
-
-	try(free(lef));
-	try(free(rit));
+	ok(node_matches_key((void *)lef, (void *)&rit->i, sizeof (int)));
 }
 
 void
 test_dict(struct set *t)
 {
+	struct set_str *s;
 	char b[256];
-	char *s;
+	size_t n;
 	FILE *f;
 
 	ok(f = fopen("words", "r"));
 
 	while (fgets(b, 256, f)) {
-		b[strlen(b)-1] = 0;
-		ok(s = set_str(b));
-		try(set_add(t, s));
+		n = strlen(b);
+		b[n] = 0;
+		ok(s = calloc(sizeof *s + n + 1, 1));
+		try(strcpy(s->str, b));
+		try(set_add(t, s->node, n + 1));
 	}
 
 	rewind(f);
 
 	while (fgets(b, 256, f)) {
-		b[strlen(b)-1] = 0;
-		okf(set_has(t, b, strlen(b) + 1),
-		            "assertion false: "
-		            "set_has(t, \"%s\", strlen(\"%s\"))",
-		            b, b);
+		n = strlen(b);
+		b[n] = 0;
+		okf(set_has(t, b, n + 1),
+		    "assertion false: "
+		    "set_has(t, \"%s\", strlen(\"%s\") + 1)",
+		    b, b);
 	}
 
 	fclose(f);
-}
-
-void
-test_free(struct set *t)
-{
-	try(set_free(t));
 }
 
 void
@@ -120,6 +94,8 @@ test_index()
 	expect(1, (bit_index_bytes((uint8_t[]){128}, 1, 0)));
 	expect(1, (bit_index_bytes((uint8_t[20]){[15]=16}, 20, 123)));
 }
+
+#if 0
 
 void
 test_remove()
@@ -170,74 +146,59 @@ test_remove_dict(struct set *t)
 	}
 }
 
-void
-test_tag()
-{
-	struct node *node;
-	uintptr_t back;
-	uintptr_t tag;
-	int *p;
-
-	ok(set_ctor(&p));
-	try(node = node_of(p));
-
-	ok(tag = tag_node(node));
-	ok(node == node_from_tag(tag));
-
-	ok(tag = tag_leaf(node));
-	ok(node == node_from_tag(tag));
-
-	ok(back = tag_back(tag));
-	ok(tag == tag_from_back(back));
-
-	free(node);
-}
+#endif
 
 void
 test_two_strings()
 {
 	char *strs[3] = {"hello", "goodbye", 0x0};
-	struct node *nod;
+	struct set_str *nodes[3]={0};
 	struct set set[1] = {{0}};
-	char *s;
+	struct node *node;
+	size_t n;
 	int i;
 
 	for (i=0; strs[i]; ++i) {
-		ok(s = set_alloc(strlen(strs[i]) + 1));
-		strcpy(s, strs[i]);
-		try(set_add(set, s));
+		n = strlen(strs[i]) + 1;
+		ok(nodes[i] = calloc(sizeof *nodes[i] + n, 1));
+		strcpy(nodes[i]->str, strs[i]);
+		try(set_add(set, nodes[i]->node, n));
 		ok(set->root);
 	}
 
-	nod = node_from_tag(set->root);
-	expect(4, nod->crit);
-	nod = node_from_tag(nod->chld[0]);
+	node = node_from_tag(set->root);
+	expect(4, node->crit);
+	node = node_from_tag(node->chld[0]);
 
 	ok(set_has(set, strs[0], strlen(strs[0]) + 1));
 	ok(set_has(set, strs[1], strlen(strs[1]) + 1));
 
-	try(set_free(set));
+	free(nodes[0]);
+	free(nodes[1]);
 }
 
 void
 test_n_strings(char **strs)
 {
 	struct set set[1] = {{0}};
+	struct set_str **l;
 	size_t i;
-	char *s;
+	size_t n;
 
+	for (i=0; strs[i]; ++i);
+
+	ok(l = calloc(i + 1, sizeof *l));
 	
 	for (i=0; strs[i]; ++i) {
-		ok(s = set_alloc(strlen(strs[i]) + 1));
-		strcpy(s, strs[i]);
-		try(set_add(set, s));
+		n = strlen(strs[i]) + 1;
+		ok(l[i] = calloc(sizeof *l[i] + n, 1));
+		strcpy(l[i]->str, strs[i]);
+		try(set_add(set, l[i]->node, n));
 	}
 
 	for (i=0; strs[i]; ++i) {
 		ok(set_has(set, strs[i], strlen(strs[i]) + 1));
 	}
-
-	set_free(set);
 }
 
 int

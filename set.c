@@ -8,8 +8,6 @@
 #include <util.h>
 #include <set.h>
 
-#define node_of(n) ((struct node *)((char *)(n) - offsetof(struct node,obj)))
-
 #define tag_back(u) ((u) | 4)
 #define tag_leaf(n) ((uintptr_t)(n) | 1)
 #define tag_node(n) ((uintptr_t)(n))
@@ -24,13 +22,14 @@
 #define is_node(u) !(u & 3)
 #define is_set(u) !!(u & 2)
 
+#define obj(n) 
+
 typedef int8_t bit;
 
 struct node {
 	uintptr_t chld[2];
-	size_t    crit;
-	size_t    size;
-	uint8_t   obj[];
+	size_t crit;
+	uint8_t obj[];
 };
 
 struct walker {
@@ -40,22 +39,22 @@ struct walker {
 	uint8_t   bit:1;
 };
 
-static void attach_node(struct walker *, struct node *, struct node *);
+static void attach_node(struct walker *, struct node *, struct node *, size_t);
 static bit bit_index_bytes(uint8_t *, size_t, size_t);
-static bit bit_index_node(struct node *, size_t);
-static struct node *node_antilocate_match(struct walker *, struct node *);
-static bool nodes_are_matches(struct node *, struct node *);
+static bit bit_index_node(struct node *, size_t, size_t);
+static struct node *node_antilocate(struct walker *, uint8_t *, size_t);
 static size_t node_diff(struct node *, struct node *);
 static bool node_matches_key(struct node *, uint8_t *, size_t);
 static void walker_begin(struct walker *, struct set *);
 static void walker_finish(struct walker *);
-static void walker_next(struct walker *);
+//static void walker_next(struct walker *);
 static void walker_rise(struct walker *);
 static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
 
 void
-attach_node(struct walker *wal, struct node *el_node, struct node *sib_node)
+attach_node(struct walker *wal, struct node *el_node,
+            struct node *sib_node, size_t size)
 {
 	struct node *cur_node;
 	struct set *set;
@@ -63,7 +62,7 @@ attach_node(struct walker *wal, struct node *el_node, struct node *sib_node)
 	bit b;
 	
 	el_node->crit = node_diff(el_node, sib_node);
-	b = bit_index_node(el_node, el_node->crit);
+	b = bit_index_node(el_node, size, el_node->crit);
 	el_node->chld[b] = tag_leaf(el_node);
 	
 	while (walker_rise(wal), !is_set(wal->cur)) {
@@ -94,28 +93,24 @@ bit_index_bytes(uint8_t *key, size_t len, size_t crit)
 }
 
 bit
-bit_index_node(struct node *node, size_t crit)
+bit_index_node(struct node *node, size_t size, size_t crit)
 {
-	return bit_index_bytes(node->obj, node->size, crit);
+	return bit_index_bytes(node->obj, size, crit);
 }
 
 struct node *
-node_antilocate_match(struct walker *wal, struct node *key_node)
+node_antilocate(struct walker *wlk, uint8_t *key, size_t len)
 {
-	struct node *match_node;
+	struct node *match;
 
-	walker_walk(wal, key_node->obj, key_node->size);
-	match_node = node_from_tag(wal->cur);
+	walker_walk(wlk, key, len);
+	match = node_from_tag(wlk->cur);
 
-	if (!nodes_are_matches(key_node, match_node)) {
-		return match_node;
-	} else return 0;
-}
-
-bool
-nodes_are_matches(struct node *lef_node, struct node *rit_node)
-{
-	return node_matches_key(lef_node, rit_node->obj, rit_node->size);
+	if (!node_matches_key(match, key, len)) {
+		return match;
+	} else {
+		return 0;
+	}
 }
 
 size_t
@@ -129,9 +124,7 @@ node_diff(struct node *lef_node, struct node *rit_node)
 
 	diff = lef_node->obj[pos] ^ rit_node->obj[pos];
 	
-	if (diff & 0xf0) diff >>= 4, off |= 4;
-	if (diff & 0x0c) diff >>= 2, off |= 2;
-	if (diff & 0x02) diff >>= 1, off |= 1;
+	off = ufls(diff) - 1;
 
 	return pos * 8 + 7 - off;
 }
@@ -139,10 +132,7 @@ node_diff(struct node *lef_node, struct node *rit_node)
 bool
 node_matches_key(struct node *node, uint8_t *key, size_t len)
 {
-	size_t min_size;
-
-	min_size = umin(node->size, len);
-	return !memcmp(node->obj, key, min_size);
+	return !memcmp(node->obj, key, len);
 }
 
 void
@@ -245,65 +235,31 @@ walker_walk(struct walker *wal, void *key, size_t len)
 	}
 }
 
-void *
-set_alloc(size_t len)
-{
-	struct node *res_node;
-
-	res_node = calloc(1, sizeof *res_node + len);
-	if (!res_node) return 0;
-
-	res_node->size = len;
-
-	return res_node->obj;
-}
-
 void
-set_add(struct set *set, void *el)
+set_add(struct set *set, struct set_node *new, size_t size)
 {
-	struct walker wal[1];
+	struct walker walk[1];
+	struct node *new_node;
 	struct node *sib_node;
-	struct node *el_node;
 
 	if (!set) return;
-	if (!el)  return;
+	if (!new) return;
 
-	el_node = node_of(el);
+	new_node = (void *)new;
 
 	if (!set->root) {
-		set->root = tag_leaf(el_node);
+		set->root = tag_leaf(new_node);
 		return;
 	}
 
-	walker_begin(wal, set);
+	walker_begin(walk, set);
 
-	sib_node = node_antilocate_match(wal, el_node);
+	sib_node = node_antilocate(walk, new_node->obj, size);
 	if (!sib_node) return;
 
-	attach_node(wal, el_node, sib_node);
+	attach_node(walk, new_node, sib_node, size);
 
-	walker_finish(wal);
-}
-
-void
-set_free(struct set *set)
-{
-	struct walker wal[1] = {{0}};
-	struct node *cur_node;
-	
-	walker_begin(wal, set);
-
-	while (!is_set(wal->cur)) {
-		cur_node = node_from_tag(wal->cur);
-		
-		if (wal->ord == 2) {
-			free(cur_node);
-		} else if (!cur_node->chld[1]) {
-			free(cur_node);
-		}
-
-		walker_next(wal);
-	}
+	walker_finish(walk);
 }
 
 void *
@@ -332,17 +288,4 @@ set_has(struct set *set, void *key, size_t len)
 
 	cur_node = node_from_tag(cur_tag);
 	return node_matches_key(cur_node, key, len);
-}
-
-char *
-set_str(char *str)
-{
-	char *ret;
-
-	ret = set_alloc(strlen(str) + 1);
-	if (!ret) return 0;
-
-	strcpy(ret, str);
-
-	return ret;
 }
