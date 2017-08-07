@@ -51,11 +51,15 @@ static void walker_rise(struct walker *);
 static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
 
+static inline void lrotate(ulong *lef, ulong *mid, ulong *rit);
+
 void
-shift(ulong *lef, ulong *mid, ulong rit)
+lrotate(ulong *lef, ulong *mid, ulong *rit)
 {
+	ulong tmp = *lef;
 	*lef = *mid;
-	*mid = rit;
+	*mid = *rit;
+	*rit = tmp;
 }
 
 void
@@ -161,7 +165,6 @@ void
 walker_rise(struct walker *wal)
 {
 	uintptr_t *chld;
-	uintptr_t temp_tag;
 	bit b;
 
 	if (is_set(wal->prev)) {
@@ -172,11 +175,9 @@ walker_rise(struct walker *wal)
 	
 	chld = node_from_tag(wal->prev)->chld;
 	b = is_back(chld[1]);
-	temp_tag = wal->prev;
-       	wal->prev = tag_from_back(chld[b]);
 
-	chld[b] = wal->cur;
-	wal->cur = temp_tag;
+	chld[b] = tag_from_back(chld[b]);
+	lrotate(chld + b, &wal->cur, &wal->prev);
 
 	wal->bit = b;
 }
