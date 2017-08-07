@@ -109,7 +109,7 @@ run_test(struct unit_test *te)
 void
 unit_error(char *error)
 {
-	dprintf(2, "%s", error);
+	dprintf(2, "error\n    %s\n", error);
 	longjmp(escape_hatch, 0);
 }
 
