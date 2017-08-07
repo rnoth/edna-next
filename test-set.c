@@ -51,7 +51,7 @@ test_compare()
 	lef->i = 56;
 	rit->i = 56;
 
-	ok(node_matches_key((void *)lef, (void *)&rit->i, sizeof (int)));
+	ok(byte_diff((void*)&lef->i, (void*)&rit->i, sizeof (int)));
 }
 
 void
@@ -151,7 +151,9 @@ test_remove_dict(struct set *t)
 void
 test_two_strings()
 {
-	char *strs[3] = {"hello", "goodbye", 0x0};
+	char *hello = "hello";
+	char *goodbye = "goodbye";
+	char *strs[3] = { hello, goodbye, 0x0};
 	struct set_str *nodes[3]={0};
 	struct set set[1] = {{0}};
 	struct node *node;
@@ -168,10 +170,15 @@ test_two_strings()
 
 	node = node_from_tag(set->root);
 	expect(4, node->crit);
-	node = node_from_tag(node->chld[0]);
+	ok(!strcmp((char*)node->obj, goodbye));
 
-	ok(set_has(set, strs[0], strlen(strs[0]) + 1));
-	ok(set_has(set, strs[1], strlen(strs[1]) + 1));
+	ok(node == node_from_tag(node->chld[0]));
+	node = node_from_tag(node->chld[1]);
+	ok(!strcmp((char*)node->obj, hello));
+
+	ok(set_has(set, hello, strlen(hello) + 1));
+	ok(set_has(set, goodbye, strlen(goodbye) + 1));
+	ok(!set_has(set, "I should fail", strlen("I should fail")));
 
 	free(nodes[0]);
 	free(nodes[1]);
@@ -197,7 +204,10 @@ test_n_strings(char **strs)
 	}
 
 	for (i=0; strs[i]; ++i) {
-		ok(set_has(set, strs[i], strlen(strs[i]) + 1));
+		okf(set_has(set, strs[i], strlen(strs[i]) + 1),
+		    "assertion false: "
+		    "set_has(set, \"%s\", strlen(\"%s\") + 1)",
+		    strs[i], strs[i]);
 	}
 }
 
