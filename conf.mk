@@ -12,11 +12,13 @@ SRC	:= $(wildcard *.c)
 OBJ	:= $(SRC:.c=.c.o)
 DEP	:= $(wildcard *.d)
 TESTS	:= $(wildcard test-*.c)
-BIN	:= edna $(TESTS:.c=)
+BIN	:= edna $(TESTS:.c=) bench-set
 
 edna: main.c.o
 $(foreach test,$(TESTS),$(eval $(test:.c=): $(test:.c=.c.o)))
 test-edna: edna
+
+bench-set: bench-set.c.o
 
 ifndef NDEBUG
 CFLAGS	+= -O0 -ggdb3 -Werror
