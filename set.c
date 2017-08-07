@@ -236,7 +236,15 @@ walker_walk(struct walker *wal, void *key, size_t len)
 }
 
 void
-set_add(struct set *set, struct set_node *new, size_t size)
+set_add(struct set *set, struct set_node *new, size_t len)
+{
+	struct node *node = (void *)new;
+	set_add_key(set, new, node->obj, len);
+}
+
+void
+set_add_key(struct set *set, struct set_node *new,
+            uint8_t *key, size_t len)
 {
 	struct walker walk[1];
 	struct node *new_node;
@@ -254,10 +262,10 @@ set_add(struct set *set, struct set_node *new, size_t size)
 
 	walker_begin(walk, set);
 
-	sib_node = node_antilocate(walk, new_node->obj, size);
+	sib_node = node_antilocate(walk, key, len);
 	if (!sib_node) return;
 
-	attach_node(walk, new_node, sib_node, size);
+	attach_node(walk, new_node, sib_node, len);
 
 	walker_finish(walk);
 }
