@@ -5,11 +5,13 @@
 
 struct command;
 
-int cmd_add(struct set *set, struct command *cmd);
+void cmd_add(struct set *cmds, struct command *cmd);
+void cmd_init(struct set *cmds);
 
 struct command {
 	struct set_node *node;
 	char *name;
+	size_t len;
 	int (*fun)(void *ctx);
 	void *ctx;
 };
