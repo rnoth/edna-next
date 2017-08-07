@@ -8,19 +8,19 @@
 #include <util.h>
 #include <set.h>
 
-#define tag_back(u) ((u) | 4)
-#define tag_leaf(n) ((uintptr_t)(n) | 1)
-#define tag_node(n) ((uintptr_t)(n))
-#define tag_set(s) ((uintptr_t)s | 2)
+#define tag_back(u) ((u) | 2)
+#define tag_leaf(n) ((uintptr_t)n | 1)
+#define tag_node(n) ((uintptr_t)n)
+#define tag_set(s) ((uintptr_t)s | 1)
 
-#define tag_from_back(u) (u ^ 4)
 #define node_from_tag(u) ((struct node *)(u & ~1))
-#define set_from_tag(u) ((struct set *)(u & ~2))
+#define set_from_tag(u) ((struct set *)(u & ~1))
+#define tag_from_back(u) (u ^ 2)
 
-#define is_back(u) !!(u & 4)
+#define is_back(u) !!(u & 2)
 #define is_leaf(u) (u & 1)
-#define is_node(u) !(u & 3)
-#define is_set(u) !!(u & 2)
+#define is_node(u) !(u & 1)
+#define is_set(u) (u & 1)
 
 #define obj(n) 
 
