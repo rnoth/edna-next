@@ -35,7 +35,6 @@ struct node {
 struct walker {
 	uintptr_t cur;
 	uintptr_t prev;
-	uint8_t   ord:3;
 	uint8_t   bit:1;
 };
 
@@ -53,7 +52,7 @@ static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
 
 void
-attach_node(struct walker *wal, struct node *el_node,
+attach_node(struct walker *walk, struct node *el_node,
             struct node *sib_node, size_t size)
 {
 	struct node *cur_node;
@@ -65,14 +64,14 @@ attach_node(struct walker *wal, struct node *el_node,
 	b = bit_index_node(el_node, size, el_node->crit);
 	el_node->chld[b] = tag_leaf(el_node);
 	
-	while (walker_rise(wal), !is_set(wal->cur)) {
+	while (walker_rise(walk), !is_set(walk->cur)) {
 
-		cur_node = node_from_tag(wal->cur);
-		dest_tag_ptr = cur_node->chld + wal->bit;
+		cur_node = node_from_tag(walk->cur);
+		dest_tag_ptr = cur_node->chld + walk->bit;
 		if (cur_node->crit < el_node->crit) goto attach;
 	}
 
-	set = set_from_tag(wal->cur);
+	set = set_from_tag(walk->cur);
 	dest_tag_ptr = &set->root;
 
  attach:
@@ -140,7 +139,6 @@ walker_begin(struct walker *wal, struct set *set)
 {
 	wal->prev = tag_set(set);
 	wal->cur = set->root;
-	wal->ord = 0;
 	wal->bit = 0;
 }
 
@@ -167,8 +165,6 @@ walker_rise(struct walker *wal)
 		wal->prev = 0;
 		set->root = wal->cur;
 		wal->cur = temp_tag;
-		wal->prev = 0;
-		wal->ord = 1;
 		return;
 	}
 	
@@ -180,7 +176,6 @@ walker_rise(struct walker *wal)
 	cur_chld[b] = wal->cur;
 	wal->cur = temp_tag;
 
-	wal->ord = 1 + b;
 	wal->bit = b;
 }
 
@@ -198,7 +193,6 @@ walker_visit(struct walker *wal, bit b)
 	cur_chld[b] = tag_back(wal->prev);
 	wal->prev = temp_tag;
 
-	wal->ord = 0;
 	wal->bit = b;
 }
 
