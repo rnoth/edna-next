@@ -17,32 +17,70 @@ enum error {
 struct file;
 
 static int exec_ln();
+static int insert_ln();
 
 static void setup(void);
 static int run(void);
 static void cleanup(void);
 
 static struct edna edna[1];
-static struct file input[1];
+
+size_t
+eat_spaces(char *buffer, size_t length)
+{
+	size_t offset = 0;
+
+	while (offset < length) {
+		if (!isspace(buffer[offset])) {
+			break;
+		} else ++offset;
+	}
+
+	return offset;
+}
 
 int
 exec_ln(void)
 {
-	char ch;
+	static char buffer[4096];
+	size_t length;
+	size_t offset;
 
-	do { // FIXME: not unicode-aware
-		ch = file_get_char(input);
-		if (ch < 0) return -ch;
-		if (ch == '\n') return 0;
-	} while (isspace(ch));
+	length = read(0, buffer, 4096);
+	if ((ssize_t)length == -1) return errno;
+	if (length == 0) return -1;
 
-	switch (ch) {
+	offset = eat_spaces(buffer, length);
+
+	switch (buffer[offset++]) {
+	case 'i':
+		offset = eat_spaces(buffer+offset, length - offset);
+		if (offset < length && !isspace(buffer[offset])) {
+			goto error;
+		}
+
+		return insert_ln();
+
 	case 'q':
 		return -1;
+
 	default:
-		file_discard_line(input);
+	error:
 		dprintf(1, "?\n");
 		return 0;
+	}
+}
+
+int
+insert_ln(void)
+{
+	static char buffer[4096];
+	ssize_t length;
+
+	while (true) {
+		length = read(0, buffer, 4096);
+		if (length == -1) return errno;
+		if (!length) return 0;
 	}
 }
 
@@ -50,7 +88,6 @@ void
 setup(void)
 {
 	edna_init(edna);
-	file_init(input, 0);
 }
 
 int
