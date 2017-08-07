@@ -203,23 +203,29 @@ walker_visit(struct walker *wal, bit b)
 }
 
 void
-walker_next(struct walker *wal)
+walker_next(struct walker *walk)
 {
-	switch (wal->ord) {
-	case 0:
-		if (is_leaf(wal->cur)) goto rise;
-		walker_visit(wal, 0);
-		break;
-	case 1:
-		if (is_leaf(wal->cur)) goto rise;
-		walker_visit(wal, 1);
-		break;
-		
-	case 2:
-	rise:
-		walker_rise(wal);
-		break;
+	struct node *node;
+
+	if (is_leaf(walk->cur)) {
+		walker_rise(walk);
+		return;
 	}
+
+	node = node_from_tag(walk->cur);
+
+	if (!is_back(node->chld[0])) {
+		walker_visit(walk, 0);
+		return;
+	}
+
+	if (!is_back(node->chld[1])) {
+		walker_visit(walk, 1);
+		return;
+	}
+
+
+	walker_rise(walk);
 }
 
 void
