@@ -157,7 +157,7 @@ walker_begin(struct walker *wal, struct set *set)
 void
 walker_finish(struct walker *wal)
 {
-	while (wal->prev) {
+	while (!is_set(wal->prev)) {
 		walker_rise(wal);
 	}
 }
@@ -168,16 +168,7 @@ walker_rise(struct walker *wal)
 	uintptr_t *chld;
 	bit b;
 
-	if (!wal->prev) {
-		wal->cur = 0;
-		return;
-	}
-
-	if (is_set(wal->prev)) {
-		wal->cur = wal->prev;
-		wal->prev = 0;
-		return;
-	}
+	if (is_set(wal->prev)) return;
 	
 	chld = node_from_tag(wal->prev)->chld;
 	b = is_back(chld[1]);
@@ -267,10 +258,11 @@ set_add_key(struct set *set, struct set_node *new,
 	walker_begin(walk, set);
 
 	sib_node = node_antilocate(walk, key, len);
-	if (!sib_node) return;
+	if (!sib_node) goto done;
 
 	attach_node(walk, new_node, sib_node, len);
 
+ done:
 	walker_finish(walk);
 }
 
