@@ -23,7 +23,8 @@ struct set {
 
 struct set_node {
 	uintptr_t chld[2];
-	size_t    crit;
+	size_t crit;
+	void *key;
 };
 
 #endif

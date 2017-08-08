@@ -13,11 +13,6 @@ static void test_n_strings(char**);
 //static void test_remove_dict(struct set *);
 static void test_two_strings(void);
 
-struct set_str {
-	struct set_node node[1];
-	char str[];
-};
-
 struct unit_test tests[] = {
 	{.msg = "should get sensible results from bit indexing functions",
 	 .fun = unit_list(test_index),},
@@ -43,21 +38,13 @@ struct unit_test tests[] = {
 void
 test_compare()
 {
-	struct set_int {
-		struct set_node n[1];
-		int i;
-	} lef[1], rit[1];
-
-	lef->i = 56;
-	rit->i = 56;
-
-	ok(byte_diff((void*)&lef->i, (void*)&rit->i, sizeof (int)));
+	ok(!~byte_diff((int[]){56}, (int[]){56}, sizeof (int)));
 }
 
 void
 test_dict(struct set *t)
 {
-	struct set_str *s;
+	struct set_node *s;
 	char b[256];
 	size_t n;
 	FILE *f;
@@ -67,9 +54,10 @@ test_dict(struct set *t)
 	while (fgets(b, 256, f)) {
 		n = strlen(b);
 		b[n] = 0;
-		ok(s = calloc(sizeof *s + n + 1, 1));
-		try(strcpy(s->str, b));
-		try(set_add(t, s->node, n + 1));
+		ok(s = malloc(sizeof *s));
+		ok(s->key = malloc(n));
+		try(strcpy(s->key, b));
+		try(set_add(t, s, n));
 	}
 
 	rewind(f);
@@ -77,7 +65,7 @@ test_dict(struct set *t)
 	while (fgets(b, 256, f)) {
 		n = strlen(b);
 		b[n] = 0;
-		okf(set_has(t, b, n + 1),
+		okf(set_has(t, b, n),
 		    "assertion false: "
 		    "set_has(t, \"%s\", strlen(\"%s\") + 1)",
 		    b, b);
@@ -151,65 +139,56 @@ test_remove_dict(struct set *t)
 void
 test_two_strings()
 {
-	char *hello = "hello";
-	char *goodbye = "goodbye";
-	char *strs[3] = { hello, goodbye, 0x0};
-	struct set_str *nodes[3]={0};
+	struct set_node goodbye_node[1];
+	struct set_node hello_node[1];
 	struct set set[1] = {{0}};
-	struct node *node;
+	char *goodbye = "goodbye";
+	char *hello = "hello";
 	size_t n;
-	int i;
 
-	for (i=0; strs[i]; ++i) {
-		n = strlen(strs[i]) + 1;
-		ok(nodes[i] = calloc(sizeof *nodes[i] + n, 1));
-		strcpy(nodes[i]->str, strs[i]);
-		try(set_add(set, nodes[i]->node, n));
-		ok(set->root);
-	}
+	n = strlen(hello) + 1;
+	hello_node->key = hello;
+	try(set_add(set, hello_node, n));
+	ok(set->root);
 
+	n = strlen(goodbye) + 1;
+	goodbye_node->key = goodbye;
+	try(set_add(set, goodbye_node, n));
 	expect(1, set->height);
 
-	node = node_from_tag(set->root);
-	expect(4, node->crit);
-	ok(!strcmp((char*)node->obj, goodbye));
+	expect(4, goodbye_node->crit);
 
-	ok(node == node_from_tag(node->chld[0]));
-	node = node_from_tag(node->chld[1]);
-	ok(!strcmp((char*)node->obj, hello));
+	ok(goodbye_node == node_from_tag(goodbye_node->chld[0]));
+	ok(hello_node == node_from_tag(goodbye_node->chld[1]));
 
 	ok(set_has(set, hello, strlen(hello) + 1));
 	ok(set_has(set, goodbye, strlen(goodbye) + 1));
 	ok(!set_has(set, "I should fail", strlen("I should fail")));
-
-	free(nodes[0]);
-	free(nodes[1]);
 }
 
 void
-test_n_strings(char **strs)
+test_n_strings(char **strings)
 {
 	struct set set[1] = {{0}};
-	struct set_str **l;
+	struct set_node *node_array;
 	size_t i;
 	size_t n;
 
-	for (i=0; strs[i]; ++i);
+	for (i=0; strings[i]; ++i);
 
-	ok(l = calloc(i + 1, sizeof *l));
+	ok(node_array = calloc(i + 1, sizeof *node_array));
 	
-	for (i=0; strs[i]; ++i) {
-		n = strlen(strs[i]) + 1;
-		ok(l[i] = calloc(sizeof *l[i] + n, 1));
-		strcpy(l[i]->str, strs[i]);
-		try(set_add(set, l[i]->node, n));
+	for (i=0; strings[i]; ++i) {
+		n = strlen(strings[i]) + 1;
+		node_array[i].key = strings[i];
+		try(set_add(set, node_array+i, n));
 	}
 
-	for (i=0; strs[i]; ++i) {
-		okf(set_has(set, strs[i], strlen(strs[i]) + 1),
+	for (i=0; strings[i]; ++i) {
+		okf(set_has(set, strings[i], strlen(strings[i]) + 1),
 		    "assertion false: "
 		    "set_has(set, \"%s\", strlen(\"%s\") + 1)",
-		    strs[i], strs[i]);
+		    strings[i], strings[i]);
 	}
 }
 
