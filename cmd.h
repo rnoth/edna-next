@@ -10,11 +10,10 @@ void cmd_init(struct set *cmds);
 struct command *cmd_lookup(struct set *cmds, char *name, size_t len);
 
 struct command {
-	struct set_node *node;
-	char *name;
+	struct set_node node[1];
 	size_t len;
-	int (*fun)(void *ctx);
-	void *ctx;
+	int (*fun)(void *arg);
+	void *arg;
 };
 
 #endif
