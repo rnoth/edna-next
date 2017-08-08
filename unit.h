@@ -24,7 +24,8 @@
 	unit_unset_expr();    \
 } while (0)
 
-#define ok(EXPR) okf(EXPR, "assertion false: \"%s\"", #EXPR); 
+#define ok(EXPR) okf(EXPR, "assertion false: \"%s\" " \
+                     "(line %d)", #EXPR, __LINE__); 
 
 #define okf(EXPR,  ...) do {      \
 	char msg[256];                   \
