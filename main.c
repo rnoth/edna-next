@@ -79,20 +79,7 @@ exec_ln(void)
 		return 0;
 	}
 
-	return cmd->fun(cmd->arg);
-}
-
-int
-insert_ln(void)
-{
-	static char buffer[4096];
-	ssize_t length;
-
-	while (true) {
-		length = read(0, buffer, 4096);
-		if (length == -1) return errno;
-		if (!length) return 0;
-	}
+	return cmd->fun(edna, cmd->arg);
 }
 
 void
