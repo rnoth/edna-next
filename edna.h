@@ -7,14 +7,7 @@ int edna_init(struct edna *edna);
 void edna_fini(struct edna *edna);
 
 struct edna {
-	struct piece *txt;
-};
-
-struct piece {
-	struct piece *next;
-	struct piece *prev;
-	char  *str;
-	size_t len;
+	struct piece *text;
 };
 
 #endif
