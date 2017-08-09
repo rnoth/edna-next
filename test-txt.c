@@ -132,8 +132,8 @@ test_empty()
 	ok(!one->buffer);
 	ok(!one->length);
 	ok(two = text_next(one, 0));
-	ok(two->link == (link)one);
-	ok(one->link == (link)two);
+	ok(two->link == (uintptr_t)one);
+	ok(one->link == (uintptr_t)two);
 	ok(!two->buffer);
 	ok(!two->length);
 

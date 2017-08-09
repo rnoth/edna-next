@@ -10,13 +10,8 @@
 #include <edna.h>
 #include <file.h>
 #include <set.h>
+#include <txt.h>
 #include <util.h>
-
-enum error {
-	err_unknown_command=-2,
-};
-
-struct file;
 
 static int exec_ln();
 

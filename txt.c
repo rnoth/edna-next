@@ -107,8 +107,8 @@ text_insert(struct piece **dest, struct piece *new, size_t offset)
 void
 text_link(struct piece *lef, struct piece *rit)
 {
-	if (lef) lef->link ^= (link)rit;
-	if (rit) rit->link ^= (link)lef;
+	if (lef) lef->link ^= (uintptr_t)rit;
+	if (rit) rit->link ^= (uintptr_t)lef;
 }
 
 struct piece *
@@ -116,7 +116,7 @@ text_next(struct piece *cur, struct piece *prev)
 {
 	uintptr_t res;
 
-	res = cur->link ^ (link)prev;
+	res = cur->link ^ (uintptr_t)prev;
 
 	return (void *)res;
 }
@@ -164,8 +164,8 @@ text_split(struct piece **dest, size_t offset, size_t extent)
 void
 text_unlink(struct piece *lef, struct piece *rit)
 {
-	lef->link ^= (link)rit;
-	rit->link ^= (link)lef;
+	lef->link ^= (uintptr_t)rit;
+	rit->link ^= (uintptr_t)lef;
 }
 
 size_t

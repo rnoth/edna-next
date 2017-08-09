@@ -21,10 +21,23 @@ edna_init(struct edna *edna)
 }
 
 int
+edna_text_delete(struct edna *edna, size_t offset, size_t extent)
+{
+	struct piece *links[2];
+
+	links[0] = edna->text, links[1] = 0;
+
+	offset = text_walk(links, offset);
+
+	return text_delete(links, offset, extent);
+}
+
+int
 edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 {
 	struct piece *links[2];
 	struct piece *pie;
+	int err;
 
 	pie = calloc(1, sizeof *pie);
 	if (!pie) return ENOMEM;
@@ -33,8 +46,13 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	pie->length = length;
 
 	links[0] = edna->text, links[1] = 0;
-	offset = text_walk(links, offset);
-	text_insert(links, pie, offset);
+	offset = text_walk(links, offset+1);
+
+	err = text_insert(links, pie, offset);
+	if (err) {
+		free(pie);
+		return err;
+	}
 
 	return 0;
 }

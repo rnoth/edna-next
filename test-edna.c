@@ -22,13 +22,14 @@
 	okf(!strncmp(_msg, _msg1, _len), \
 	    "expected input string to be echoed: %s\n", _msg); \
 } while (false)
+
 extern char **environ;
 
 static void kill_edna();
 static void expect_prompt();
 static void expect_error();
-//static void insert_line(char *ln);
-//static void print_line(char *ln);
+static void insert_line(char *ln);
+static void print_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
 static void spawn_edna();
@@ -56,14 +57,12 @@ struct unit_test tests[] = {
 	                  expect_prompt, quit_edna, wait_edna),
 	 .ctx = "hi hi",},
 
-	#if 0
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
 	                  expect_prompt, quit_edna, wait_edna),
 	 .ctx = "Hello, world!\n",},
-	#endif
 };
 
 static pid_t edna_pid;
