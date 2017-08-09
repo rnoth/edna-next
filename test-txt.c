@@ -59,7 +59,7 @@ test_delete()
 
 	expect(0, text_delete(links, 2, 1));
 
-	expect(4, pie->length);
+	expect(2, pie->length);
 	ok(text_next(pie, beg) != end);
 	new = text_next(pie, beg);
 	ok(text_next(new, pie) == end);

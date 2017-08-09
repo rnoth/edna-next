@@ -6,7 +6,7 @@
 static void text_link(struct piece *lef, struct piece *rit);
 static struct piece *text_next(struct piece *cur, struct piece *next);
 static void text_relink(struct piece *, struct piece *, struct piece *);
-static int text_split(struct piece **dest, size_t offset);
+static int text_split(struct piece **dest, size_t offset, size_t extent);
 static void text_unlink(struct piece *lef, struct piece *rit);
 
 struct piece *
@@ -28,11 +28,45 @@ text_ctor(void)
 	return beg;
 }
 
+
+int
+text_split(struct piece **dest, size_t offset, size_t extent)
+{
+	struct piece *next;
+	struct piece *new;
+
+	if (offset + extent == 0 || offset + extent >= dest[0]->length) {
+		next = text_next(dest[0], dest[1]);
+		dest[1] = dest[0];
+		dest[0] = next;
+
+		return 0;
+	}
+
+	new = calloc(1, sizeof *new);
+	if (!new) return ENOMEM;
+
+	new->length = dest[0]->length - offset - extent;
+	new->buffer = dest[0]->buffer + offset + extent;
+
+	dest[0]->length = offset;
+
+	next = text_next(dest[0], dest[1]);
+
+	text_relink(next, new, dest[0]);
+
+	dest[1] = dest[0];
+	dest[0] = new;
+
+	return 0;
+}
+
 int
 text_delete(struct piece **dest, size_t offset, size_t extent)
 {
 	if (dest[0]->length >= offset + extent) {
-		return -1;
+		text_split(dest, offset, extent);
+		dest[0] = 0, dest[1] = 0;
 	}
 
 	return 0;
@@ -58,7 +92,7 @@ text_insert(struct piece **dest, struct piece *new, size_t offset)
 {
 	int err;
 
-	err = text_split(dest, offset);
+	err = text_split(dest, offset, 0);
 	if (err) return err;
 
 	text_relink(dest[0], new, dest[1]);
@@ -90,38 +124,6 @@ text_relink(struct piece *next, struct piece *new, struct piece *prev)
 	text_unlink(next, prev);
 	text_link(next, new);
 	text_link(new, prev);
-}
-
-int
-text_split(struct piece **dest, size_t offset)
-{
-	struct piece *next;
-	struct piece *new;
-
-	if (!offset || offset >= dest[0]->length) {
-		next = text_next(dest[0], dest[1]);
-		dest[1] = dest[0];
-		dest[0] = next;
-
-		return 0;
-	}
-
-	new = calloc(1, sizeof *new);
-	if (!new) return ENOMEM;
-
-	new->length = dest[0]->length - offset;
-	new->buffer = dest[0]->buffer + offset;
-
-	dest[0]->length = offset;
-
-	next = text_next(dest[0], dest[1]);
-
-	text_relink(next, new, dest[0]);
-
-	dest[1] = dest[0];
-	dest[0] = new;
-
-	return 0;
 }
 
 void
