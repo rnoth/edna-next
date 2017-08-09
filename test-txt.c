@@ -8,6 +8,8 @@
 static void make_links(struct piece **);
 
 static void test_delete();
+static void test_delete2();
+static void test_delete3();
 static void test_empty();
 static void test_insert();
 static void test_insert2();
@@ -27,6 +29,10 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert2),},
 	{.msg = "should be able to delete text within pieces",
 	 .fun = unit_list(test_delete),},
+	{.msg = "should be able to delete across pieces",
+	 .fun = unit_list(test_delete2),},
+	{.msg = "should be able to delete across many pieces",
+	 .fun = unit_list(test_delete3),},
 };
 
 void
@@ -63,6 +69,56 @@ test_delete()
 	ok(text_next(pie, beg) != end);
 	new = text_next(pie, beg);
 	ok(text_next(new, pie) == end);
+
+	ok(links[0] == 0);
+
+	free(new);
+}
+
+void
+test_delete2()
+{
+	struct piece beg[1] = {{0}};
+	struct piece end[1] = {{0}};
+	struct piece one[1] = {{.buffer="abc__"}};
+	struct piece two[1] = {{.buffer="__def"}};
+	struct piece *links[2];
+
+	make_links(beg, one, two, end);
+
+	links[0] = beg, links[1] = 0;
+	text_walk(links, 3);
+
+	expect(0, text_delete(links, 3, 4));
+
+	expect(3, one->length);
+	expect(3, two->length);
+	ok(*two->buffer == 'd');
+}
+
+void
+test_delete3()
+{
+	struct piece beg[1] = {{0}};
+	struct piece end[1] = {{0}};
+	struct piece one[1] = {{.buffer="hello, "}};
+	struct piece two[1] = {{.buffer="(not you)"}};
+	struct piece thr[1] = {{.buffer="friends."}};
+	struct piece *links[2];
+
+	make_links(beg, one, two, thr, end);
+
+	links[0] = beg, links[1] = 0;
+	text_walk(links, 7);
+
+	expect(0, text_delete(links, 0, 9));
+
+	expect(7, one->length);
+	expect(8, thr->length);
+
+	ok(*links == two);
+	ok(text_next(one, beg) == thr);
+	ok(text_next(thr, end) == one);
 }
 
 void
@@ -111,7 +167,7 @@ test_insert()
 	ok(*pie->buffer == '!');
 
 	links[0] = beg, links[1] = 0;
-	ok(text_walk(links, 14));
+	text_walk(links, 13);
 
 	ok(links[0] == pie);
 	ok(links[1] == new);
@@ -134,11 +190,11 @@ test_insert2()
 	links[0] = beg, links[1] = 0;
 	text_walk(links, 5);
 
-	ok(!text_insert(links, new, 5));
+	ok(!text_insert(links, new, 0));
 	ok(text_next(one, beg) == new);
 	ok(one->length == 5);
 
-	links[0] = beg, links[1] = 0;
+	links[0] = one, links[1] = beg;
 	ok(!text_insert(links, new1, 0));
 
 	ok(text_next(one, new) == new1);
@@ -209,8 +265,8 @@ test_traverse()
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 3));
-	ok(links[0] == foo);
-	ok(links[1] == beg);
+	ok(links[0] == bar);
+	ok(links[1] == foo);
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 5));
@@ -219,8 +275,8 @@ test_traverse()
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 6));
-	ok(links[0] == bar);
-	ok(links[1] == foo);
+	ok(links[0] == baz);
+	ok(links[1] == bar);
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 10));
