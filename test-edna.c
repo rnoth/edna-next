@@ -96,7 +96,7 @@ expect_prompt()
 void
 expect_error()
 {
-	char buffer[2] = {0};
+	char buffer[3] = {0};
 	ssize_t res;
 	
 	ok(res = read(edna_pty, buffer, 2));
@@ -117,7 +117,7 @@ insert_line(char *ln)
 void
 print_line(char *ln)
 {
-	char buf[256];
+	char buf[256]={0};
 	size_t len = strlen(ln);
 
 	rwritef(edna_pty, "p\n");
