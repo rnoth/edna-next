@@ -95,8 +95,8 @@ text_insert(struct piece **dest, struct piece *new, size_t offset)
 void
 text_link(struct piece *lef, struct piece *rit)
 {
-	lef->link ^= (link)rit;
-	rit->link ^= (link)lef;
+	if (lef) lef->link ^= (link)rit;
+	if (rit) rit->link ^= (link)lef;
 }
 
 struct piece *
