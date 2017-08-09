@@ -27,10 +27,19 @@ int
 edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 {
 	struct piece *links[2];
+	int err;
 
 	links[0] = edna->text, links[1] = 0;
 	offset = text_walk(links, offset);
-	return text_delete(links, offset, extent);
+	err = text_delete(links, offset, extent);
+	if (err) return err;
+
+	if (links[0]) {
+		text_link(links[0], edna->dead);
+		edna->dead = links[0];
+	}
+
+	return 0;
 }
 
 int
