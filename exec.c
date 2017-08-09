@@ -6,32 +6,33 @@
 
 #include <cmd.h>
 
+static size_t eat_ident(char *buffer, size_t length);
+static size_t eat_spaces(char *buffer, size_t length);
+
+#define eat(RES, VAR, EXPR, BUF, LEN) do {	  \
+	size_t off=0; \
+	while (off < (LEN)) { \
+		VAR = (BUF)[off]; \
+		if (!(EXPR)) break; \
+		else ++off; \
+	} \
+	(RES) = off; \
+} while (0)
+
 size_t
 eat_ident(char *buffer, size_t length)
 {
-	size_t offset = 0;
-
-	while (offset < length) {
-		if (isspace(buffer[offset])) {
-			break;
-		} else ++offset;
-	}
-
-	return offset;
+	size_t result;
+	eat(result, char c, !isspace(c), buffer, length);
+	return result;
 }
 
 size_t
 eat_spaces(char *buffer, size_t length)
 {
-	size_t offset = 0;
-
-	while (offset < length) {
-		if (!isspace(buffer[offset])) {
-			break;
-		} else ++offset;
-	}
-
-	return offset;
+	size_t result;
+	eat(result, char c, isspace(c), buffer, length);
+	return result;
 }
 
 int
