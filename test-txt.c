@@ -1,8 +1,13 @@
+#include <string.h>
+
 #include <unit.h>
 
 #include <util.h>
-#include <edna.c>
+#include <txt.c>
 
+static void make_links(struct piece **);
+
+static void test_delete();
 static void test_empty();
 static void test_insert();
 static void test_insert2();
@@ -20,27 +25,63 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert),},
 	{.msg = "should be able to insert text around pieces",
 	 .fun = unit_list(test_insert2),},
+	{.msg = "should be able to delete text within pieces",
+	 .fun = unit_list(test_delete),},
 };
+
+void
+make_links(struct piece **pies)
+{
+	size_t i;
+
+	for (i=0; pies[i]; ++i) {
+		text_link(pies[i], pies[i+1]);
+		if (pies[i]->buffer) {
+			pies[i]->length = strlen(pies[i]->buffer);
+		}
+	}
+}
+#define make_links(...) make_links((struct piece *[]){__VA_ARGS__, 0})
+
+void
+test_delete()
+{
+	struct piece beg[1] = {{0}};
+	struct piece pie[1] = {{.buffer="tyypo"}};
+	struct piece end[1] = {{0}};
+	struct piece *new;
+	struct piece *links[2];
+
+	make_links(beg, pie, end);
+
+	links[0] = beg, links[1] = 0;
+	text_walk(links, 3);
+
+	expect(0, text_delete(links, 2, 1));
+
+	expect(4, pie->length);
+	ok(text_next(pie, beg) != end);
+	new = text_next(pie, beg);
+	ok(text_next(new, pie) == end);
+}
 
 void
 test_empty()
 {
-	struct edna edna[1];
-	struct piece *pie;
+	struct piece *one;
+	struct piece *two;
 
-	try(edna_init(edna));
+	ok(one = text_ctor());
+	ok(one->link);
+	ok(!one->buffer);
+	ok(!one->length);
+	ok(two = text_next(one, 0));
+	ok(two->link == (link)one);
+	ok(one->link == (link)two);
+	ok(!two->buffer);
+	ok(!two->length);
 
-	ok(edna->text);
-	ok(edna->text->link);
-	ok(!edna->text->buffer);
-	ok(!edna->text->length);
-	ok(pie = text_next(edna->text, 0));
-	ok(edna->text->link == (link)pie);
-	ok(pie->link == (link)edna->text);
-	ok(!pie->buffer);
-	ok(!pie->length);
-
-	try(edna_fini(edna));
+	try(text_dtor(one));
 }
 
 void
@@ -53,8 +94,7 @@ test_insert()
 	struct piece *pie;
 	struct piece *links[2];
 
-	text_link(beg, hi);
-	text_link(hi, end);
+	make_links(beg, hi, end);
 
 	links[0] = beg, links[1] = 0;
 	text_walk(links, 5);
@@ -89,8 +129,7 @@ test_insert2()
 	struct piece new1[1] = {{.buffer="one, ", .length=5}};
 	struct piece *links[2];
 
-	text_link(beg, one);
-	text_link(one, end);
+	make_links(beg, one, end);
 
 	links[0] = beg, links[1] = 0;
 	text_walk(links, 5);
