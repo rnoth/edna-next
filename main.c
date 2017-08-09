@@ -8,110 +8,36 @@
 
 #include <cmd.h>
 #include <edna.h>
-#include <file.h>
+#include <exec.h>
 #include <set.h>
-#include <txt.h>
 #include <util.h>
 
-static int exec_ln();
-
-static void setup(void);
-static int run(void);
-static void cleanup(void);
-
-static struct set cmds[1];
-static struct edna edna[1];
-
-size_t
-eat_ident(char *buffer, size_t length)
-{
-	size_t offset = 0;
-
-	while (offset < length) {
-		if (isspace(buffer[offset])) {
-			break;
-		} else ++offset;
-	}
-
-	return offset;
-}
-
-size_t
-eat_spaces(char *buffer, size_t length)
-{
-	size_t offset = 0;
-
-	while (offset < length) {
-		if (!isspace(buffer[offset])) {
-			break;
-		} else ++offset;
-	}
-
-	return offset;
-}
+static int run(struct edna *edna);
 
 int
-exec_ln(void)
-{
-	static char buffer[4096];
-	struct command *cmd;
-	size_t length;
-	size_t extent;
-	size_t offset;
-
-	length = read(0, buffer, 4096);
-	if (length == -1UL) return errno;
-	if (length == 0) return -1;
-
-	offset = eat_spaces(buffer, length);
-	if (offset >= length) return 0;
-
-	extent = eat_ident(buffer+offset, length-offset);
-
-	cmd = cmd_lookup(cmds, buffer+offset, extent);
-	if (!cmd) {
-		dprintf(1, "?\n");
-		return 0;
-	}
-
-	return cmd->fun(edna, cmd->arg);
-}
-
-void
-setup(void)
-{
-	cmd_init(cmds);
-	edna_init(edna);
-}
-
-int
-run(void)
+run(struct edna *edna)
 {
 	int err;
 
 	err = dprintf(1, ":");
 	if (err < 0) return errno;
 
-	err = exec_ln();
+	err = exec_ln(edna);
 	if (err) return err;
 
 	return 0;
 }
 
-void
-cleanup(void)
-{
-	edna_fini(edna);
-}
-
 int
 main()
 {
+	struct edna edna[1];
 	int err = 0;
 
-	setup();
+	edna_init(edna);
 	
-	while (!err) err = run();
+	while (!err) err = run(edna);
 
-	cleanup();
+	edna_fini(edna);
 }
+

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <edna.h>
+#include <cmd.h>
 #include <txt.h>
 
 void
@@ -17,6 +18,8 @@ edna_init(struct edna *edna)
 	edna->text = text_ctor();
 	if (!edna->text) return ENOMEM;
 
+	*edna->cmds = (struct set){0};
+	cmd_init(edna->cmds);
 	return 0;
 }
 
@@ -26,9 +29,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	struct piece *links[2];
 
 	links[0] = edna->text, links[1] = 0;
-
 	offset = text_walk(links, offset);
-
 	return text_delete(links, offset, extent);
 }
 
