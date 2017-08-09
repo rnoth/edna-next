@@ -5,6 +5,7 @@
 
 static void test_empty();
 static void test_insert();
+static void test_insert2();
 static void test_link();
 static void test_traverse();
 
@@ -15,8 +16,10 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_link),},
 	{.msg = "should be able to traverse piece lists",
 	 .fun = unit_list(test_traverse),},
-	{.msg = "should be able to insert text",
+	{.msg = "should be able to insert text within piece",
 	 .fun = unit_list(test_insert),},
+	{.msg = "should be able to insert text around pieces",
+	 .fun = unit_list(test_insert2),},
 };
 
 void
@@ -48,13 +51,14 @@ test_insert()
 	struct piece end[1] = {{0}};
 	struct piece new[1] = {{.buffer=", friend", .length=8}};
 	struct piece *pie;
-	struct piece *result[2];
+	struct piece *links[2];
 
 	text_link(beg, hi);
 	text_link(hi, end);
 
-	text_walk(result, beg, 5);
-	ok(!text_insert(result, new, 5));
+	links[0] = beg, links[1] = 0;
+	text_walk(links, 5);
+	ok(!text_insert(links, new, 5));
 
 	ok(hi->length == 5);
 
@@ -66,12 +70,41 @@ test_insert()
 	ok(pie->length == 1);
 	ok(*pie->buffer == '!');
 
-	ok(text_walk(result, beg, 14));
+	links[0] = beg, links[1] = 0;
+	ok(text_walk(links, 14));
 
-	ok(result[0] == pie);
-	ok(result[1] == new);
+	ok(links[0] == pie);
+	ok(links[1] == new);
 
 	free(pie);
+}
+
+void
+test_insert2()
+{
+	struct piece beg[1] = {{0}};
+	struct piece one[1] = {{.buffer="two, ", .length=5}};
+	struct piece end[1] = {{0}};
+	struct piece new[1] = {{.buffer="three.", .length=6}};
+	struct piece new1[1] = {{.buffer="one, ", .length=5}};
+	struct piece *links[2];
+
+	text_link(beg, one);
+	text_link(one, end);
+
+	links[0] = beg, links[1] = 0;
+	text_walk(links, 5);
+
+	ok(!text_insert(links, new, 5));
+	ok(text_next(one, beg) == new);
+	ok(one->length == 5);
+
+	links[0] = beg, links[1] = 0;
+	ok(!text_insert(links, new1, 0));
+
+	ok(text_next(one, new) == new1);
+	ok(text_next(beg, 0) == new1);
+	ok(beg->length == 0);
 }
 
 void
@@ -118,36 +151,42 @@ test_traverse()
 	struct piece bar[1] = {{.buffer="bar", .length=3}};
 	struct piece baz[1] = {{.buffer="baz", .length=3}};
 	struct piece end[1] = {{0}};
-	struct piece *result[2];
+	struct piece *links[2];
 
 	text_link(beg, foo);
 	text_link(foo, bar);
 	text_link(bar, baz);
 	text_link(baz, end);
 
-	try(text_walk(result, beg, 0));
-	ok(result[0] == foo);
-	ok(result[1] == beg);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 0));
+	ok(links[0] == beg);
+	ok(links[1] == 0);
 
-	try(text_walk(result, beg, 2));
-	ok(result[0] == foo);
-	ok(result[1] == beg);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 2));
+	ok(links[0] == foo);
+	ok(links[1] == beg);
 
-	try(text_walk(result, beg, 3));
-	ok(result[0] == foo);
-	ok(result[1] == beg);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 3));
+	ok(links[0] == foo);
+	ok(links[1] == beg);
 
-	try(text_walk(result, beg, 5));
-	ok(result[0] == bar);
-	ok(result[1] == foo);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 5));
+	ok(links[0] == bar);
+	ok(links[1] == foo);
 
-	try(text_walk(result, beg, 6));
-	ok(result[0] == bar);
-	ok(result[1] == foo);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 6));
+	ok(links[0] == bar);
+	ok(links[1] == foo);
 
-	try(text_walk(result, beg, 10));
-	ok(result[0] == end);
-	ok(result[1] == baz);
+	links[0] = beg, links[1] = 0;
+	try(text_walk(links, 10));
+	ok(links[0] == end);
+	ok(links[1] == baz);
 }
 
 int

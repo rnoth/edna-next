@@ -20,7 +20,7 @@ static struct piece *text_next(struct piece *cur, struct piece *next);
 static void text_relink(struct piece *, struct piece *, struct piece *);
 static int text_split(struct piece **dest, size_t offset);
 static void text_unlink(struct piece *lef, struct piece *rit);
-static size_t text_walk(struct piece **dest, struct piece *beg, size_t extent);
+static size_t text_walk(struct piece **dest, size_t extent);
 
 void
 edna_fini(struct edna *edna)
@@ -43,13 +43,14 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	struct piece *links[2];
 	struct piece *pie;
 
-	pie = malloc(sizeof *pie);
+	pie = calloc(1, sizeof *pie);
 	if (!pie) return ENOMEM;
 
 	pie->buffer = text;
 	pie->length = length;
 
-	offset = text_walk(links, edna->text, offset);
+	links[0] = edna->text, links[1] = 0;
+	offset = text_walk(links, offset);
 	text_insert(links, pie, offset);
 
 	return 0;
@@ -106,7 +107,7 @@ text_next(struct piece *cur, struct piece *prev)
 
 	res = cur->link ^ (link)prev;
 
-	return (struct piece *)res;
+	return (void *)res;
 }
 
 
@@ -124,16 +125,21 @@ text_split(struct piece **dest, size_t offset)
 	struct piece *next;
 	struct piece *new;
 
-	if (!offset) return 0;
-	if (offset >= dest[0]->length) return 0;
+	if (!offset || offset >= dest[0]->length) {
+		next = text_next(dest[0], dest[1]);
+		dest[1] = dest[0];
+		dest[0] = next;
 
-	new = malloc(sizeof *new);
+		return 0;
+	}
+
+	new = calloc(1, sizeof *new);
 	if (!new) return ENOMEM;
 
 	new->length = dest[0]->length - offset;
-	dest[0]->length = offset;
+	new->buffer = dest[0]->buffer + offset;
 
-	new->buffer = dest[0]->buffer+offset;
+	dest[0]->length = offset;
 
 	next = text_next(dest[0], dest[1]);
 
@@ -153,26 +159,21 @@ text_unlink(struct piece *lef, struct piece *rit)
 }
 
 size_t
-text_walk(struct piece **dest, struct piece *text, size_t extent)
+text_walk(struct piece **dest, size_t extent)
 {
-	struct piece *temp;
-	struct piece *cur = text_next(text, 0);
-	struct piece *prev = text;
+	struct piece *next;
 	size_t offset = 0;
 
 	while (offset < extent) {
-		temp = text_next(cur, prev);
-		if (!temp) break;
-		if (offset + cur->length >= extent) {
+		next = text_next(dest[0], dest[1]);
+		if (!next) break;
+		if (offset + dest[0]->length >= extent) {
 			break;
 		}
-		offset += cur->length;
-		prev = cur;
-		cur = temp;
+		offset += dest[0]->length;
+		dest[1] = dest[0];
+		dest[0] = next;
 	}
-
-	dest[0] = cur;
-	dest[1] = prev;
 
 	return extent - offset;
 }
