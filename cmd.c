@@ -15,6 +15,7 @@ static int cmd_quit();
 static size_t cursor[2];
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
+
 struct command commands[] = {
 	cmd("q", cmd_quit, 0),
 	cmd("i", cmd_insert, cursor),
