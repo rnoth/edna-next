@@ -43,7 +43,7 @@ trap_failures(void)
 	err = sigaction(SIGALRM, sa, 0x0);
 	if (err) throw("sigaction failed");
 
-	err = sigaction(SIGALRM, sa, 0x0);
+	err = sigaction(SIGILL, sa, 0x0);
 	if (err) throw("sigaction failed");
 
 	sa->sa_handler = SIG_IGN;
@@ -66,6 +66,9 @@ report_error(int sig)
 		break;
 	case SIGABRT:
 		why = "aborted";
+		break;
+	case SIGILL:
+		why = "illegal instruction";
 		break;
 	case SIGTRAP:
 	default:
