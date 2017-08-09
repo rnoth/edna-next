@@ -13,8 +13,8 @@
 #include <util.h>
 
 #define rwritef(fd, ...) do { \
-	char _msg[256]={0}; \
-	char _msg1[256]={0}; \
+	char _msg[256]; \
+	char _msg1[256]; \
 	int _len = snprintf(_msg, 256, __VA_ARGS__); \
 	expect(_len, write(fd, _msg, _len)); \
 	msleep(1); \
