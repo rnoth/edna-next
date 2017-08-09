@@ -27,7 +27,7 @@
 #define ok(EXPR) okf(EXPR, "assertion false: \"%s\" " \
                      "(line %d)", #EXPR, __LINE__); 
 
-#define okf(EXPR,  ...) do {      \
+#define okf(EXPR, ...) do {      \
 	char msg[256];                   \
 	snprintf(msg, 256, __VA_ARGS__); \
 	_unit_ok(EXPR, msg);             \
