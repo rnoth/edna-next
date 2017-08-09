@@ -17,12 +17,22 @@ static int run(struct edna *edna);
 int
 run(struct edna *edna)
 {
+	static char buffer[4096];
+	struct parse *parse;
+	size_t length;
 	int err;
 
 	err = dprintf(1, ":");
 	if (err < 0) return errno;
 
-	err = exec_ln(edna);
+	length = read(0, buffer, 4096);
+	if (length == -1UL) return errno;
+	if (length == 0) return -1;
+
+	err = parse_ln(&parse, buffer, length);
+	if (err) return err;
+
+	err = exec_ln(edna, parse);
 	if (err) return err;
 
 	return 0;
