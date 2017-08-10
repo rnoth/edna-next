@@ -28,9 +28,9 @@ extern char **environ;
 static void kill_edna();
 static void expect_prompt();
 static void expect_error();
-static void insert_line(char *ln);
-static void print_line(char *ln);
-static void send_line(char *ln);
+static void insert_line(char **lns);
+static void print_line(char **lns);
+static void send_line(char **lns);
 static void send_eof();
 static void spawn_edna();
 static void quit_edna();
@@ -48,21 +48,21 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  quit_edna, wait_edna),
-	 .ctx = "unknown",},
+	 .ctx = (char *[]){"unknown",0},},
 
 	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = "hi hi",},
+	 .ctx = (char *[]){"hi hi",0},},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = "Hello, world!\n",},
+	 .ctx = (char *[]){"Hello, world!\n",0},},
 };
 
 static pid_t edna_pid;
@@ -108,28 +108,38 @@ expect_error()
 }
 
 void
-insert_line(char *ln)
+insert_line(char **lns)
 {
-	rwritef(edna_pty, "i\n%s", ln);
+	rwritef(edna_pty, "i\n");
+	while (*lns) {
+		rwritef(edna_pty, "%s", *lns);
+		++lns;
+	}
 	ok(write(edna_pty, "\x04", 1) == 1);
 }
 
 void
-print_line(char *ln)
+print_line(char **lns)
 {
 	char buf[256]={0};
-	size_t len = strlen(ln);
+	size_t len;
 
+	while (lns[1]) ++lns;
+
+	len = strlen(*lns);
 	rwritef(edna_pty, "p\n");
 	len = read(edna_pty, buf, len);
 
-	okf(!strncmp(buf, ln, len), "expected \"%s\", got \"%s\"", ln, buf);
+	okf(!strncmp(buf, lns[0], len), "expected \"%s\", got \"%s\"", lns[0], buf);
 }
 
 void
-send_line(char *ln)
+send_line(char **lns)
 {
-	rwritef(edna_pty, "%s\n", ln);
+	while (*lns) {
+		rwritef(edna_pty, "%s\n", *lns);
+		++lns;
+	}
 	msleep(1);
 }
 
