@@ -14,39 +14,66 @@ die(char *blame)
 	exit(1);
 }
 
+size_t
+wc(char *map, size_t len)
+{
+	size_t nlines=0;
+	size_t off=0;
+	char *nl;
+
+	while (off < len) {
+		nl = memchr(map+off, '\n', len-off);
+		if (!nl) break;
+		off = nl - map + 1;
+		++nlines;
+	}
+
+	return nlines;
+}
+
+void
+lb(size_t *offs, size_t nlines, char *map, size_t len)
+{
+	char *nl;
+	size_t i;
+	size_t off=0;
+
+	for (i=0; i<nlines; ++i) {
+		offs[i] = off;
+		nl = memchr(map+off, '\n', len-off);
+		if (!nl) break;
+		off = nl - map + 1;
+	}
+
+	offs[nlines] = len;
+}
+
 void
 run(char *map, size_t len)
 {
-	char *nl;
-	size_t off;
-	size_t ext;
-	struct {
-		struct set_node n[1];
-		char s[];
-	} *t;
-
+	size_t i;
+	size_t nlines;
+	size_t *offs;
+	struct set_node *nodes;
 	struct set s[1] = {{0}};
 
-	for (off=0; off < len; off += ext) {
-		nl = memchr(map+off, '\n', len - off);
-		if (!nl) return;
+	nlines = wc(map, len);
 
-		ext = nl - map - off + 1;
-		t = malloc(sizeof *t + ext);
-		if (!t) die("malloc failed");
+	offs = calloc(nlines + 1, sizeof *offs);
+	if (!offs) die("malloc failed");
 
-		memcpy(t->s, map+off, ext);
+	nodes = calloc(nlines, sizeof *nodes);
+	if (!nodes) die("malloc failed");
 
-		set_add(s, t->n, ext);
+	lb(offs, nlines, map, len);
+
+	for (i=0; i<nlines; ++i) {
+		nodes[i].key = map+offs[i];
+		set_add(s, nodes+i, offs[i+1] - offs[i]);
 	}
 
-	for (off=0; off < len; off += ext) {
-		nl = memchr(map+off, '\n', len - off);
-		if (!nl) return;
-
-		ext = nl - map - off + 1;
-
-		set_has(s, map+off, ext);
+	for (i=0; i<nlines; ++i) {
+		set_has(s, map+offs[i], offs[i+1] - offs[i]);
 	}
 }
 
