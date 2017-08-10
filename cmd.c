@@ -12,7 +12,7 @@ static int cmd_insert();
 static int cmd_print();
 static int cmd_quit();
 
-static size_t cursor[2];
+static size_t cursor[2] = {0, 1};
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
 
@@ -45,7 +45,7 @@ cmd_insert(struct edna *edna, size_t *offset)
 		err = edna_text_insert(edna, offset[1], ln, length);
 		if (err) return err;
 
-		offset[0] = offset[1];
+		offset[0] = offset[1] - 1;
 		offset[1] += length;
 	}
 }
