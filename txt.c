@@ -42,6 +42,8 @@ text_delete(struct piece **dest, size_t offset, size_t extent)
 	size_t temp;
 	int err;
 
+	if (offset >= dest[0]->length) text_walk(dest, offset);
+
 	if (offset + extent < dest[0]->length) {
 		err = text_split(dest, offset, extent);
 		if (err) return err;
@@ -82,18 +84,19 @@ text_dtor(struct piece *txt)
 	struct piece *cur=0;
 	struct piece *prev;
 
-
-	do {
+	while (next) {
 		prev = cur, cur = next;
 		next = text_next(cur, prev);
 		free(cur);
-	} while (next);
+	}
 }
 
 int
 text_insert(struct piece **dest, struct piece *new, size_t offset)
 {
 	int err;
+
+	if (offset >= dest[0]->length) text_walk(dest, offset);
 
 	err = text_split(dest, offset, 0);
 	if (err) return err;

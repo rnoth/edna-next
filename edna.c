@@ -10,6 +10,7 @@ void
 edna_fini(struct edna *edna)
 {
 	text_dtor(edna->text);
+	text_dtor(edna->dead);
 }
 
 int
@@ -30,7 +31,6 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	int err;
 
 	links[0] = edna->text, links[1] = 0;
-	offset = text_walk(links, offset);
 	err = text_delete(links, offset, extent);
 	if (err) return err;
 
@@ -56,7 +56,6 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	pie->length = length;
 
 	links[0] = edna->text, links[1] = 0;
-	offset = text_walk(links, offset+1);
 
 	err = text_insert(links, pie, offset);
 	if (err) {
