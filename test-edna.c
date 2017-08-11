@@ -44,6 +44,11 @@ struct unit_test tests[] = {
 	{.msg = "should be able to quit",
 	 .fun = unit_list(spawn_edna, quit_edna, wait_edna),},
 
+	{.msg = "should accept empty lines",
+	 .fun = unit_list(spawn_edna,
+	                  expect_prompt, send_line,
+	                  expect_prompt, quit_edna),
+	 .ctx = (char *[]){"\n"},},
 	{.msg = "should produce errors on unknown commands",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
@@ -82,7 +87,7 @@ void
 expect_prompt()
 {
 	int res;
-	char buf[256];
+	char buf[256]={0};
 
 	msleep(1);
 	ok(res = read(edna_pty, buf, 255));
