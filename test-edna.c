@@ -12,7 +12,6 @@
 #include <unit.h>
 #include <util.h>
 
-#define args(...) ((char *[]){__VA_ARGS__, 0})
 #define rwritef(fd, ...) do { \
 	char _msg[256]; \
 	char _msg1[256]; \
@@ -29,10 +28,11 @@ extern char **environ;
 static void kill_edna();
 static void expect_prompt();
 static void expect_error();
-static void insert_line(char **lns);
-static void print_line(char **lns);
-static void send_line(char **lns);
+static void insert_line(char *ln);
+static void print_line(char *ln);
+static void send_line(char *ln);
 static void send_eof();
+static void test_insert1();
 static void spawn_edna();
 static void quit_edna();
 static void wait_edna();
@@ -50,26 +50,29 @@ struct unit_test tests[] = {
 	                  expect_prompt, send_line,
 	                  expect_prompt, quit_edna, wait_edna
 	                  ),
-	 .ctx = args("\n"),},
+	 .ctx = "\n",},
 	{.msg = "should produce errors on unknown commands",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  quit_edna, wait_edna),
-	 .ctx = args("unknown"),},
+	 .ctx = "unknown",},
 
 	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = args("hi hi"),},
+	 .ctx = "hi hi",},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = args("Hello, world!\n"),},
+	 .ctx = "Hello, world!\n",},
+
+	{.msg = "should be able to insert multiple lines",
+	 .fun = unit_list(spawn_edna, test_insert1, quit_edna, wait_edna),},
 };
 
 static pid_t edna_pid;
@@ -112,38 +115,30 @@ expect_error()
 }
 
 void
-insert_line(char **lns)
+insert_line(char *ln)
 {
 	rwritef(edna_pty, "i\n");
-	while (*lns) {
-		rwritef(edna_pty, "%s", *lns);
-		++lns;
-	}
+	rwritef(edna_pty, "%s", ln);
 	ok(write(edna_pty, "\x04", 1) == 1);
 }
 
 void
-print_line(char **lns)
+print_line(char *ln)
 {
 	char buf[256]={0};
 	size_t len;
 
-	while (lns[1]) ++lns;
-
-	len = strlen(*lns);
+	len = strlen(ln);
 	rwritef(edna_pty, "p\n");
 	len = read(edna_pty, buf, len);
 
-	okf(!strncmp(buf, lns[0], len), "expected \"%s\", got \"%s\"", lns[0], buf);
+	okf(!strncmp(buf, ln, len), "expected \"%s\", got \"%s\"", ln, buf);
 }
 
 void
-send_line(char **lns)
+send_line(char *ln)
 {
-	while (*lns) {
-		rwritef(edna_pty, "%s\n", *lns);
-		++lns;
-	}
+	rwritef(edna_pty, "%s\n", ln);
 	msleep(1);
 }
 
@@ -199,6 +194,17 @@ spawn_edna()
 	case  0: break;
 	}
 	close(fd[0]);
+}
+
+void
+test_insert1()
+{
+	expect_prompt();
+	insert_line("one\n");
+	expect_prompt();
+	insert_line("two\n");
+	expect_prompt();
+	print_line("two\n");
 }
 
 void
