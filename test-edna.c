@@ -12,6 +12,7 @@
 #include <unit.h>
 #include <util.h>
 
+#define args(...) ((char *[]){__VA_ARGS__, 0})
 #define rwritef(fd, ...) do { \
 	char _msg[256]; \
 	char _msg1[256]; \
@@ -47,27 +48,28 @@ struct unit_test tests[] = {
 	{.msg = "should accept empty lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line,
-	                  expect_prompt, quit_edna),
-	 .ctx = (char *[]){"\n"},},
+	                  expect_prompt, quit_edna, wait_edna
+	                  ),
+	 .ctx = args("\n"),},
 	{.msg = "should produce errors on unknown commands",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  quit_edna, wait_edna),
-	 .ctx = (char *[]){"unknown",0},},
+	 .ctx = args("unknown"),},
 
 	{.msg = "should read multiple lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = (char *[]){"hi hi",0},},
+	 .ctx = args("hi hi"),},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, insert_line,
 	                  expect_prompt, print_line,
 	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = (char *[]){"Hello, world!\n",0},},
+	 .ctx = args("Hello, world!\n"),},
 };
 
 static pid_t edna_pid;
@@ -93,9 +95,6 @@ expect_prompt()
 	ok(res = read(edna_pty, buf, 255));
 	buf[res] = 0;
 	okf(*buf == ':', "expected a prompt (':'), got \"%s\"", buf);
-	if (res > 1) {
-		unit_fail_fmt("unexpected trailing string after prompt: %s", buf+1);
-	}
 }
 
 void
