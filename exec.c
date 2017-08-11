@@ -78,6 +78,8 @@ exec_ln(struct edna *edna, struct parse *parse)
 {
 	struct command *cmd;
 
+	if (!parse) return 0;
+
 	cmd = cmd_lookup(edna->cmds, parse->string, parse->length);
 	if (!cmd) {
 		dprintf(1, "?\n");
