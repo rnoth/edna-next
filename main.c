@@ -27,7 +27,7 @@ run(struct edna *edna)
 
 	err = fd_read(input, 0);
 	if (err) return err;
- 
+
 	err = parse_ln(&parse, input->buffer, input->length);
 	if (err) return err;
 
