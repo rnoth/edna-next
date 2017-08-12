@@ -48,7 +48,7 @@ cmd_insert(struct edna *edna, size_t *cursor)
 		                       ln->buffer, ln->length);
 		if (err) return err;
 
-		cursor[0] += cursor[1] + 1;
+		cursor[0] += cursor[1];
 		cursor[1] = ln->length;
 	}
 }
