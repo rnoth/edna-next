@@ -35,6 +35,7 @@ static void send_eof();
 
 static void test_insert_dot();
 static void test_insert_eof();
+static void test_insert_empty();
 static void test_insert_simple();
 static void test_insert0();
 static void test_insert1();
@@ -87,6 +88,9 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna, test_insert0, quit_edna, wait_edna),},
 	{.msg = "should be able to insert multiple lines seperately",
 	 .fun = unit_list(spawn_edna, test_insert1, quit_edna, wait_edna),},
+
+	{.msg = "should handle empty lines properly",
+	 .fun = unit_list(spawn_edna, test_insert_empty, quit_edna, wait_edna),},
 };
 
 static pid_t edna_pid;
@@ -228,6 +232,17 @@ test_insert_eof()
 	expect_prompt();
 
 	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
+}
+
+void
+test_insert_empty()
+{
+	expect_prompt();
+	send_line("i");
+	send_line("");
+	send_eof();
+	expect_prompt();
+	print_line("\n\n");
 }
 
 void
