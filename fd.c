@@ -1,11 +1,7 @@
-#include <errno.h>
 #include <poll.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
 
-#include <file.h>
+#include <fd.h>
 #include <util.h>
 
 int
@@ -14,7 +10,7 @@ fd_peek(size_t *dest, int fd)
 	uint nbytes;
 	int err;
 
-	err = ioctl(fd, FIONREAD, nbytes);
+	err = ioctl(fd, FIONREAD, &nbytes);
 	if (err == -1) return err;
 
 	*dest = nbytes;

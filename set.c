@@ -73,13 +73,15 @@ byte_diff(void *_lef, void *_rit, size_t len)
 	uint8_t *lef=_lef, *rit=_rit;
 	size_t off;
 
-	for (off=0; off<len; ++off) {
+	off=len;
+	while (--off) {
 		if (*lef != *rit) goto diff;
 		++lef, ++rit;
 	}
 
 	return -1;
  diff:
+	off = len - off - 1;
 	return off * 8 + 8 - ufls(*lef ^ *rit);
 }
 
