@@ -1,6 +1,8 @@
 #ifndef _edna_util_
 #define _edna_util_
 
+#include <stdarg.h>
+
 #define LONG_BIT (sizeof (unsigned long) * 8)
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 
@@ -37,6 +39,7 @@ umin(ulong a, ulong b)
 }
 
 char *asprintf(char *fmt, ...);
+char *vasprintf(char *fmt, va_list args);
 int msleep(size_t);
 int mk_pty(void);
 int open_pty(int);

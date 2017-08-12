@@ -10,16 +10,26 @@
 char *
 asprintf(char *fmt, ...)
 {
-	char *res;
-	size_t mem;
 	va_list args;
 
 	va_start(args, fmt);
+	return vasprintf(fmt, args);
+}
+
+char *
+vasprintf(char *fmt, va_list args)
+{
+	va_list args2;
+	size_t mem;
+	char *res;
+
+	va_copy(args2, args);
+
 	mem = vsnprintf(0, 0, fmt, args);
 	res = malloc(mem + 1);
 	if (!res) return 0;
 
-	vsnprintf(res, mem + 1, fmt, args);
+	vsnprintf(res, mem + 1, fmt, args2);
 
 	return res;
 }
