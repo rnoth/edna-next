@@ -61,7 +61,7 @@ parse_ln(struct parse **dest, char *buffer, size_t length)
 	offset = eat_spaces(buffer, length);
 	if (offset >= length) return 0;
 
-	*dest = malloc(sizeof *dest);
+	*dest = malloc(sizeof **dest);
 	if (!*dest) return ENOMEM;
 
 	extent = eat_ident(buffer+offset, length-offset);
