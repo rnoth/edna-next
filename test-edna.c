@@ -32,6 +32,7 @@ static void insert_line(char *ln);
 static void print_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
+static void test_insert0();
 static void test_insert1();
 static void spawn_edna();
 static void quit_edna();
@@ -72,6 +73,8 @@ struct unit_test tests[] = {
 	 .ctx = "Hello, world!\n",},
 
 	{.msg = "should be able to insert multiple lines",
+	 .fun = unit_list(spawn_edna, test_insert0, quit_edna, wait_edna),},
+	{.msg = "should be able to insert multiple lines seperately",
 	 .fun = unit_list(spawn_edna, test_insert1, quit_edna, wait_edna),},
 };
 
@@ -194,6 +197,18 @@ spawn_edna()
 	case  0: break;
 	}
 	close(fd[0]);
+}
+
+void
+test_insert0()
+{
+	expect_prompt();
+	send_line("i\n");
+	send_line("good night sir\n");
+	send_line("good day indeed\n");
+	send_line(".\n");
+	expect_prompt();
+	print_line("good day indeed\n");
 }
 
 void
