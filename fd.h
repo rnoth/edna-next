@@ -3,8 +3,9 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <util.h>
 
-int file_peek(size_t *dest, int fd);
-bool file_readable(int fd);
+uint fd_peek(int fd);
+bool fd_readable(int fd);
 
 #endif
