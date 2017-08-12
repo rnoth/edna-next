@@ -96,7 +96,7 @@ text_insert(struct piece **dest, struct piece *new, size_t offset)
 {
 	int err;
 
-	if (offset >= dest[0]->length) text_walk(dest, offset);
+	offset = text_walk(dest, offset);
 
 	err = text_split(dest, offset, 0);
 	if (err) return err;
@@ -137,13 +137,7 @@ text_split(struct piece **dest, size_t offset, size_t extent)
 	struct piece *next;
 	struct piece *new;
 
-	if (offset + extent == 0) {
-		//next = text_next(dest[0], dest[1]);
-		//dest[1] = dest[0];
-		//dest[0] = next;
-
-		return 0;
-	}
+	if (offset + extent == 0) return 0;
 
 	new = calloc(1, sizeof *new);
 	if (!new) return ENOMEM;
@@ -176,7 +170,7 @@ text_walk(struct piece **dest, size_t extent)
 	struct piece *next;
 	size_t offset = 0;
 
-	while (offset < extent) {
+	do {
 		next = text_next(dest[0], dest[1]);
 		if (!next) break;
 
@@ -186,7 +180,7 @@ text_walk(struct piece **dest, size_t extent)
 		offset += dest[0]->length;
 		dest[1] = dest[0];
 		dest[0] = next;
-	}
+	} while (offset < extent);
 
 	return extent - offset;
 }

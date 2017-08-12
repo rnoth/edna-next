@@ -13,20 +13,23 @@ static void test_delete3();
 static void test_empty();
 static void test_insert();
 static void test_insert2();
+static void test_insert3();
 static void test_link();
 static void test_traverse();
 
 struct unit_test tests[] = {
-	{.msg = "should start with an empty piece list",
+	{.msg = "should start with an empty piece chain",
 	 .fun = unit_list(test_empty),},
 	{.msg = "should be able to link pieces",
 	 .fun = unit_list(test_link),},
-	{.msg = "should be able to traverse piece lists",
+	{.msg = "should be able to traverse piece chains",
 	 .fun = unit_list(test_traverse),},
 	{.msg = "should be able to insert text within piece",
 	 .fun = unit_list(test_insert),},
 	{.msg = "should be able to insert text around pieces",
 	 .fun = unit_list(test_insert2),},
+	{.msg = "should be able to insert text in an empty piece chain",
+	 .fun = unit_list(test_insert3),},
 	{.msg = "should be able to delete text within pieces",
 	 .fun = unit_list(test_delete),},
 	{.msg = "should be able to delete across pieces",
@@ -188,18 +191,41 @@ test_insert2()
 	make_links(beg, one, end);
 
 	links[0] = beg, links[1] = 0;
-	text_walk(links, 5);
 
 	ok(!text_insert(links, new, 0));
-	ok(text_next(one, beg) == new);
+	ok(text_next(beg, 0) == new);
+	ok(text_next(new, beg) == one);
 	ok(one->length == 5);
 
-	links[0] = one, links[1] = beg;
-	ok(!text_insert(links, new1, 0));
+	links[0] = beg, links[1] = 0;
+	ok(!text_insert(links, new1, 10));
 
-	ok(text_next(one, new) == new1);
-	ok(text_next(beg, 0) == new1);
+	ok(text_next(end, 0) == new1);
+	ok(text_next(new1, end) == one);
 	ok(beg->length == 0);
+}
+
+void
+test_insert3()
+{
+	struct piece beg[1] = {{0}};
+	struct piece end[1] = {{0}};
+	struct piece new[1] = {{.buffer="I'm in"}};
+	struct piece *links[2];
+
+	make_links(beg, end);
+	make_links(new);
+
+	links[0] = beg, links[1] = 0;
+
+	try(text_insert(links, new, 0));
+
+	ok(text_next(beg, 0) == new);
+	ok(text_next(new, beg) == end);
+	ok(text_next(end, new) == 0);
+
+	ok(beg->length == 0);
+	ok(end->length == 0);
 }
 
 void
@@ -255,8 +281,8 @@ test_traverse()
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 0));
-	ok(links[0] == beg);
-	ok(links[1] == 0);
+	ok(links[0] == foo);
+	ok(links[1] == beg);
 
 	links[0] = beg, links[1] = 0;
 	try(text_walk(links, 2));
