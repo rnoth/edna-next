@@ -172,6 +172,7 @@ unit_parse_argv(char **argv)
 int
 unit_run_tests(struct unit_test *tl, size_t len)
 {
+	int width;
 	size_t i;
 	int err;
 	
@@ -182,9 +183,11 @@ unit_run_tests(struct unit_test *tl, size_t len)
 		return -1;
 	}
 
+	width = snprintf(0, 0, "%zu", len);
+
 	if (unit_opt_test_num) run_test(tl + unit_opt_test_num - 1);
 	else for (i=0; i<len; ++i) {
-		dprintf(0, "%zd| ", i+1);
+		dprintf(0, "%*zd| ", width, i+1);
 		run_test(tl + i);
 	}
 
