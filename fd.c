@@ -45,5 +45,5 @@ fd_wait(int fd)
 	err = poll(pollfd, 1, -1);
 	if (err == -1) return errno;
 
-	return true;
+	return 0;
 }
