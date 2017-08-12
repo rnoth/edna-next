@@ -25,10 +25,13 @@ fd_read(struct read *dest, int fd)
 	ssize_t res;
 	int err;
 
+	*dest = (struct read){0};
+
 	err = fd_wait(fd);
 	if (err) return err;
 
 	dest->length = fd_peek(fd);
+	if (!dest->length) return -1;
 
 	dest->buffer = malloc(dest->length);
 	if (!dest->buffer) return errno;
