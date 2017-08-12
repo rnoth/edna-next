@@ -30,10 +30,8 @@ cmd_insert(struct edna *edna, size_t *cursor)
 	int err;
 
 	while (true) {
-		err = fd_wait(0);
-		if (err) return err;
-
 		err = fd_read(ln, 0);
+		if (err == -1) return 0;
 		if (err) return err;
 
 		if (!ln->length) {
@@ -41,7 +39,7 @@ cmd_insert(struct edna *edna, size_t *cursor)
 			return 0;
 		}
 
-		if (strncmp(ln->buffer, ".\n", ln->length)) {
+		if (ln->length == 2 && !memcmp(ln->buffer, ".\n", 2)) {
 			free(ln->buffer);
 			return 0;
 		}
@@ -50,7 +48,7 @@ cmd_insert(struct edna *edna, size_t *cursor)
 		                       ln->buffer, ln->length);
 		if (err) return err;
 
-		cursor[0] += cursor[1];
+		cursor[0] += cursor[1] + 1;
 		cursor[1] = ln->length;
 	}
 }
@@ -71,10 +69,10 @@ cmd_print(struct edna *edna, size_t *cursor)
 	text_walk(links, cursor[0]);
 
 	while (offset < cursor[0] + cursor[1]) {
-		text_step(links);
-
 		write(1, links[0]->buffer, links[0]->length);
 		offset += links[0]->length;
+
+		text_step(links);
 	}
 
 	return 0;
