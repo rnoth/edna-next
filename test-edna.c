@@ -51,7 +51,7 @@ struct unit_test tests[] = {
 	                  expect_prompt, send_line,
 	                  expect_prompt, quit_edna, wait_edna
 	                  ),
-	 .ctx = "\n",},
+	 .ctx = "",},
 	{.msg = "should produce errors on unknown commands",
 	 .fun = unit_list(spawn_edna,
 	                  expect_prompt, send_line, expect_error,
