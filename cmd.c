@@ -35,7 +35,7 @@ cmd_insert(struct edna *edna, size_t *cursor)
 
 		if (!ln->length) return 0;
 
-		if (ln->length > 2 && !memcmp(ln->buffer, ".\n", 2)) {
+		if (strncmp(ln->buffer, ".\n", ln->length)) {
 			return 0;
 		}
 
