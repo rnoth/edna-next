@@ -32,6 +32,7 @@ static void insert_line(char *ln);
 static void print_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
+static void test_insert_eof();
 static void test_insert0();
 static void test_insert1();
 static void spawn_edna();
@@ -64,6 +65,10 @@ struct unit_test tests[] = {
 	                  expect_prompt, send_line, expect_error,
 	                  expect_prompt, quit_edna, wait_edna),
 	 .ctx = "hi hi",},
+
+	{.msg = "should be able to exit insert mode with eof",
+	 .fun = unit_list(spawn_edna, test_insert_eof,
+	                  quit_edna, wait_edna),},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
@@ -200,26 +205,37 @@ spawn_edna()
 }
 
 void
+test_insert_eof()
+{
+	expect_prompt();
+	send_line("i");
+	dprintf(edna_pty, "\x04");
+	expect_prompt();
+
+	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
+}
+
+void
 test_insert0()
 {
 	expect_prompt();
-	send_line("i\n");
-	send_line("good night sir\n");
-	send_line("good day indeed\n");
-	send_line(".\n");
+	send_line("i");
+	send_line("good night sir");
+	send_line("good day indeed");
+	send_line(".");
 	expect_prompt();
-	print_line("good day indeed\n");
+	print_line("good day indeed");
 }
 
 void
 test_insert1()
 {
 	expect_prompt();
-	insert_line("one\n");
+	insert_line("one");
 	expect_prompt();
-	insert_line("two\n");
+	insert_line("two");
 	expect_prompt();
-	print_line("two\n");
+	print_line("two");
 }
 
 void
