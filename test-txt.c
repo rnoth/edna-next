@@ -181,8 +181,8 @@ test_insert2()
 	struct piece beg[1] = {{0}};
 	struct piece one[1] = {{.buffer="two, ", .length=5}};
 	struct piece end[1] = {{0}};
-	struct piece new[1] = {{.buffer="three.", .length=6}};
-	struct piece new1[1] = {{.buffer="one, ", .length=5}};
+	struct piece new[1] = {{.buffer="one, ", .length=5}};
+	struct piece new1[1] = {{.buffer="three.", .length=6}};
 	struct piece *links[2];
 
 	make_links(beg, one, end);
