@@ -12,7 +12,7 @@ static int cmd_insert();
 static int cmd_print();
 static int cmd_quit();
 
-static size_t cursor[2] = {0, 1};
+static size_t cursor[2] = {0, 0};
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
 
@@ -23,7 +23,7 @@ struct command commands[] = {
 };
 
 int
-cmd_insert(struct edna *edna, size_t *offset)
+cmd_insert(struct edna *edna, size_t *cursor)
 {
 	static char buffer[4096];
 	char *ln;
@@ -42,11 +42,11 @@ cmd_insert(struct edna *edna, size_t *offset)
 		ln = malloc(length);
 		memcpy(ln, buffer, length);
 
-		err = edna_text_insert(edna, offset[1], ln, length);
+		err = edna_text_insert(edna, cursor[0] + cursor[1] + 1, ln, length);
 		if (err) return err;
 
-		offset[0] = offset[1] - 1;
-		offset[1] += length;
+		cursor[0] += cursor[1];
+		cursor[1] = length;
 	}
 }
 
@@ -65,7 +65,7 @@ cmd_print(struct edna *edna, size_t *cursor)
 	links[0] = edna->text, links[1] = 0;
 	text_walk(links, cursor[0]);
 
-	while (offset < cursor[1]) {
+	while (offset < cursor[0] + cursor[1]) {
 		text_step(links);
 
 		write(1, links[0]->buffer, links[0]->length);
