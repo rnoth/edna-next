@@ -105,8 +105,7 @@ node_attach(struct walker *walk, struct set_node *el_node,
 	dest_tag_ptr = &set_from_tag(walk->prev)->root;
 
  attach:
-	b = !el_node->chld[1];
-	el_node->chld[b] = *dest_tag_ptr;
+	el_node->chld[!b] = *dest_tag_ptr;
 	*dest_tag_ptr = tag_node(el_node);
 
 	++walk->dep;
