@@ -1,6 +1,8 @@
 #ifndef _edna_txt_
 #define _edna_txt_
 
+#include <stdint.h>
+
 struct piece {
 	uintptr_t link;
 	size_t length;
