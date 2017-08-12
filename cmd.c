@@ -30,7 +30,8 @@ cmd_insert(struct edna *edna, size_t *cursor)
 	int err;
 
 	while (true) {
-		fd_read(ln, 0);
+		err = fd_read(ln, 0);
+		if (err) return err;
 
 		if (!ln->length) return 0;
 
