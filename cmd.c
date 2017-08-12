@@ -26,7 +26,7 @@ struct command commands[] = {
 int
 cmd_insert(struct edna *edna, size_t *cursor)
 {
-	struct read ln[1];
+	struct read ln[1]={0};
 	int err;
 
 	while (true) {
@@ -44,7 +44,7 @@ cmd_insert(struct edna *edna, size_t *cursor)
 			return 0;
 		}
 
-		err = edna_text_insert(edna, cursor[0] + cursor[1] + 1,
+		err = edna_text_insert(edna, cursor[0] + cursor[1],
 		                       ln->buffer, ln->length);
 		if (err) return err;
 
@@ -63,14 +63,17 @@ int
 cmd_print(struct edna *edna, size_t *cursor)
 {
 	struct piece *links[2];
-	size_t offset = cursor[0];
+	size_t end = cursor[0] + cursor[1];
+	size_t off = cursor[0];
+	size_t min;
 
 	links[0] = edna->text, links[1] = 0;
 	text_walk(links, cursor[0]);
 
-	while (offset < cursor[0] + cursor[1]) {
-		write(1, links[0]->buffer, links[0]->length);
-		offset += links[0]->length;
+	while (off < end) {
+		min = umin(links[0]->length, end - off);
+		write(1, links[0]->buffer, min);
+		off += links[0]->length;
 
 		text_step(links);
 	}

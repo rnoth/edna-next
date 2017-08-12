@@ -57,7 +57,7 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 
 	links[0] = edna->text, links[1] = 0;
 
-	err = text_insert(links, pie, offset);
+	err = text_insert(links, pie, offset - 1);
 	if (err) {
 		free(pie);
 		return err;
