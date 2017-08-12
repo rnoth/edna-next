@@ -67,9 +67,9 @@ struct unit_test {
 void unit_set_expr(char *, int);
 void unit_unset_expr(void);
 
-void unit_perror(char *);
-void unit_error(char *);
-void unit_fail(char *);
+void unit_perror(char *) __attribute__((noreturn));
+void unit_error(char *) __attribute__((noreturn));
+void unit_fail(char *) __attribute__((noreturn));
 void unit_parse_argv(char **);
 int  unit_run_tests(struct unit_test *, size_t);
 

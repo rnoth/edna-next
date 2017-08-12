@@ -145,6 +145,7 @@ unit_fail(char *msg)
 {
 	snprintf(error_message, 256, "%s", msg);
 	raise(SIGHUP);
+	__builtin_unreachable();
 }
 
 void
