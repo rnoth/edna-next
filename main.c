@@ -13,8 +13,7 @@
 #include <set.h>
 #include <util.h>
 
-struct read input[1];
-
+static struct read input[1];
 static int run(struct edna *edna);
 
 int
@@ -35,6 +34,7 @@ run(struct edna *edna)
 	err = exec_ln(edna, parse);
 	if (err) return err;
 
+	free(input->buffer);
 	return 0;
 }
 
