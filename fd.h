@@ -7,5 +7,6 @@
 
 uint fd_peek(int fd);
 bool fd_readable(int fd);
+int fd_wait(int fd);
 
 #endif
