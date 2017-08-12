@@ -32,9 +32,13 @@ static void insert_line(char *ln);
 static void print_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
+
+static void test_insert_dot();
 static void test_insert_eof();
+static void test_insert_simple();
 static void test_insert0();
 static void test_insert1();
+
 static void spawn_edna();
 static void quit_edna();
 static void wait_edna();
@@ -69,13 +73,15 @@ struct unit_test tests[] = {
 	{.msg = "should be able to exit insert mode with eof",
 	 .fun = unit_list(spawn_edna, test_insert_eof,
 	                  quit_edna, wait_edna),},
+	{.msg = "should be able to exit insert mode with dot",
+	 .fun = unit_list(spawn_edna, test_insert_dot,
+	                  quit_edna, wait_edna),},
 
 	{.msg = "should be able to insert lines",
 	 .fun = unit_list(spawn_edna,
-	                  expect_prompt, insert_line,
-	                  expect_prompt, print_line,
-	                  expect_prompt, quit_edna, wait_edna),
-	 .ctx = "Hello, world!\n",},
+	                  test_insert_simple,
+	                  quit_edna, wait_edna),
+	 .ctx = "Hello, world!",},
 
 	{.msg = "should be able to insert multiple lines",
 	 .fun = unit_list(spawn_edna, test_insert0, quit_edna, wait_edna),},
@@ -126,7 +132,7 @@ void
 insert_line(char *ln)
 {
 	rwritef(edna_pty, "i\n");
-	rwritef(edna_pty, "%s", ln);
+	rwritef(edna_pty, "%s\n", ln);
 	ok(write(edna_pty, "\x04", 1) == 1);
 }
 
@@ -205,6 +211,15 @@ spawn_edna()
 }
 
 void
+test_insert_dot()
+{
+	expect_prompt();
+	send_line("i");
+	send_line(".");
+	expect_prompt();
+}
+
+void
 test_insert_eof()
 {
 	expect_prompt();
@@ -213,6 +228,17 @@ test_insert_eof()
 	expect_prompt();
 
 	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
+}
+
+void
+test_insert_simple()
+{
+	expect_prompt();
+	send_line("i");
+	send_line("Hello, world!");
+	send_eof();
+	expect_prompt();
+	print_line("Hello, world!\n");
 }
 
 void
