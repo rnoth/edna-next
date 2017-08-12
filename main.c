@@ -9,27 +9,27 @@
 #include <cmd.h>
 #include <edna.h>
 #include <exec.h>
+#include <fd.h>
 #include <set.h>
 #include <util.h>
+
+struct read input[1];
 
 static int run(struct edna *edna);
 
 int
 run(struct edna *edna)
 {
-	static char buffer[4096];
 	struct parse *parse;
-	size_t length;
 	int err;
 
 	err = dprintf(1, ":");
 	if (err < 0) return errno;
 
-	length = read(0, buffer, 4096);
-	if (length == -1UL) return errno;
-	if (length == 0) return -1;
-
-	err = parse_ln(&parse, buffer, length);
+	err = fd_read(input, 0);
+	if (err) return err;
+ 
+	err = parse_ln(&parse, input->buffer, input->length);
 	if (err) return err;
 
 	err = exec_ln(edna, parse);

@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <cmd.h>
+#include <main.h>
 #include <set.h>
 #include <txt.h>
 #include <util.h>
@@ -25,28 +26,25 @@ struct command commands[] = {
 int
 cmd_insert(struct edna *edna, size_t *cursor)
 {
-	static char buffer[4096];
-	char *ln;
-	ssize_t length;
 	int err;
 
-	while (true) {
-		length = read(0, buffer, 4096);
-		if (length == -1) return errno;
+	free(input->buffer);
 
-		if (!memcmp(buffer, ".\n", 2)) {
+	while (true) {
+		fd_read(input, 0);
+
+		if (!input->length) return 0;
+
+		if (input->length > 2 && !memcmp(input->buffer, ".\n", 2)) {
 			return 0;
 		}
-		if (!length) return 0;
 
-		ln = malloc(length);
-		memcpy(ln, buffer, length);
-
-		err = edna_text_insert(edna, cursor[0] + cursor[1] + 1, ln, length);
+		err = edna_text_insert(edna, cursor[0] + cursor[1] + 1,
+		                       input->buffer, input->length);
 		if (err) return err;
 
 		cursor[0] += cursor[1];
-		cursor[1] = length;
+		cursor[1] = input->length;
 	}
 }
 
