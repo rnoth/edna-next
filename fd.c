@@ -31,12 +31,14 @@ fd_read(struct read *dest, int fd)
 	if (err) return err;
 
 	dest->length = fd_peek(fd);
-	if (!dest->length) return -1;
+
+	if (!dest->length) {
+		read(fd, (char[]){0}, 1);
+		return -1;
+	}
 
 	dest->buffer = malloc(dest->length);
 	if (!dest->buffer) return errno;
-
-	dest->offset = 0;
 
 	res = read(fd, dest->buffer, dest->length);
 	if (res == -1) return errno;
