@@ -94,11 +94,12 @@ run_test(struct unit_test *te)
 	
 	dprintf(2, "%s...", te->msg);
 
+	if (setjmp(checkpoint)) goto failed;
+
 	for (i=0; te->fun[i]; ++i) {
 		alarm(unit_opt_timeout);
 		te->fun[i](te->ctx);
 		alarm(0);
-		if (setjmp(checkpoint)) goto failed;
 	}
 
 	dprintf(2, "ok\n");
