@@ -13,8 +13,6 @@ struct walker {
 	size_t off;
 };
 
-static ulong sig(ulong a) {return a & -a;} 
-
 static void node_insert(struct walker *walker, struct ext_node *new_node);
 static void node_shift(struct walker *walker, size_t offset);
 
@@ -34,13 +32,13 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	size_t end;
 
 	new_end = new_node->off + new_node->ext;
-	new_crit = sig(new_end ^ new_node->off);
+	new_crit = ufls(new_end ^ new_node->off);
 
 	while (walker_rise(walker), is_node(walker->prev)) {
 
 		node = untag(walker->prev);
 		end = walker->off + node->ext;
-		crit = sig(new_end ^ end);
+		crit = ufls(new_end ^ end);
 
 		if (new_crit < crit) goto done;
 	}
