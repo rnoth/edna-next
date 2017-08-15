@@ -63,6 +63,8 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_double_add),},
 	{.msg = "should be able to query extents",
 	 .fun = unit_list(test_query),},
+	{.msg = "should be able to insert extents",
+	 .fun = unit_list(0),},
 };
 
 int
