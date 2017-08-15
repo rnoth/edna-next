@@ -4,7 +4,7 @@
 #include <util.h>
 
 void
-test_double_add(void)
+test_add_two(void)
 {
 	struct ext_node a[1]={{.off=3}};
 	struct ext_node b[1]={{.off=1}};
@@ -24,7 +24,7 @@ test_double_add(void)
 }
 
 void
-test_simple_add(void)
+test_add_simple(void)
 {
 	struct ext_node a[1]={{.ext=1}};
 	struct ext_node b[1]={{.ext=2}};
@@ -58,9 +58,9 @@ test_query(void)
 
 static struct unit_test tests[] = {
 	{.msg = "should be able append a single extent",
-	 .fun = unit_list(test_simple_add),},
+	 .fun = unit_list(test_add_simple),},
 	{.msg = "should be able to append two extents",
-	 .fun = unit_list(test_double_add),},
+	 .fun = unit_list(test_add_two),},
 	{.msg = "should be able to query extents",
 	 .fun = unit_list(test_query),},
 	{.msg = "should be able to insert extents",
