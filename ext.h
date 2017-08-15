@@ -15,4 +15,9 @@ struct ext {
 	uintptr_t root;
 };
 
+void ext_append(struct ext *ext, struct ext_node *new_node);
+void ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset);
+void *ext_stab(struct ext *ext, size_t point);
+
+
 #endif

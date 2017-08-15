@@ -182,7 +182,7 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 	node_shift(walker, new_node->off);
 }
 
-struct ext_node *
+void *
 ext_stab(struct ext *ext, size_t point)
 {
 	struct ext_node *node;
