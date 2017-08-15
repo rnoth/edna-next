@@ -4,16 +4,7 @@
 
 #include <util.h>
 
-struct ext {
-	uintptr_t root;
-	size_t sum;
-};
-
-struct ext_node {
-	uintptr_t chld[2];
-	size_t sum;
-	size_t ext;
-};
+#include <ext.h>
 
 struct walker {
 	uintptr_t prev;
