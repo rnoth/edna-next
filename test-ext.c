@@ -19,7 +19,7 @@ test_double_add(void)
 	ok(c->chld[0] == tag_node(b));
 	ok(c->chld[1] == tag_leaf(c));
 
-	ok(b->chld[0] == tag_leaf(a));
+	ok(b->chld[0] == tag_node(a));
 	ok(b->chld[1] == tag_leaf(b));
 }
 
@@ -31,11 +31,11 @@ test_simple_add(void)
 	struct ext ext[1]={0};
 
 	try(ext_append(ext, a));
-	ok(ext->root == tag_leaf(a));
+	ok(ext->root == tag_node(a));
 
 	try(ext_append(ext, b));
 	ok(ext->root == tag_node(b));
-	ok(b->chld[0] == tag_leaf(a));
+	ok(b->chld[0] == tag_node(a));
 	ok(b->chld[1] == tag_leaf(b));
 }
 

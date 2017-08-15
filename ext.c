@@ -66,6 +66,7 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 		if (new_crit < crit) {
 			new_node->chld[0] = walker->tag;
 			new_node->chld[1] = tag_leaf(new_node);
+
 			walker->tag = tag_node(new_node);
 			return;
 		}
@@ -75,6 +76,8 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	new_node->chld[0] = ext->root;
 	new_node->chld[1] = tag_leaf(new_node);
 	ext->root = tag_node(new_node);
+
+	walker->tag = tag_node(new_node);
 }
 
 void
@@ -82,7 +85,7 @@ walker_begin(struct walker *walker, struct ext *ext)
 {
 	walker->prev = tag_ext(ext);
 	walker->tag = ext->root;
-	walker->off = ext->off;
+	walker->off = 0;
 }
 
 void
@@ -147,10 +150,11 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	struct walker walker[1];
 
-	new_node->off = ext->off;
-
 	if (!ext->root) {
-		ext->root = tag_leaf(new_node);
+		new_node->chld[0] = tag_leaf(ext->zero);
+		new_node->chld[1] = tag_leaf(new_node);
+		new_node->off = 0;
+		ext->root = tag_node(new_node);
 		return;
 	}
 
@@ -159,7 +163,8 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 
 	node_insert(walker, new_node);
 
-	walker_surface(walker);
+	walker_rise(walker);
+
 	return;
 }
 
@@ -167,16 +172,21 @@ void
 ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 {
 	struct walker walker[1];
-	new_node->off = 0;
 
 	if (!ext->root) {
-		ext->root = tag_leaf(new_node);
-		ext->off = offset;
+		new_node->off = offset;
+		new_node->chld[0] = tag_leaf(ext->zero);
+		new_node->chld[1] = tag_leaf(new_node);
+		ext->root = tag_node(new_node);
 		return;
 	}
 
 	walker_begin(walker, ext);
 	walker_walk(walker, offset + new_node->ext);
+
+	node_insert(walker, new_node);
+
+	walker_rise(walker);
 
 	__builtin_trap();
 }
