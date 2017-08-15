@@ -6,9 +6,9 @@
 void
 test_double_add(void)
 {
-	struct ext_node a[1]={{.sum=3}};
-	struct ext_node b[1]={{.sum=1}};
-	struct ext_node c[1]={{.sum=7}};
+	struct ext_node a[1]={{.off=3}};
+	struct ext_node b[1]={{.off=1}};
+	struct ext_node c[1]={{.off=7}};
 	struct ext ext[1]={0};
 
 	ext_append(ext, a);

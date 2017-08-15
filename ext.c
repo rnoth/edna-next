@@ -9,7 +9,7 @@
 struct walker {
 	uintptr_t prev;
 	uintptr_t tag;
-	size_t sum;
+	size_t off;
 };
 
 static bool is_node(uintptr_t tag);
@@ -51,8 +51,8 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	size_t crit;
 
 	node = node_from_tag(walker->tag);
-	end = walker->sum + node->ext;
-	new_node->sum = end;
+	end = walker->off + node->ext;
+	new_node->off = end;
 
 	new_end = end + new_node->ext;
 	new_crit = sig(new_end ^ end);
@@ -60,7 +60,7 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	while (walker_rise(walker), is_node(walker->prev)) {
 
 		node = node_from_tag(walker->prev);
-		end = walker->sum + node->ext;
+		end = walker->off + node->ext;
 		crit = sig(new_end ^ end);
 
 		if (new_crit < crit) {
@@ -82,7 +82,7 @@ walker_begin(struct walker *walker, struct ext *ext)
 {
 	walker->prev = tag_ext(ext);
 	walker->tag = ext->root;
-	walker->sum = ext->sum;
+	walker->off = ext->off;
 }
 
 void
@@ -100,7 +100,7 @@ walker_rise(struct walker *walker)
 	node->chld[b] = walker->tag;
 
 	walker->tag = tag_node(node);
-	walker->sum -= node->chld[b];
+	walker->off -= node->chld[b];
 }
 
 void
@@ -120,7 +120,7 @@ walker_visit(struct walker *walker, int b)
 	if (is_leaf(walker->tag)) return;
 
 	node = node_from_tag(walker->tag);
-	walker->sum += b ? node->sum : 0;
+	walker->off += b ? node->off : 0;
 
 	next = node->chld[b];
 	node->chld[b] = tag_back(walker->prev);
@@ -137,7 +137,7 @@ walker_walk(struct walker *walker, size_t p)
 
 	while (is_node(walker->tag)) {
 		node = node_from_tag(walker->tag);
-		b = p >= walker->sum + node->sum;
+		b = p >= walker->off + node->off;
 		walker_visit(walker, b);
 	}
 }
@@ -147,7 +147,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	struct walker walker[1];
 
-	new_node->sum = ext->sum;
+	new_node->off = ext->off;
 
 	if (!ext->root) {
 		ext->root = tag_leaf(new_node);
@@ -167,11 +167,11 @@ void
 ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 {
 	struct walker walker[1];
-	new_node->sum = 0;
+	new_node->off = 0;
 
 	if (!ext->root) {
 		ext->root = tag_leaf(new_node);
-		ext->sum = offset;
+		ext->off = offset;
 		return;
 	}
 
@@ -186,22 +186,22 @@ ext_stab(struct ext *ext, size_t point)
 {
 	struct ext_node *node;
 	uintptr_t tag;
-	size_t sum;
+	size_t off;
 	int b;
 
 	if (!ext->root) return 0x0;
 
 	tag = ext->root;
-	sum = 0;
+	off = 0;
 	while (is_node(tag)) {
 		node = node_from_tag(tag);
-		b = point >= sum + node->sum;
-		sum += b ? node->sum : 0;
+		b = point >= off + node->off;
+		off += b ? node->off : 0;
 		tag = node->chld[b];
 	}
 
 	node = node_from_tag(tag);
-	node = (sum + node->ext > point) ? node : 0x0;
+	node = (off + node->ext > point) ? node : 0x0;
 
 	return node;
 }

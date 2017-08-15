@@ -6,12 +6,12 @@
 
 struct ext {
 	uintptr_t root;
-	size_t sum;
+	size_t off;
 };
 
 struct ext_node {
 	uintptr_t chld[2];
-	size_t sum;
+	size_t off;
 	size_t ext;
 };
 
