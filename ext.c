@@ -60,19 +60,15 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 		end = walker->off + node->ext;
 		crit = sig(new_end ^ end);
 
-		if (new_crit < crit) {
-			new_node->chld[0] = walker->tag;
-			new_node->chld[1] = tag_leaf(new_node);
-
-			walker->tag = tag_node(new_node);
-			return;
-		}
+		if (new_crit < crit) goto done;
 	}
 
 	ext = ext_from_tag(walker->prev);
-	new_node->chld[0] = ext->root;
-	new_node->chld[1] = tag_leaf(new_node);
 	ext->root = tag_node(new_node);
+
+ done:
+	new_node->chld[0] = walker->tag;
+	new_node->chld[1] = tag_leaf(new_node);
 
 	walker->tag = tag_node(new_node);
 }
