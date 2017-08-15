@@ -166,6 +166,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 void
 ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 {
+	struct walker walker[1];
 	new_node->sum = 0;
 
 	if (!ext->root) {
@@ -173,6 +174,9 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 		ext->sum = offset;
 		return;
 	}
+
+	walker_begin(walker, ext);
+	walker_walk(walker, offset + new_node->ext);
 
 	__builtin_trap();
 }
