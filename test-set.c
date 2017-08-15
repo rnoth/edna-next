@@ -158,8 +158,8 @@ test_two_strings()
 
 	expect(4, goodbye_node->crit);
 
-	ok(goodbye_node == node_from_tag(goodbye_node->chld[0]));
-	ok(hello_node == node_from_tag(goodbye_node->chld[1]));
+	ok(goodbye_node == untag(goodbye_node->chld[0]));
+	ok(hello_node == untag(goodbye_node->chld[1]));
 
 	ok(set_has(set, hello, strlen(hello) + 1));
 	ok(set_has(set, goodbye, strlen(goodbye) + 1));
