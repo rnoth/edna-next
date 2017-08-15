@@ -6,6 +6,7 @@
 
 struct ext {
 	uintptr_t root;
+	size_t sum;
 };
 
 struct ext_node {
@@ -90,7 +91,7 @@ walker_begin(struct walker *walker, struct ext *ext)
 {
 	walker->prev = tag_ext(ext);
 	walker->tag = ext->root;
-	walker->sum = 0;
+	walker->sum = ext->sum;
 }
 
 void
@@ -155,7 +156,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	struct walker walker[1];
 
-	new_node->sum = 0;
+	new_node->sum = ext->sum;
 
 	if (!ext->root) {
 		ext->root = tag_leaf(new_node);
