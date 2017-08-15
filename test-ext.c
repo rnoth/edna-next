@@ -40,6 +40,35 @@ test_add_simple(void)
 }
 
 void
+test_insert(void)
+{
+	struct ext_node a[1]={{.ext=100}};
+	struct ext_node b[1]={{.ext=250}};
+	struct ext_node c[1]={{.ext=75}};
+	struct ext ext[1]={0};
+
+	try(ext_insert(ext, a, 0));
+	ok(ext->root == tag_node(a));
+	try(ext_insert(ext, b, 0));
+	ok(ext->root == tag_node(b));
+
+	ok(b->chld[0] == tag_leaf(b));
+	ok(b->chld[1] == tag_node(a));
+
+	ok(ext_stab(ext, 99) == b);
+	ok(ext_stab(ext, 300) == a);
+
+	try(ext_insert(ext, c, 250));
+
+	ok(ext->root == tag_node(b));
+	ok(b->chld[0] == tag_leaf(b));
+	ok(b->chld[1] == tag_node(a));
+
+	ok(a->chld[0] == tag_node(c));
+	ok(a->chld[1] == tag_leaf(a));
+}
+
+void
 test_query(void)
 {
 	struct ext_node a[1]={{.ext=22}};
@@ -64,7 +93,7 @@ static struct unit_test tests[] = {
 	{.msg = "should be able to query extents",
 	 .fun = unit_list(test_query),},
 	{.msg = "should be able to insert extents",
-	 .fun = unit_list(0),},
+	 .fun = unit_list(test_insert),},
 };
 
 int
