@@ -163,7 +163,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 
 	node_insert(walker, new_node);
 
-	walker_rise(walker);
+	walker_surface(walker);
 
 	return;
 }
@@ -186,7 +186,7 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 
 	node_insert(walker, new_node);
 
-	walker_rise(walker);
+	walker_surface(walker);
 
 	__builtin_trap();
 }
