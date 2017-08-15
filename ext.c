@@ -34,6 +34,7 @@ static uintptr_t tag_node(struct ext_node *node) { return (uintptr_t)node; }
 static uintptr_t tag_ext(struct ext *ext) { return (uintptr_t)ext | 1; }
 
 static void node_insert(struct walker *walker, struct ext_node *new_node);
+static void node_shift(struct walker *walker, size_t offset);
 
 static void walker_begin(struct walker *walker, struct ext *ext);
 static void walker_rise(struct walker *walker);
@@ -74,6 +75,21 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	ext->root = tag_node(new_node);
 
 	walker->tag = tag_node(new_node);
+}
+
+void
+node_shift(struct walker *walker, size_t offset)
+{
+	struct ext_node *node;
+	int b;
+
+	while (is_node(walker->prev)) {
+		node = node_from_tag(walker->tag);
+		b = is_back(node->chld[1]);
+		node->off += b ? 0 : offset;
+
+		walker_rise(walker);
+	}
 }
 
 void
@@ -184,11 +200,11 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 	walker_begin(walker, ext);
 	walker_walk(walker, offset + new_node->ext);
 
+	new_node->off = offset - walker->off;
+
 	node_insert(walker, new_node);
 
-	walker_surface(walker);
-
-	__builtin_trap();
+	node_shift(walker, new_node->off);
 }
 
 struct ext_node *
