@@ -174,7 +174,7 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 	}
 
 	walker_begin(walker, ext);
-	walker_walk(walker, offset + new_node->ext);
+	walker_walk(walker, offset);
 
 	new_node->off = offset - walker->off;
 
