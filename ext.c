@@ -173,8 +173,16 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 }
 
 void
-ext_insert(struct ext *ext, struct ext_node *new_node)
+ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 {
+	new_node->sum = 0;
+
+	if (!ext->root) {
+		ext->root = tag_leaf(new_node);
+		ext->sum = offset;
+		return;
+	}
+
 	__builtin_trap();
 }
 
