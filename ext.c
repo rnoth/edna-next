@@ -65,7 +65,8 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	new_end = end + new_node->ext;
 	new_crit = sig(new_end ^ end);
 
-	while (is_node(walker->prev)) {
+	while (walker_rise(walker), is_node(walker->prev)) {
+
 		node = node_from_tag(walker->prev);
 		end = walker->sum + node->ext;
 		crit = sig(new_end ^ end);
@@ -76,8 +77,6 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 			walker->tag = tag_node(new_node);
 			return;
 		}
-
-		walker_rise(walker);
 	}
 
 	ext = ext_from_tag(walker->prev);
@@ -172,22 +171,33 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 	return;
 }
 
+void
+ext_insert(struct ext *ext, struct ext_node *new_node)
+{
+	__builtin_trap();
+}
+
 struct ext_node *
 ext_stab(struct ext *ext, size_t point)
 {
-	struct walker walker[1];
-	struct ext_node *result;
-	struct ext_node *leaf;
+	struct ext_node *node;
+	uintptr_t tag;
+	size_t sum;
+	int b;
 
 	if (!ext->root) return 0x0;
 
-	walker_begin(walker, ext);
-	walker_walk(walker, point);
+	tag = ext->root;
+	sum = 0;
+	while (is_node(tag)) {
+		node = node_from_tag(tag);
+		b = point >= sum + node->sum;
+		sum += b ? node->sum : 0;
+		tag = node->chld[b];
+	}
 
-	leaf = node_from_tag(walker->tag);
-	result = walker->sum + leaf->ext > point ? leaf : 0x0;
+	node = node_from_tag(tag);
+	node = (sum + node->ext > point) ? node : 0x0;
 
-	walker_surface(walker); // TODO: remove walker stuff from here
-
-	return result;
+	return node;
 }
