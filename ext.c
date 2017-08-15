@@ -47,15 +47,11 @@ node_insert(struct walker *walker, struct ext_node *new_node)
 	struct ext *ext;
 	size_t new_end;
 	size_t new_crit;
-	size_t end;
 	size_t crit;
+	size_t end;
 
-	node = node_from_tag(walker->tag);
-	end = walker->off + node->ext;
-	new_node->off = end;
-
-	new_end = end + new_node->ext;
-	new_crit = sig(new_end ^ end);
+	new_end = new_node->off + new_node->ext;
+	new_crit = sig(new_end ^ new_node->off);
 
 	while (walker_rise(walker), is_node(walker->prev)) {
 
@@ -149,6 +145,7 @@ void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	struct walker walker[1];
+	struct ext_node *node;
 
 	if (!ext->root) {
 		new_node->chld[0] = tag_leaf(ext->zero);
@@ -160,6 +157,9 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 
 	walker_begin(walker, ext);
 	walker_walk(walker, ~0);
+
+	node = node_from_tag(walker->tag);
+	new_node->off = walker->off + node->ext;
 
 	node_insert(walker, new_node);
 
