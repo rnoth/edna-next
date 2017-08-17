@@ -16,6 +16,8 @@ edna_fini(struct edna *edna)
 int
 edna_init(struct edna *edna)
 {
+	*edna = (struct edna){0};
+
 	edna->text = text_ctor();
 	if (!edna->text) return ENOMEM;
 
