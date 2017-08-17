@@ -6,21 +6,24 @@
 void
 test_add_two(void)
 {
-	struct ext_node a[1]={{.off=3}};
-	struct ext_node b[1]={{.off=1}};
-	struct ext_node c[1]={{.off=7}};
+	struct ext_node a[1]={{.ext=3}};
+	struct ext_node b[1]={{.ext=1}};
+	struct ext_node c[1]={{.ext=7}};
 	struct ext ext[1]={0};
 
 	ext_append(ext, a);
 	ext_append(ext, b);
+	expect(4, ext->len);
+
 	try(ext_append(ext, c));
+	expect(11, ext->len);
+	ok(ext->root = tag_node(b));
 
-	ok(ext->root == tag_node(c));
-	ok(c->chld[0] == tag_node(b));
+	ok(b->chld[0] == tag_leaf(a));
+	ok(b->chld[1] == tag_node(c));
+
+	ok(c->chld[0] == tag_leaf(b));
 	ok(c->chld[1] == tag_leaf(c));
-
-	ok(b->chld[0] == tag_node(a));
-	ok(b->chld[1] == tag_leaf(b));
 }
 
 void
@@ -31,12 +34,17 @@ test_add_simple(void)
 	struct ext ext[1]={0};
 
 	try(ext_append(ext, a));
-	ok(ext->root == tag_node(a));
+	ok(ext->root == tag_leaf(a));
+	expect(1, ext->len);
 
 	try(ext_append(ext, b));
 	ok(ext->root == tag_node(b));
-	ok(b->chld[0] == tag_node(a));
+	expect(3, ext->len);
+
+	expect(1, b->off);
+	ok(b->chld[0] == tag_leaf(a));
 	ok(b->chld[1] == tag_leaf(b));
+
 }
 
 void
@@ -48,12 +56,12 @@ test_insert(void)
 	struct ext ext[1]={0};
 
 	try(ext_insert(ext, a, 0));
-	ok(ext->root == tag_node(a));
+	ok(ext->root == tag_leaf(a));
 	try(ext_insert(ext, b, 0));
 	ok(ext->root == tag_node(b));
 
 	ok(b->chld[0] == tag_leaf(b));
-	ok(b->chld[1] == tag_node(a));
+	ok(b->chld[1] == tag_leaf(a));
 
 	ok(ext_stab(ext, 99) == b);
 	ok(ext_stab(ext, 300) == a);
@@ -62,10 +70,10 @@ test_insert(void)
 
 	ok(ext->root == tag_node(b));
 	ok(b->chld[0] == tag_leaf(b));
-	ok(b->chld[1] == tag_node(a));
+	ok(b->chld[1] == tag_node(c));
 
-	ok(a->chld[0] == tag_node(c));
-	ok(a->chld[1] == tag_leaf(a));
+	ok(c->chld[0] == tag_leaf(c));
+	ok(c->chld[1] == tag_leaf(a));
 }
 
 void

@@ -11,8 +11,9 @@ struct ext_node {
 };
 
 struct ext {
-	struct ext_node zero[1];
 	uintptr_t root;
+	size_t off;
+	size_t len;
 };
 
 void ext_append(struct ext *ext, struct ext_node *new_node);
