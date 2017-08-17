@@ -19,23 +19,25 @@ static int run(struct edna *edna);
 int
 run(struct edna *edna)
 {
-	struct parse *parse;
+	struct parse *parse = 0;;
 	int err;
 
 	err = dprintf(1, ":");
 	if (err < 0) return errno;
 
 	err = fd_read(input, 0);
-	if (err) return err;
+	if (err) goto done;
 
 	err = parse_ln(&parse, input->buffer, input->length);
-	if (err) return err;
+	if (err) goto done;
 
 	err = exec_ln(edna, parse);
-	if (err) return err;
+	if (err) goto done;
 
-	free(input->buffer);
-	return 0;
+ done:
+	free(input->buffer), *input = (struct read){0};
+	free(parse);
+	return err;
 }
 
 int
