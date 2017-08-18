@@ -1,9 +1,9 @@
 #ifndef _edna_util_
 #define _edna_util_
 
+#include <limits.h>
 #include <stdarg.h>
 
-#define LONG_BIT (sizeof (unsigned long) * 8)
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 
 typedef unsigned long ulong;
