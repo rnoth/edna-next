@@ -18,6 +18,7 @@ static void test_insert();
 static void test_insert2();
 static void test_insert3();
 static void test_link();
+static void test_merge();
 static void test_traverse();
 
 struct unit_test tests[] = {
@@ -39,6 +40,8 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_delete2),},
 	{.msg = "should be able to delete across many pieces",
 	 .fun = unit_list(test_delete3),},
+	{.msg = "should merge pieces when appropriate",
+	 .fun = unit_list(test_merge),},
 };
 
 void
@@ -277,6 +280,26 @@ test_link()
 	ok(0 == text_next(thr, two));
 	ok(two == text_next(thr, 0));
 	ok(two == text_next(one, 0));
+}
+
+void
+test_merge(void)
+{
+	struct piece beg[1]={{0}};
+	struct piece pie[1]={{.buffer="~~><~~"}};
+	struct piece end[1]={{0}};
+	struct piece *ctx[2];
+
+	make_links(beg, pie, end);
+
+	ctx[0] = beg, ctx[1] = 0;
+	expect(0, text_insert_str(ctx, 3, "!"));
+
+	ctx[0] = beg, ctx[1] = 0;
+	expect(0, text_delete(ctx, 3, 1));
+	ok(text_next(pie, beg) == end);
+	ok(text_next(pie, end) == beg);
+	ok(pie->length = 6);
 }
 
 void
