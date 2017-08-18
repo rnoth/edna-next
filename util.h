@@ -10,6 +10,18 @@ typedef unsigned long ulong;
 typedef unsigned int uint;
 
 static inline
+void
+ptr_swap(void *va, void *vb)
+{
+	void **a=va, **b=vb;
+	void *tmp;
+
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+static inline
 int
 ucmp(ulong a, ulong b)
 {
