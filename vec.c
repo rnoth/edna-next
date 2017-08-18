@@ -189,14 +189,12 @@ vec_resize(void *vecp, size_t new, size_t size)
 
 	old = *vec.v - vec_header_size;
 
-	tmp = calloc(1, new*size + vec_header_size);
-	if (!tmp) return ENOMEM;
-
 	ext = vec_len(*vec.v) * size + vec_header_size;
 
-	memcpy(tmp, old, ext);
-	free(old);
+	tmp = realloc(old, new*size + vec_header_size);
+	if (!tmp) return ENOMEM;
 
+	memset(tmp+vec_header_size+ext, 0, new*size-ext);
 	*vec.v = tmp + vec_header_size;
 
 	(*vec.z)[-2] = new*size;
