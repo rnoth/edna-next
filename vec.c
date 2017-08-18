@@ -29,12 +29,15 @@
 #undef vec_transfer
 #undef vec_truncat
 
-size_t const vec_header_size = sizeof (size_t) * 2;
+enum {
+	vec_header_size = sizeof (size_t) * 2,
+};
+//static size_t const vec_header_size = sizeof (size_t) * 2;
 
 union vec {
-	size_t        **z;
-	void const     *p;
 	unsigned char **v;
+	void const *p;
+	size_t **z;
 };
 
 #define vec(p) { .p = p }
