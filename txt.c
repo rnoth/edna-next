@@ -130,10 +130,10 @@ text_merge(struct piece **ctx)
 	struct piece *next;
 	char *end;
 
-	if (!ctx[1]->buffer) return 0x0;
+	if (!ctx[1]->buffer) return;
 
 	end = ctx[1]->buffer + ctx[1]->length;
-	if (end != ctx[0]->buffer) return 0x0;
+	if (end != ctx[0]->buffer) return;
 
 	ctx[1]->length += ctx[0]->length;
 
