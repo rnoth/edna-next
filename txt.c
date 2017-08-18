@@ -5,7 +5,6 @@
 
 static void text_relink(struct piece *, struct piece *, struct piece *);
 static int text_split(struct piece **dest, size_t offset, size_t extent);
-static void text_unlink(struct piece *lef, struct piece *rit);
 
 struct piece *
 text_ctor(void)
@@ -122,6 +121,31 @@ text_link(struct piece *lef, struct piece *rit)
 {
 	if (lef) lef->link ^= (uintptr_t)rit;
 	if (rit) rit->link ^= (uintptr_t)lef;
+}
+
+struct piece *
+text_merge(struct piece **ctx)
+{
+	struct piece *result;
+	struct piece *next;
+	char *end;
+
+	if (!ctx[1]->buffer) return 0x0;
+
+	end = ctx[1]->buffer + ctx[1]->length;
+	if (end != ctx[0]->buffer) return 0x0;
+
+	ctx[1]->length += ctx[0]->length;
+
+	next = text_next(ctx[0], ctx[1]);
+	text_unlink(ctx[0], ctx[1]);
+	text_unlink(next, ctx[0]);
+	text_link(next, ctx[1]);
+
+	result = ctx[0];
+	ctx[1] = next;
+
+	return result;
 }
 
 struct piece *

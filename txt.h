@@ -27,6 +27,7 @@ int text_insert(struct piece **dest, size_t offset, char *buffer, size_t length)
 void text_link(struct piece *lef, struct piece *rit);
 struct piece *text_next(struct piece *cur, struct piece *prev);
 void text_step(struct piece **links);
+void text_unlink(struct piece *lef, struct piece *rit);
 size_t text_walk(struct piece **dest, size_t extent);
 
 #endif
