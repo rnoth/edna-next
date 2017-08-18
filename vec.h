@@ -1,0 +1,67 @@
+#ifndef _vector_
+#define _vector_
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static inline
+size_t
+vec_len(void const *v)
+{
+	size_t ret;
+	memcpy(&ret, (char *)v - sizeof ret, sizeof ret);
+	return ret;
+}
+
+static inline
+size_t
+vec_mem(void const *v)
+{
+	size_t ret;
+	memcpy(&ret, (char *)v - sizeof ret * 2, sizeof ret);
+	return ret;
+}
+
+void * vec_alloc   (size_t, size_t);
+int    vec_append  (void *, void const *, size_t);
+void * vec_clone   (void const *, size_t);
+int    vec_concat  (void *, void const *, size_t, size_t);
+int    vec_copy    (void *, void *, size_t);
+int    vec_ctor    (void *, size_t);
+void   vec_delete  (void *, size_t, size_t);
+void   vec_elim    (void *, size_t, size_t, size_t);
+int    vec_insert  (void *, void const *, size_t, size_t);
+int    vec_join    (void *, void const *, size_t);
+void   vec_free    (void *);
+void * vec_new     (size_t);
+void   vec_pop     (void *, void *, size_t);
+int    vec_resize  (void *, size_t, size_t);
+void   vec_shift   (void *, size_t, size_t);
+void   vec_slice   (void *, size_t, size_t, size_t);
+int    vec_splice  (void *, size_t, void const *, size_t, size_t);
+int    vec_transfer(void *, void const *, size_t, size_t);
+void   vec_truncat (void *, size_t, size_t);
+
+#define vec_alloc(type, len) vec_alloc(sizeof (type), len)
+#define vec_concat_arr(dest_ptr, src) vec_concat(dest_ptr, src, array_len(src))
+#define vec_ctor(INST) vec_ctor(&(INST), sizeof *INST)
+#define vec_new(type) vec_new(sizeof (type))
+
+#define vec_append(vec_ptr, src) vec_append(vec_ptr, src, sizeof **vec_ptr)
+#define vec_clone(vec) vec_clone(vec, sizeof *vec)
+#define vec_concat(dest_ptr, src, len) vec_concat(dest_ptr, src, len, sizeof **dest_ptr)
+#define vec_copy(dest_ptr, src) vec_copy(dest_ptr, src, sizeof **dest_ptr)
+#define vec_delete(vec_ptr, ind) vec_delete(vec_ptr, ind, sizeof **vec_ptr)
+#define vec_elim(vec_ptr, ind, nmemb) vec_elim(vec_ptr, ind, nmemb, sizeof **vec_ptr)
+#define vec_insert(dest_ptr, src, ind) vec_insert(dest_ptr, src, ind, sizeof **dest_ptr)
+#define vec_join(dest_ptr, src) vec_join(dest_ptr, src, sizeof **dest_ptr)
+#define vec_pop(dest, src_ptr) vec_pop(dest, src_ptr, sizeof **src_ptr)
+#define vec_resize(vec_ptr, n) vec_resize(vec_ptr, n * sizeof **vec_ptr, sizeof **vec_ptr)
+#define vec_shift(vec_ptr, off) vec_shift(vec_ptr, off, sizeof **vec_ptr)
+#define vec_slice(vec_ptr, off, nmemb) vec_slice(vec_ptr, off, nmemb, sizeof **vec_ptr)
+#define vec_splice(dest_ptr, i, s, n) vec_splice(dest_ptr, i, s, n, sizeof **dest_ptr)
+#define vec_transfer(dest_ptr, s, n) vec_transfer(dest_ptr, s, n, sizeof **dest_ptr)
+#define vec_truncat(vec_ptr, off) vec_truncat(vec_ptr, off, sizeof **vec_ptr)
+
+#endif
