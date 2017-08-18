@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <txt.h>
 
-static struct piece *text_next(struct piece *cur, struct piece *next);
 static void text_relink(struct piece *, struct piece *, struct piece *);
 static int text_split(struct piece **dest, size_t offset, size_t extent);
 static void text_unlink(struct piece *lef, struct piece *rit);
