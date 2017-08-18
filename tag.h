@@ -1,6 +1,8 @@
 #ifndef _edna_tag_
 #define _edna_tag_
 
+#include <stdbool.h>
+
 static inline uintptr_t flip_tag(uintptr_t);
 
 static inline bool is_back(uintptr_t);
