@@ -33,8 +33,6 @@ enum {
 	vec_header_size = sizeof (size_t) * 2,
 };
 
-#define vec(p) { .p = p }
-
 void
 vec_set_len(char **vec, size_t new)
 {
