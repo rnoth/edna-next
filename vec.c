@@ -33,13 +33,13 @@ enum {
 	vec_header_size = sizeof (size_t) * 2,
 };
 
-union vec {
-	unsigned char **v;
-	void const *p;
-	size_t **z;
-};
-
 #define vec(p) { .p = p }
+
+void
+vec_set_len(char **vec, size_t new)
+{
+	memcpy(*vec-sizeof (size_t), &new, sizeof (size_t));
+}
 
 void *
 vec_alloc(size_t size, size_t len)
@@ -60,8 +60,8 @@ vec_alloc(size_t size, size_t len)
 int
 vec_append(void *destp, void const *data, size_t size)
 {
-	union vec dest = {.p = destp};
-	return vec_splice(destp, vec_len(*dest.v), data, 1, size);
+	char **dest=destp;
+	return vec_splice(destp, vec_len(*dest), data, 1, size);
 }
 
 void *
@@ -70,7 +70,6 @@ vec_clone(void const *vec, size_t size)
 	void *ret = 0x0;
 
 	ret = vec_alloc(size, umax(vec_len(vec), 8));
-
 	if (!ret) return 0;
 
 	if (vec_join(&ret, vec, size)) {
@@ -84,8 +83,8 @@ vec_clone(void const *vec, size_t size)
 int
 vec_concat(void *destp, void const *src, size_t nmemb, size_t size)
 {
-	union vec dest = {.p = destp};
-	return vec_splice(destp, vec_len(*dest.v), src, nmemb, size);
+	char **dest=destp;
+	return vec_splice(destp, vec_len(*dest), src, nmemb, size);
 }
 
 int
@@ -98,12 +97,12 @@ vec_copy(void *destp, void *src, size_t size)
 int
 vec_ctor(void *vecp, size_t size)
 {
-	union vec vec = {.p = vecp};
+	char **vec=vecp;
 	void *res = vec_alloc(size, 8);
 
 	if (!res) return ENOMEM;
 
-	*vec.v = res;
+	*vec = res;
 	return 0;
 }
 
@@ -116,24 +115,24 @@ vec_delete(void *vecp, size_t which, size_t size)
 void
 vec_elim(void *vecp, size_t ind, size_t nmemb, size_t size)
 {
-	union vec vec = {.p = vecp};
+	char **vec=vecp;
 	size_t len = 0;
 	size_t ext = 0;
 	size_t off = 0;
 
-	if (ind > vec_len(*vec.v)) return;
+	if (ind > vec_len(*vec)) return;
 
-	len = vec_len(*vec.v) * size;
+	len = vec_len(*vec) * size;
 	off = ind * size;
 	ext = umin(nmemb * size, len - off);
 
-	memmove(*vec.v + off,
-	        *vec.v + off + ext,
+	memmove(*vec + off,
+	        *vec + off + ext,
 	        len - off - ext);
 
-	(*vec.z)[-1] -= umin(nmemb, vec_len(*vec.v));
+	vec_set_len(vec, vec_len(*vec) - umin(nmemb, vec_len(*vec)));
 
-	memset(*vec.v + vec_len(*vec.v) * size, 0, ext);
+	memset(*vec + vec_len(*vec) * size, 0, ext);
 }
 
 int
@@ -145,8 +144,8 @@ vec_insert(void *vecp, void const * data, size_t pos, size_t size)
 int
 vec_join(void *destp, void const *src, size_t size)
 {
-	union vec dest = {.p = destp};
-	return vec_splice(destp, vec_len(*dest.v), src, vec_len(src), size);
+	char **dest=destp;
+	return vec_splice(destp, vec_len(*dest), src, vec_len(src), size);
 }
 
 void
@@ -160,111 +159,109 @@ void *
 vec_new(size_t size)
 {
 	void *ret = 0;
-
 	vec_ctor(&ret, size);
-
 	return ret;
 }
 
 void
 vec_pop(void *dest, void *srcp, size_t size)
 {
-	union vec src = {.p = srcp};
+	char **src=srcp;
 	size_t ext = 0;
 
-	ext = (vec_len(*src.v) - 1) * size;
+	ext = (vec_len(*src) - 1) * size;
 	
-	memcpy(dest, *src.v + ext, size);
+	memcpy(dest, *src + ext, size);
 
-	vec_delete(src.v, vec_len(*src.v) - 1, size);
+	vec_delete(src, vec_len(*src) - 1, size);
 }
 
 int
 vec_resize(void *vecp, size_t new, size_t size)
 {
-	union vec vec = {.p = vecp};
+	unsigned char **vec = vecp;
 	unsigned char *old = 0x0;
 	unsigned char *tmp = 0x0;
 	size_t ext = 0;
 
-	old = *vec.v - vec_header_size;
-
-	ext = vec_len(*vec.v) * size + vec_header_size;
-
+	old = *vec - vec_header_size;
+	ext = vec_len(*vec) * size + vec_header_size;
 	tmp = realloc(old, new*size + vec_header_size);
 	if (!tmp) return ENOMEM;
 
 	memset(tmp+vec_header_size+ext, 0, new*size-ext);
-	*vec.v = tmp + vec_header_size;
+	*vec = tmp + vec_header_size;
 
-	(*vec.z)[-2] = new*size;
+	memcpy(*vec - sizeof (size_t)*2,
+	       (size_t[]){new*size},
+	       sizeof (size_t));
 	return 0;
 }
 
 void
 vec_shift(void *vecp, size_t off, size_t size)
 {
-	union vec vec = {.p = vecp};
-	vec_slice(vecp, off, vec_len(*vec.v) - off, size);
+	char **vec=vecp;
+	vec_slice(vecp, off, vec_len(*vec) - off, size);
 }
 
 void
 vec_slice(void *vecp, size_t beg, size_t nmemb, size_t size)
 {
-	union vec vec = {.p = vecp};
+	char **vec=vecp;
 	size_t ext = 0;
 	size_t off = 0;
 	size_t len = 0;
 	size_t min = 0;
 
-	if (beg >= vec_len(*vec.v)) {
-		vec_truncat(vecp, 0, size);
+	if (beg >= vec_len(*vec)) {
+		vec_truncat(vec, 0, size);
 		return;
 	}
 
-	min = umin(nmemb, vec_len(*vec.v) - beg);
+	min = umin(nmemb, vec_len(*vec) - beg);
 
 	ext = min * size;
 	off = beg * size;
-	len = vec_len(*vec.v) * size;
+	len = vec_len(*vec) * size;
 
-	memmove(*vec.v, *vec.v + off, ext);
-	memset(*vec.v + ext, 0, len - ext);
+	memmove(*vec, *vec + off, ext);
+	memset(*vec + ext, 0, len - ext);
 
-	(*vec.z)[-1] = min;
+	vec_set_len(vec, min);
 }
 
 int
 vec_splice(void *destp, size_t pos, void const *src, size_t nmemb, size_t size)
 {
-	union vec dest = {.p = destp};
+	char **dest=destp;
 	size_t ext = 0;
 	size_t len = 0;
 	size_t off = 0;
 	size_t mem = 0;
 	int err = 0;
 
-	if (off > vec_len(*dest.v)) return EINVAL;
+	if (off > vec_len(*dest)) return EINVAL;
 
 	ext = nmemb * size;
-	len = vec_len(*dest.v) * size;
+	len = vec_len(*dest) * size;
 	off = pos * size;
 
-	if (len + ext >= vec_mem(*dest.v)) {
-		mem = vec_mem(*dest.v);
+	if (len + ext >= vec_mem(*dest)) {
+		mem = vec_mem(*dest);
 		while (mem <= len + ext) mem *= 2;
 
-		err = vec_resize(dest.v, mem, size);
+		err = vec_resize(dest, mem, size);
 		if (err) return err;
 	}
 
-	memmove(*dest.v + off + ext,
-		*dest.v + off,
+	memmove(*dest + off + ext,
+		*dest + off,
 		len - off);
 
-	memcpy(*dest.v + off, src, ext);
+	memcpy(*dest + off, src, ext);
 
-	(*dest.z)[-1] += nmemb;
+	vec_set_len(dest, vec_len(*dest) + nmemb);
 
 	return 0;
 }
@@ -272,11 +269,11 @@ vec_splice(void *destp, size_t pos, void const *src, size_t nmemb, size_t size)
 void
 vec_truncat(void *vecp, size_t off, size_t size)
 {
-	union vec vec = {.p = vecp};
-	memset(*vec.v + off * size,
+	char **vec=vecp;
+	memset(*vec + off * size,
 		0,
-		(vec_len(*vec.v) - off) * size);
-	(*vec.z)[-1] = off;
+		(vec_len(*vec) - off) * size);
+	vec_set_len(vec, off);
 }
 
 int
