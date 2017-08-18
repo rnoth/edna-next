@@ -80,7 +80,6 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	if (!act) return ENOMEM;
 
 	ctx[0] = edna->chain, ctx[1] = 0;
-
 	err = text_insert(ctx, offset, text, length);
 	if (err) {
 		free(act);
