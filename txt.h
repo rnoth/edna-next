@@ -4,6 +4,13 @@
 #include <stdint.h>
 
 #include <ext.h>
+#include <tag.h>
+
+struct action {
+	struct action *next;
+	struct action *chld;
+	uintptr_t *arg;
+};
 
 struct piece {
 	struct ext_node node[1];
@@ -13,9 +20,11 @@ struct piece {
 };
 
 struct piece *text_ctor(void);
-int text_delete(struct piece **dest, size_t offset, size_t extent);
 void text_dtor(struct piece *text);
+
+int text_delete(struct piece **dest, size_t offset, size_t extent);
 int text_insert(struct piece **dest, struct piece *new, size_t offset);
+
 void text_link(struct piece *lef, struct piece *rit);
 struct piece *text_next(struct piece *cur, struct piece *prev);
 void text_step(struct piece **links);
