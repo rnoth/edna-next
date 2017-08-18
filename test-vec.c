@@ -18,7 +18,7 @@ static void test_splice(void);
 static void test_transfer(void);
 static void test_truncat(void);
 
-struct unit_test tests[] = {
+static struct unit_test tests[] = {
 	{.msg="allocating & freeing a vector",
 	 .fun=unit_list(test_alloc, test_free), },
 	{.msg="adding some elements to a simple vector",
@@ -42,9 +42,9 @@ struct unit_test tests[] = {
 	{.msg="slicing a vector",
 	 .fun=unit_list(test_large_insert, test_slice, test_free), },
 	{.msg="splicing a vector with an array",
-	 .fun=unit_list(test_large_insert,  test_splice, test_free), },
+	 .fun=unit_list(test_large_insert, test_splice, test_free), },
 	{.msg="transfering elements to an array",
-	  .fun=unit_list(test_large_insert,  test_transfer, test_free), },
+	 .fun=unit_list(test_large_insert, test_transfer, test_free), },
 	{.msg="popping elements from a vector",
 	 .fun=unit_list(test_large_insert, test_pop, test_free), },
 };
