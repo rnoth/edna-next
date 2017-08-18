@@ -5,6 +5,9 @@
 #include <util.h>
 #include <txt.c>
 
+#define text_insert_str(txt, off, str) \
+	text_insert(txt, off, str, strlen(str))
+
 static void make_links(struct piece **);
 
 static void test_delete();
@@ -149,60 +152,71 @@ test_insert()
 	struct piece beg[1] = {{0}};
 	struct piece hi[1] = {{.buffer="hello!", .length=6}};
 	struct piece end[1] = {{0}};
-	struct piece new[1] = {{.buffer=", friend", .length=8}};
-	struct piece *pie;
+	struct piece *new;
+	struct piece *new1;
 	struct piece *links[2];
 
 	make_links(beg, hi, end);
 
 	links[0] = beg, links[1] = 0;
 	text_walk(links, 5);
-	ok(!text_insert(links, new, 5));
+	ok(!text_insert_str(links, 5, ", friend"));
 
 	ok(hi->length == 5);
 
-	ok(new == text_next(hi, beg));
+	ok(new = text_next(hi, beg));
+	ok(new != hi);
+	ok(new != beg);
+	ok(new != end);
 
-	pie = text_next(new, hi);
-	ok(pie != end);
+	new1 = text_next(new, hi);
+	ok(new1 != new);
+	ok(new1 != end);
 
-	ok(pie->length == 1);
-	ok(*pie->buffer == '!');
+	ok(new1->length == 1);
+	ok(*new1->buffer == '!');
 
 	links[0] = beg, links[1] = 0;
 	text_walk(links, 13);
 
-	ok(links[0] == pie);
+	ok(links[0] == new1);
 	ok(links[1] == new);
 
-	free(pie);
+	free(new1);
+	free(new);
 }
 
 void
 test_insert2()
 {
 	struct piece beg[1] = {{0}};
-	struct piece one[1] = {{.buffer="two, ", .length=5}};
+	struct piece pie[1] = {{.buffer="two, ", .length=5}};
 	struct piece end[1] = {{0}};
-	struct piece new[1] = {{.buffer="one, ", .length=5}};
-	struct piece new1[1] = {{.buffer="three.", .length=6}};
+	struct piece *new;
+	struct piece *new1;
 	struct piece *links[2];
 
-	make_links(beg, one, end);
+	make_links(beg, pie, end);
 
 	links[0] = beg, links[1] = 0;
 
-	ok(!text_insert(links, new, 0));
-	ok(text_next(beg, 0) == new);
-	ok(text_next(new, beg) == one);
-	ok(one->length == 5);
+	ok(!text_insert_str(links, 0, "one, "));
+	ok(new = text_next(beg, 0));
+	ok(new != pie);
+
+	ok(text_next(new, beg) == pie);
+	ok(pie->length == 5);
 
 	links[0] = beg, links[1] = 0;
-	ok(!text_insert(links, new1, 10));
-
-	ok(text_next(end, 0) == new1);
-	ok(text_next(new1, end) == one);
+	ok(!text_insert_str(links, 10, "three."));
+	ok(new1 = text_next(end, 0));
+	ok(new1 != pie);
+	
+	ok(text_next(new1, end) == pie);
 	ok(beg->length == 0);
+
+	free(new);
+	free(new1);
 }
 
 void
@@ -210,17 +224,18 @@ test_insert3()
 {
 	struct piece beg[1] = {{0}};
 	struct piece end[1] = {{0}};
-	struct piece new[1] = {{.buffer="I'm in"}};
+	struct piece *new;
 	struct piece *links[2];
 
 	make_links(beg, end);
-	make_links(new);
 
 	links[0] = beg, links[1] = 0;
 
-	try(text_insert(links, new, 0));
+	try(text_insert_str(links, 0, "I'm in"));
 
-	ok(text_next(beg, 0) == new);
+	ok(new = text_next(beg, 0));
+	ok(new != end);
+
 	ok(text_next(new, beg) == end);
 	ok(text_next(end, new) == 0);
 

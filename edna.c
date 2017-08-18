@@ -8,6 +8,22 @@
 #include <util.h>
 #include <vec.h>
 
+struct record {
+	struct record *prev;
+	struct action *acts;
+};
+
+static void rec_insert(struct record *hist, struct action *act, struct piece **arg);
+
+void
+rec_insert(struct record *hist, struct action *act, struct piece **arg)
+{
+	act->arg[0] = tag1(arg[0]);
+	act->arg[1] = (uintptr_t)arg[1];
+	act->chld = hist->acts;
+	hist->acts = act;
+}
+
 void
 edna_fini(struct edna *edna)
 {
@@ -20,8 +36,14 @@ edna_init(struct edna *edna)
 {
 	*edna = (struct edna){0};
 
+	edna->hist = calloc(1, sizeof *edna->hist);
+	if (!edna->hist) return ENOMEM;
+
 	edna->chain = text_ctor();
-	if (!edna->chain) return ENOMEM;
+	if (!edna->chain) {
+		free(edna->hist);
+		return ENOMEM;
+	}
 
 	*edna->cmds = (struct set){0};
 	cmd_init(edna->cmds);
@@ -50,23 +72,22 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 int
 edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 {
-	struct piece *links[2];
-	struct piece *pie;
+	struct action *act;
+	struct piece *ctx[2];
 	int err;
 
-	pie = calloc(1, sizeof *pie);
-	if (!pie) return ENOMEM;
+	act = calloc(1, sizeof *act);
+	if (!act) return ENOMEM;
 
-	pie->buffer = text;
-	pie->length = length;
+	ctx[0] = edna->chain, ctx[1] = 0;
 
-	links[0] = edna->chain, links[1] = 0;
-
-	err = text_insert(links, pie, offset);
+	err = text_insert(ctx, offset, text, length);
 	if (err) {
-		free(pie);
+		free(act);
 		return err;
 	}
+
+	rec_insert(edna->hist, act, ctx);
 
 	return 0;
 }

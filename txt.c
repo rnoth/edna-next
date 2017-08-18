@@ -91,18 +91,30 @@ text_dtor(struct piece *txt)
 }
 
 int
-text_insert(struct piece **dest, struct piece *new, size_t offset)
+text_insert(struct piece **dest, size_t offset, char *buffer, size_t length)
 {
+	struct piece *new;
 	int err;
+
+	new = calloc(1, sizeof *new);
+	if (!new) return ENOMEM;
+
+	new->buffer = buffer;
+	new->length = length;
 
 	offset = text_walk(dest, offset);
 
 	err = text_split(dest, offset, 0);
-	if (err) return err;
+	if (err) {
+		free(new);
+		return err;
+	}
 
 	text_relink(dest[0], new, dest[1]);
+	dest[0] = new;
 
 	return 0;
+
 }
 
 void

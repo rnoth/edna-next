@@ -7,9 +7,8 @@
 #include <tag.h>
 
 struct action {
-	struct action *next;
 	struct action *chld;
-	uintptr_t *arg;
+	uintptr_t arg[2];
 };
 
 struct piece {
@@ -23,7 +22,7 @@ struct piece *text_ctor(void);
 void text_dtor(struct piece *text);
 
 int text_delete(struct piece **dest, size_t offset, size_t extent);
-int text_insert(struct piece **dest, struct piece *new, size_t offset);
+int text_insert(struct piece **dest, size_t offset, char *buffer, size_t length);
 
 void text_link(struct piece *lef, struct piece *rit);
 struct piece *text_next(struct piece *cur, struct piece *prev);
