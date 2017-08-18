@@ -123,10 +123,10 @@ text_link(struct piece *lef, struct piece *rit)
 	if (rit) rit->link ^= (uintptr_t)lef;
 }
 
-struct piece *
+void
 text_merge(struct piece **ctx)
 {
-	struct piece *result;
+	struct piece *dead;
 	struct piece *next;
 	char *end;
 
@@ -142,10 +142,10 @@ text_merge(struct piece **ctx)
 	text_unlink(next, ctx[0]);
 	text_link(next, ctx[1]);
 
-	result = ctx[0];
+	dead = ctx[0];
 	ctx[1] = next;
 
-	return result;
+	free(dead);
 }
 
 struct piece *

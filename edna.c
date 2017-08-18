@@ -19,7 +19,6 @@ revert_insert(struct action **act)
 	struct piece *ctx[2];
 	struct piece *next;
 	struct piece *result;
-	struct piece *result1;
 
 	ctx[0] = untag(act[0]->arg[0]);
 	ctx[1] = untag(act[0]->arg[1]);
@@ -35,8 +34,7 @@ revert_insert(struct action **act)
 
 	result->link = 0;
 
-	result1 = text_merge(ctx);
-	if (result1) text_link(result, result1);
+	text_merge(ctx);
 
 	return result;
 }
