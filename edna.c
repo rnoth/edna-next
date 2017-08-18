@@ -6,6 +6,7 @@
 #include <cmd.h>
 #include <txt.h>
 #include <util.h>
+#include <vec.h>
 
 struct record {
 	struct record *prev;
@@ -21,7 +22,7 @@ static int rec_marshal(struct record **dest, struct piece *txt);
 void
 edna_fini(struct edna *edna)
 {
-	text_dtor(edna->text);
+	text_dtor(edna->chain);
 	text_dtor(edna->dead);
 }
 
@@ -30,8 +31,8 @@ edna_init(struct edna *edna)
 {
 	*edna = (struct edna){0};
 
-	edna->text = text_ctor();
-	if (!edna->text) return ENOMEM;
+	edna->chain = text_ctor();
+	if (!edna->chain) return ENOMEM;
 
 	*edna->cmds = (struct set){0};
 	cmd_init(edna->cmds);
@@ -45,7 +46,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	struct piece *links[2];
 	int err;
 
-	links[0] = edna->text, links[1] = 0;
+	links[0] = edna->chain, links[1] = 0;
 	err = text_delete(links, offset, extent);
 	if (err) return err;
 
@@ -65,7 +66,7 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	struct piece *pie;
 	int err;
 
-	err = rec_marshal(&_, edna->text);
+	err = rec_marshal(&_, edna->chain);
 	if (err > 0) return err;
 	if (!err) free(_);
 
@@ -75,7 +76,7 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	pie->buffer = text;
 	pie->length = length;
 
-	links[0] = edna->text, links[1] = 0;
+	links[0] = edna->chain, links[1] = 0;
 
 	err = text_insert(links, pie, offset);
 	if (err) {

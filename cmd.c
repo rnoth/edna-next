@@ -67,7 +67,7 @@ cmd_print(struct edna *edna, size_t *cursor)
 	size_t off = cursor[0];
 	size_t min;
 
-	links[0] = edna->text, links[1] = 0;
+	links[0] = edna->chain, links[1] = 0;
 	text_walk(links, cursor[0]);
 
 	while (off < end) {
