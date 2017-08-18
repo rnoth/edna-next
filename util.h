@@ -45,6 +45,13 @@ ufls(ulong a)
 
 static inline
 ulong
+umax(ulong a, ulong b)
+{
+	return a > b ? a : b;
+}
+
+static inline
+ulong
 umin(ulong a, ulong b)
 {
 	return a < b ? a : b;
