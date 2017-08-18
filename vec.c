@@ -32,7 +32,6 @@
 enum {
 	vec_header_size = sizeof (size_t) * 2,
 };
-//static size_t const vec_header_size = sizeof (size_t) * 2;
 
 union vec {
 	unsigned char **v;
@@ -190,7 +189,7 @@ vec_resize(void *vecp, size_t new, size_t size)
 
 	old = *vec.v - vec_header_size;
 
-	tmp = calloc(1, new + vec_header_size);
+	tmp = calloc(1, new*size + vec_header_size);
 	if (!tmp) return ENOMEM;
 
 	ext = vec_len(*vec.v) * size + vec_header_size;
@@ -200,7 +199,7 @@ vec_resize(void *vecp, size_t new, size_t size)
 
 	*vec.v = tmp + vec_header_size;
 
-	(*vec.z)[-2] = new;
+	(*vec.z)[-2] = new*size;
 	return 0;
 }
 

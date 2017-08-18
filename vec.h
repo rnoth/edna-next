@@ -57,7 +57,7 @@ void   vec_truncat (void *, size_t, size_t);
 #define vec_insert(dest_ptr, src, ind) vec_insert(dest_ptr, src, ind, sizeof **dest_ptr)
 #define vec_join(dest_ptr, src) vec_join(dest_ptr, src, sizeof **dest_ptr)
 #define vec_pop(dest, src_ptr) vec_pop(dest, src_ptr, sizeof **src_ptr)
-#define vec_resize(vec_ptr, n) vec_resize(vec_ptr, n * sizeof **vec_ptr, sizeof **vec_ptr)
+#define vec_resize(vec_ptr, n) vec_resize(vec_ptr, sizeof **vec_ptr, sizeof **vec_ptr)
 #define vec_shift(vec_ptr, off) vec_shift(vec_ptr, off, sizeof **vec_ptr)
 #define vec_slice(vec_ptr, off, nmemb) vec_slice(vec_ptr, off, nmemb, sizeof **vec_ptr)
 #define vec_splice(dest_ptr, i, s, n) vec_splice(dest_ptr, i, s, n, sizeof **dest_ptr)
