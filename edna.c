@@ -13,15 +13,32 @@ struct record {
 	struct action *acts;
 };
 
-static void rec_insert(struct record *hist, struct action *act, struct piece **arg);
-
-void
-rec_insert(struct record *hist, struct action *act, struct piece **arg)
+struct piece *
+revert_insert(struct action **act)
 {
-	act->arg[0] = tag1(arg[0]);
-	act->arg[1] = (uintptr_t)arg[1];
-	act->chld = hist->acts;
-	hist->acts = act;
+	struct piece *ctx[2];
+	struct piece *next;
+	struct piece *result;
+	struct piece *result1;
+
+	ctx[0] = untag(act[0]->arg[0]);
+	ctx[1] = untag(act[0]->arg[1]);
+
+	next = text_next(ctx[0], ctx[1]);
+
+	text_unlink(ctx[0], ctx[1]);
+	text_unlink(next, ctx[0]);
+	text_link(next, ctx[1]);
+
+	result = ctx[0];
+	ctx[0] = next;
+
+	result->link = 0;
+
+	result1 = text_merge(ctx);
+	if (result1) text_link(result, result1);
+
+	return result;
 }
 
 void
@@ -86,7 +103,11 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 		return err;
 	}
 
-	rec_insert(edna->hist, act, ctx);
+	act->arg[0] = tag1(ctx[0]);
+	act->arg[1] = (uintptr_t)ctx[1];
+	act->chld = edna->hist->acts;
+
+	edna->hist->acts = act;
 
 	return 0;
 }
