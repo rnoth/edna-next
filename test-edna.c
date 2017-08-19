@@ -14,11 +14,13 @@
 #include <fd.h>
 #include <util.h>
 
+#define insert_lines(...) _insert_lines((char *[]){__VA_ARGS__, 0})
+
 extern char **environ;
 
 static void kill_edna();
 static void expect_prompt();
-static void insert_line(char *ln);
+static void _insert_lines(char **lns);
 static void read_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
@@ -117,6 +119,7 @@ void
 readf(char *fmt, ...)
 {
 	va_list args;
+	va_list args1;
 	size_t len;
 	size_t avail;
 	int ws;
@@ -126,10 +129,13 @@ readf(char *fmt, ...)
 	msleep(5);
 
 	va_start(args, fmt);
+	va_copy(args1, args);
 	len = vsnprintf(0, 0, fmt, args);
 	ok(s = calloc(len + 1, 1));
-	va_start(args, fmt);
-	ok(vsnprintf(s, len + 1, fmt, args));
+	ok(vsnprintf(s, len + 1, fmt, args1));
+
+	va_end(args);
+	va_end(args1);
 
 	avail = fd_peek(edna_pty);
 	ok(t = calloc(avail, 1));
@@ -174,11 +180,11 @@ expect_prompt()
 }
 
 void
-insert_line(char *ln)
+_insert_lines(char **lns)
 {
-	rwritef("i\n");
-	rwritef("%s\n", ln);
-	ok(write(edna_pty, "\x04", 1) == 1);
+	send_line("i");
+	while (*lns) rwritef("%s\n", *lns++);
+	send_eof();
 }
 
 void
@@ -253,12 +259,11 @@ void
 test_back()
 {
 	expect_prompt();
-	send_line("i");
-	send_line("one");
-	send_line("two");
-	send_eof();
+	insert_lines("one", "two");
+
 	expect_prompt();
 	send_line("-");
+
 	expect_prompt();
 	send_line("p");
 	read_line("one");
@@ -276,17 +281,12 @@ void
 test_insert_back()
 {
 	expect_prompt();
-	send_line("i");
-	send_line("above");
-	send_line("below");
-	send_eof();
+	insert_lines("above", "below");
 
 	expect_prompt();
 	send_line("-");
 	expect_prompt();
-	send_line("i");
-	send_line("in-between");
-	send_eof();
+	insert_lines("in-between");
 
 	expect_prompt();
 	send_line("p");
@@ -317,9 +317,7 @@ void
 test_insert_empty()
 {
 	expect_prompt();
-	send_line("i");
-	send_line("");
-	send_eof();
+	insert_lines("");
 	expect_prompt();
 	send_line("p");
 	read_line("");
@@ -329,9 +327,7 @@ void
 test_insert_simple()
 {
 	expect_prompt();
-	send_line("i");
-	send_line("Hello, world!");
-	send_eof();
+	insert_lines("Hello, world!");
 	expect_prompt();
 	send_line("p");
 	read_line("Hello, world!");
@@ -341,10 +337,7 @@ void
 test_insert0()
 {
 	expect_prompt();
-	send_line("i");
-	send_line("good night sir");
-	send_line("good day indeed");
-	send_line(".");
+	insert_lines("good day sir", "good day indeed");
 	expect_prompt();
 	send_line("p");
 	read_line("good day indeed");
@@ -354,9 +347,9 @@ void
 test_insert1()
 {
 	expect_prompt();
-	insert_line("one");
+	insert_lines("one");
 	expect_prompt();
-	insert_line("two");
+	insert_lines("two");
 	expect_prompt();
 	send_line("p");
 	read_line("two");
