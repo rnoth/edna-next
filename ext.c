@@ -102,11 +102,12 @@ ext_free(struct ext *ext)
 void
 ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
 {
-	struct ext_walker walker[1];{}
+	struct ext_walker walker[1];
 
 	if (!ext->root) {
 		new->chld[0]=0, new->chld[1]=0;
 		new->off = new->ext;
+
 		ext->off = offset;
 		ext->len = new->ext;
 		ext->root = tag_leaf(new);
@@ -136,13 +137,26 @@ void *
 ext_remove(struct ext *ext, size_t offset)
 {
 	struct ext_walker walker[1];
-	void *result;
+	struct ext_node *result;
+
+	if (!ext->root) return 0x0;
 
 	walker_begin(walker, ext);
 	walker_walk(walker, offset);
 	result = untag(walker->tag);
+	if (offset - walker->off > result->ext) {
+		walker_rise(walker);
+		return 0x0;
+	}
+
+	if (is_root(walker->prev)) {
+		ext->root = 0;
+		ext->off = ext->len = 0;
+		return result;
+	}
 
 	node_detatch(walker);
+	node_shift(walker, -result->ext);
 
 	return result;
 }
@@ -177,21 +191,18 @@ node_detatch(struct ext_walker *walker)
 {
 	struct ext_node *prev;
 	struct ext_node *del;
-	uintptr_t sib;
 	int b;
 
 	del = untag(walker->tag);
 
 	prev = untag(walker->prev);
 	b = is_back(prev->chld[1]);
-	sib = prev->chld[!b];
+	walker->tag = prev->chld[!b];
+	walker->prev = flip_tag(prev->chld[b]);
 
-	walker_rise(walker);
 	prev->chld[0] = 0, prev->chld[1] = 0;
-	if (!is_root(walker->prev)) {
-		walker->tag = sib;
-		return;
-	}
+
+	if (is_root(walker->prev)) return;
 
 	prev->off = del->off;
 	prev->chld[0] = del->chld[0];
@@ -247,7 +258,7 @@ node_shift(struct ext_walker *walker, size_t offset)
 	int b;
 
 	while (is_node(walker->prev)) {
-		node = untag(walker->tag);
+		node = untag(walker->prev);
 		b = is_back(node->chld[1]);
 		node->off += b ? 0 : offset;
 
@@ -256,6 +267,7 @@ node_shift(struct ext_walker *walker, size_t offset)
 
 	ext = untag(walker->prev);
 	ext->len += offset;
+	ext->root = walker->tag;
 }
 
 void
