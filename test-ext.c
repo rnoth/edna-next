@@ -3,6 +3,22 @@
 
 #include <util.h>
 
+static void test_add_two(void);
+static void test_add_simple(void);
+static void test_insert(void);
+static void test_query(void);
+
+static struct unit_test tests[] = {
+	{.msg = "should be able append a single extent",
+	 .fun = unit_list(test_add_simple),},
+	{.msg = "should be able to append two extents",
+	 .fun = unit_list(test_add_two),},
+	{.msg = "should be able to query extents",
+	 .fun = unit_list(test_query),},
+	{.msg = "should be able to insert extents",
+	 .fun = unit_list(test_insert),},
+};
+
 void
 test_add_two(void)
 {
@@ -92,17 +108,6 @@ test_query(void)
 	ok(ext_stab(ext, 470) == b);
 	ok(ext_stab(ext, 599) == c);
 }
-
-static struct unit_test tests[] = {
-	{.msg = "should be able append a single extent",
-	 .fun = unit_list(test_add_simple),},
-	{.msg = "should be able to append two extents",
-	 .fun = unit_list(test_add_two),},
-	{.msg = "should be able to query extents",
-	 .fun = unit_list(test_query),},
-	{.msg = "should be able to insert extents",
-	 .fun = unit_list(test_insert),},
-};
 
 int
 main(int argc, char **argv)
