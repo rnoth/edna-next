@@ -29,30 +29,31 @@ cmd_insert(struct edna *edna, size_t *cursor)
 	struct read ln[1]={0};
 	int err;
 
-	while (true) {
-		err = fd_read(ln, 0);
-		if (err == -1) return 0;
-		if (err) return err;
+ again:
+	err = fd_read(ln, 0);
+	if (err == -1) return 0;
+	if (err) return err;
 
-		if (!ln->length) {
-			return 0;
-		}
-
-		if (ln->length == 2 && !memcmp(ln->buffer, ".\n", 2)) {
-			free(ln->buffer);
-			return 0;
-		}
-
-		err = edna_text_insert(edna, cursor[0] + cursor[1],
-		                       ln->buffer, ln->length);
-		if (err) {
-			free(ln->buffer);
-			return 0;
-		}
-
-		cursor[0] += cursor[1];
-		cursor[1] = ln->length;
+	if (!ln->length) {
+		return 0;
 	}
+
+	if (ln->length == 2 && !memcmp(ln->buffer, ".\n", 2)) {
+		free(ln->buffer);
+		return 0;
+	}
+
+	err = edna_text_insert(edna, cursor[0] + cursor[1],
+	                       ln->buffer, ln->length);
+	if (err) {
+		free(ln->buffer);
+		return 0;
+	}
+
+	cursor[0] += cursor[1];
+	cursor[1] = ln->length;
+
+	goto again;
 }
 
 int
