@@ -178,21 +178,26 @@ ext_remove(struct ext *ext, size_t offset, size_t extent)
 	walker_begin(walker, ext);
 	walker_locate(walker, offset, extent);
 	result = untag(walker->tag);
-	if (offset - walker->off > result->ext) {
-		walker_rise(walker);
-		return 0x0;
-	}
 
-	if (is_root(walker->prev)) {
-		ext->root = 0;
-		ext->off = ext->len = 0;
+	if (is_leaf(walker->tag)) {
+		if (offset - walker->off > result->ext) {
+			walker_rise(walker);
+			return 0x0;
+		}
+
+		if (is_root(walker->prev)) {
+			ext->root = 0;
+			ext->off = ext->len = 0;
+			return result;
+		}
+
+		node_detatch(walker);
+		node_shift(walker, -result->ext);
+
 		return result;
 	}
 
-	node_detatch(walker);
-	node_shift(walker, -result->ext);
-
-	return result;
+	__builtin_trap();
 }
 
 void *
@@ -371,16 +376,14 @@ void
 walker_locate(struct ext_walker *walker, size_t offset, size_t extent)
 {
 	struct ext_node *node;
-	size_t len;
 	int b;
 
-	len = untag_ext(walker->prev)->len;
 	while (is_node(walker->tag)) {
 		node = untag(walker->tag);
 		b = offset >= walker->off + node->off;
 
-		len = b ? len - node->off : node->off;
-		if (len - walker->off < extent) break;
+		walker->len = b ? walker->len - node->off : node->off;
+		if (walker->len - walker->off < extent) break;
 
 		walker_visit(walker, b);
 	}

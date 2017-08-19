@@ -20,6 +20,7 @@ struct ext_walker {
 	uintptr_t prev;
 	uintptr_t tag;
 	size_t off;
+	size_t len;
 };
 
 void ext_append(struct ext *ext, struct ext_node *new);
