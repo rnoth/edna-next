@@ -252,7 +252,7 @@ node_insert(struct ext_walker *walker, struct ext_node *new)
 	ext = is_node(walker->tag) ? node->off : node->ext;
 
 	b = new->off >= walker->off + ext;
-	new->off = b ? new->off : new->ext;
+	new->off = b ? new->off - walker->off : new->ext;
 
 	new->chld[ b] = tag_leaf(new);
 	new->chld[!b] = walker->tag;
