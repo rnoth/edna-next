@@ -8,6 +8,7 @@ static void test_add_simple(void);
 static void test_insert(void);
 static void test_iter(void);
 static void test_iter_edge(void);
+static void test_remove(void);
 static void test_query(void);
 
 static struct unit_test tests[] = {
@@ -22,7 +23,9 @@ static struct unit_test tests[] = {
 	{.msg = "should be able to iterate over an extent tree",
 	 .fun = unit_list(test_iter),},
 	{.msg = "should handle edge cases with iterating",
-	 .fun = unit_list(test_iter_edge),}
+	 .fun = unit_list(test_iter_edge),},
+	{.msg = "should be able to remove extents",
+	 .fun = unit_list(test_remove),},
 };
 
 void
@@ -133,6 +136,45 @@ test_iter_edge(void)
 
 	ok(ext_iterate(w, smol) == leaf);
 	ok(ext_continue(w) == 0);
+}
+
+void
+test_remove(void)
+{
+	struct ext_node a[1]={{.ext=5}};
+	struct ext_node b[1]={{.ext=10}};
+	struct ext_node c[1]={{.ext=20}};
+	struct ext ext[1]={{0}};
+
+	ok(!ext_remove(ext, 5));
+
+	ext_append(ext, a);
+	ok(ext_remove(ext, 0) == a);
+	ok(!ext->root);
+
+	ext_append(ext, a);
+	ext_append(ext, b);
+	ok(ext_remove(ext, 0) == a);
+	ok(ext->root == tag_leaf(b));
+	ok(!b->chld[0] && !b->chld[1]);
+	ok(ext_stab(ext, 5) == b);
+	ok(!ext_stab(ext, 14));
+
+	ext_insert(ext, a, 0);
+	ext_append(ext, c);
+
+	ok(ext_remove(ext, 0) == a);
+	ok(ext->root == tag_node(c));
+	expect(10, c->off);
+	ok(c->chld[0] == tag_leaf(b));
+	ok(c->chld[1] == tag_leaf(c));
+
+	ok(ext_stab(ext, 5) == b);
+	ok(ext_stab(ext, 15) == c);
+
+	ok(ext_remove(ext, 0) == b);
+	ok(ext->root = tag_leaf(c));
+	ok(ext_stab(ext, 15) == c);
 }
 
 void
