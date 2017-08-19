@@ -20,15 +20,18 @@ int
 run(struct edna *edna)
 {
 	struct parse *parse = 0;;
+	static char buffer[4096];
+	ssize_t length;
 	int err;
 
 	err = dprintf(1, ":");
 	if (err < 0) return errno;
 
-	err = fd_read(input, 0);
-	if (err) goto done;
+	length = read(0, buffer, 4096);
+	if (!length) return -1;
+	if (length < 0) return errno;
 
-	err = parse_ln(&parse, input->buffer, input->length);
+	err = parse_ln(&parse, buffer, length);
 	if (err) goto done;
 
 	err = exec_ln(edna, parse);
@@ -45,6 +48,11 @@ main()
 {
 	struct edna edna[1];
 	int err = 0;
+
+	if (!isatty(0)) {
+		dprintf(2, "fatal: stdin is not a terminal\n");
+		exit(EX_USAGE);
+	}
 
 	edna_init(edna);
 	
