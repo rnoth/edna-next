@@ -35,7 +35,6 @@ cmd_insert(struct edna *edna, size_t *cursor)
 		if (err) return err;
 
 		if (!ln->length) {
-			free(ln->buffer);
 			return 0;
 		}
 
@@ -46,7 +45,10 @@ cmd_insert(struct edna *edna, size_t *cursor)
 
 		err = edna_text_insert(edna, cursor[0] + cursor[1],
 		                       ln->buffer, ln->length);
-		if (err) return err;
+		if (err) {
+			free(ln->buffer);
+			return 0;
+		}
 
 		cursor[0] += cursor[1];
 		cursor[1] = ln->length;
