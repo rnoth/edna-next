@@ -113,8 +113,8 @@ revert_insert(struct action *act)
 void
 edna_fini(struct edna *edna)
 {
-	text_dtor(edna->chain);
-	text_dtor(edna->dead);
+	text_free(edna->chain);
+	text_free(edna->dead);
 	rec_free(edna->hist);
 }
 
