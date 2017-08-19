@@ -14,17 +14,17 @@ static void test_query(void);
 static struct unit_test tests[] = {
 	{.msg = "should be able append a single extent",
 	 .fun = unit_list(test_add_simple),},
-	{.msg = "should be able to append two extents",
+	{.msg = "should append two extents",
 	 .fun = unit_list(test_add_two),},
-	{.msg = "should be able to query extents",
+	{.msg = "should query extents",
 	 .fun = unit_list(test_query),},
-	{.msg = "should be able to insert extents",
+	{.msg = "should insert extents",
 	 .fun = unit_list(test_insert),},
-	{.msg = "should be able to iterate over an extent tree",
+	{.msg = "should iterate over an extent tree",
 	 .fun = unit_list(test_iter),},
 	{.msg = "should handle edge cases with iterating",
 	 .fun = unit_list(test_iter_edge),},
-	{.msg = "should be able to remove extents",
+	{.msg = "should remove extents",
 	 .fun = unit_list(test_remove),},
 };
 

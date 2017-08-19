@@ -53,7 +53,7 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna, expect_prompt, kill_edna),},
 	{.msg = "should exit on eof",
 	 .fun = unit_list(spawn_edna, send_eof, wait_edna),},
-	{.msg = "should be able to quit",
+	{.msg = "should quit",
 	 .fun = unit_list(spawn_edna, quit_edna),},
 
 	{.msg = "should accept empty lines",
@@ -64,30 +64,30 @@ struct unit_test tests[] = {
 	{.msg = "should read multiple lines",
 	 .fun = edna_list(test_multiple_lines),},
 
-	{.msg = "should be able to exit insert mode with eof",
+	{.msg = "should exit insert mode with eof",
 	 .fun = edna_list(test_insert_eof),},
-	{.msg = "should be able to exit insert mode with dot",
+	{.msg = "should exit insert mode with dot",
 	 .fun = edna_list(test_insert_dot),},
 
-	{.msg = "should be able to insert lines",
+	{.msg = "should insert lines",
 	 .fun = edna_list(test_insert_simple),},
 
-	{.msg = "should be able to insert multiple lines",
+	{.msg = "should insert multiple lines",
 	 .fun = edna_list(test_insert0),},
-	{.msg = "should be able to insert multiple lines seperately",
+	{.msg = "should insert multiple lines seperately",
 	 .fun = edna_list(test_insert1),},
 
 	{.msg = "should handle empty lines properly",
 	 .fun = edna_list(test_insert_empty),},
 
-	{.msg = "should be able to move backwards",
+	{.msg = "should move backwards",
 	 .fun = edna_list(test_back),},
-	{.msg = "should be able to insert anywhere",
+	{.msg = "should insert anywhere",
 	 .fun = edna_list(test_insert_back),},
 
-	{.msg = "should be able to move forwards",
+	{.msg = "should move forwards",
 	 .fun = edna_list(test_forth),},
-	{.msg = "should be able to move forwards multiple times",
+	{.msg = "should move forwards multiple times",
 	 .fun = edna_list(test_forth_traverse),},
 };
 
