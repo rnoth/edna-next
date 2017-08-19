@@ -65,6 +65,26 @@ add_lines(struct ext *lines, char *buffer, size_t length)
 }
 
 void
+rec_free(struct record *rec)
+{
+	struct action *cur_act;
+	struct action *next_act;
+	struct record *next_rec;
+
+	while (rec) {
+		cur_act = rec->acts;
+		while (cur_act) {
+			next_act = cur_act->chld;
+			free(cur_act);
+			cur_act = next_act;
+		}
+		next_rec = rec->prev;
+		free(rec);
+		rec = next_rec;
+	}
+}
+
+void
 revert_insert(struct action *act)
 {
 	struct piece *ctx[2];
@@ -95,7 +115,7 @@ edna_fini(struct edna *edna)
 {
 	text_dtor(edna->chain);
 	text_dtor(edna->dead);
-	free(edna->hist);
+	rec_free(edna->hist);
 }
 
 int
