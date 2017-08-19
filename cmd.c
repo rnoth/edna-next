@@ -9,6 +9,7 @@
 #include <txt.h>
 #include <util.h>
 
+static int cmd_back();
 static int cmd_insert();
 static int cmd_print();
 static int cmd_quit();
@@ -21,7 +22,20 @@ struct command commands[] = {
 	cmd("q", cmd_quit, 0),
 	cmd("i", cmd_insert, cursor),
 	cmd("p", cmd_print, cursor),
+	cmd("-", cmd_back, cursor),
 };
+
+int
+cmd_back(struct edna *edna, size_t *cursor)
+{
+	struct ext_node *ln;
+	if (!cursor[0]) return -1;
+
+	ln = ext_stab(edna->lines, cursor[0] - 1);
+	cursor[0] -= cursor[1] = ln->ext;
+
+	return 0;
+}
 
 int
 cmd_insert(struct edna *edna, size_t *cursor)
