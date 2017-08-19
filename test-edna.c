@@ -19,6 +19,7 @@ extern char **environ;
 static void kill_edna();
 static void expect_prompt();
 static void insert_line(char *ln);
+static void read_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
 
@@ -181,6 +182,12 @@ insert_line(char *ln)
 }
 
 void
+read_line(char *ln)
+{
+	readf("%s\n" ":", ln);
+}
+
+void
 send_line(char *ln)
 {
 	rwritef("%s\n", ln);
@@ -254,7 +261,7 @@ test_back()
 	send_line("-");
 	expect_prompt();
 	send_line("p");
-	readf("one\n" ":");
+	read_line("one");
 }
 
 void
@@ -283,7 +290,7 @@ test_insert_back()
 
 	expect_prompt();
 	send_line("p");
-	readf("in-between\n" ":");
+	read_line("in-between");
 }
 
 void
@@ -315,7 +322,7 @@ test_insert_empty()
 	send_eof();
 	expect_prompt();
 	send_line("p");
-	readf("\n" ":");
+	read_line("");
 }
 
 void
@@ -327,7 +334,7 @@ test_insert_simple()
 	send_eof();
 	expect_prompt();
 	send_line("p");
-	readf("Hello, world!\n" ":");
+	read_line("Hello, world!");
 }
 
 void
@@ -340,7 +347,7 @@ test_insert0()
 	send_line(".");
 	expect_prompt();
 	send_line("p");
-	readf("good day indeed\n" ":");
+	read_line("good day indeed");
 }
 
 void
@@ -352,7 +359,7 @@ test_insert1()
 	insert_line("two");
 	expect_prompt();
 	send_line("p");
-	readf("two\n" ":");
+	read_line("two");
 }
 
 void
@@ -360,9 +367,9 @@ test_multiple_lines()
 {
 	expect_prompt();
 	send_line("one");
-	readf("?\n" ":");
+	read_line("?");
 	send_line("two");
-	readf("?\n" ":");
+	read_line("?");
 }
 
 void
@@ -370,7 +377,7 @@ test_unknown_cmd()
 {
 	expect_prompt();
 	send_line("hi");
-	readf("?\n" ":");
+	read_line("?");
 }
 
 void
