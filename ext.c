@@ -12,7 +12,7 @@
 
 static void node_insert(struct ext_walker *walker, struct ext_node *new_node);
 static void node_detatch(struct ext_walker *walker);
-static void node_shift(struct ext_walker *walker, size_t offset);
+static void node_shift(struct ext_walker *walker, ptrdiff_t offset);
 
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
 static void walker_rise(struct ext_walker *walker);
@@ -24,6 +24,16 @@ void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	ext_insert(ext, new_node, ext->len);
+}
+
+void
+ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust)
+{
+	struct ext_walker walker[1];
+
+	walker_begin(walker, ext);
+	walker_walk(walker, offset);
+	node_shift(walker, adjust);
 }
 
 void *
@@ -251,7 +261,7 @@ node_insert(struct ext_walker *walker, struct ext_node *new)
 }
 
 void
-node_shift(struct ext_walker *walker, size_t offset)
+node_shift(struct ext_walker *walker, ptrdiff_t offset)
 {
 	struct ext_node *node;
 	struct ext *ext;
