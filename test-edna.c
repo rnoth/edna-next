@@ -29,6 +29,8 @@ static void test_back();
 
 static void test_empty_line();
 
+static void test_forth();
+
 static void test_insert_back();
 static void test_insert_dot();
 static void test_insert_eof();
@@ -81,6 +83,9 @@ struct unit_test tests[] = {
 	 .fun = edna_list(test_back),},
 	{.msg = "should be able to insert anywhere",
 	 .fun = edna_list(test_insert_back),},
+
+	{.msg = "should be able to move forwards",
+	 .fun = edna_list(test_forth),},
 };
 
 static pid_t edna_pid;
@@ -275,6 +280,24 @@ test_empty_line()
 	expect_prompt();
 	send_line("");
 	expect_prompt();
+}
+
+void
+test_forth()
+{
+	expect_prompt();
+	insert_lines("hi again", "back yet?");
+
+	expect_prompt();
+	send_line("-");
+	expect_prompt();
+	send_line("p");
+	read_line("hi again");
+
+	send_line("+");	
+	expect_prompt();
+	send_line("p");
+	read_line("back yet?");
 }
 
 void
