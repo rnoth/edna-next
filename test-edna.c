@@ -92,7 +92,7 @@ rwritef(char *fmt, ...)
 	ok(vsnprintf(s, len + 1, fmt, args));
 
 	ok(write(edna_pty, s, len) == (ssize_t)len);
-	msleep(1);
+	msleep(5);
 
 	ok(read(edna_pty, t, len) == (ssize_t)len);
 	okf(!strncmp(s, t, len),
@@ -115,7 +115,7 @@ readf(char *fmt, ...)
 	char *s;
 	char *t;
 
-	msleep(2);
+	msleep(5);
 
 	va_start(args, fmt);
 	len = vsnprintf(0, 0, fmt, args);
@@ -130,9 +130,10 @@ readf(char *fmt, ...)
 
 	if (avail == len && !strncmp(s, t, len)) return;
 
-	msleep(2);
+	msleep(5);
 
 	if (!waitpid(edna_pid, &ws, WNOHANG)) {
+		kill_edna();
 		unit_fail_fmt("expected \"%*s\", got \"%*s\"",
 		              (int)len, s, (int)avail, t);
 	}
@@ -356,5 +357,8 @@ main(int argc, char **argv)
 	if (edna_pty == -1) unit_perror("couldn't alloc pty");
 
 	unit_parse_argv(argv);
-	return unit_run_tests(tests, arr_len(tests));
+	unit_run_tests(tests, arr_len(tests));
+	system("pkill -x edna");
+
+	return 0;
 }
