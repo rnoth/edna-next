@@ -3,11 +3,9 @@
 
 #include <stdint.h>
 
-#include <ext.h>
 #include <tag.h>
 
 struct piece {
-	struct ext_node node[1];
 	uintptr_t link;
 	size_t length;
 	char *buffer;
