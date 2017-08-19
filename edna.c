@@ -95,6 +95,7 @@ edna_fini(struct edna *edna)
 {
 	text_dtor(edna->chain);
 	text_dtor(edna->dead);
+	free(edna->hist);
 }
 
 int
