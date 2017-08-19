@@ -65,6 +65,12 @@ add_lines(struct ext *lines, char *buffer, size_t length)
 }
 
 void
+remove_lines(struct ext *lines, size_t offset, size_t extent)
+{
+	__builtin_trap();
+}
+
+void
 rec_free(struct record *rec)
 {
 	struct action *cur_act;
