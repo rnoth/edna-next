@@ -64,6 +64,8 @@ text_delete_across(struct piece **ctx, size_t offset, size_t extent)
 		end[0]->length -= extent;
 		end[0]->buffer += extent;
 	}
+
+	text_merge(end);
 }
 
 int
@@ -83,7 +85,7 @@ text_delete(struct piece **ctx, size_t offset, size_t extent)
 {
 	bool is_within;
 
-	if (offset >= ctx[0]->length) text_walk(ctx, offset);
+	if (offset >= ctx[0]->length) offset = text_walk(ctx, offset);
 
 	is_within = offset + extent < ctx[0]->length;
 	if (is_within) return text_delete_within(ctx, offset, extent);
