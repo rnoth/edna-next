@@ -57,25 +57,25 @@ ext_continue(struct ext_walker *walker)
 }
 
 void
-ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
+ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
 {
 	struct ext_walker walker[1];
 
 	if (!ext->root) {
-		new_node->off = new_node->ext;
+		new->off = new->ext;
 		ext->off = offset;
-		ext->len = new_node->ext;
-		ext->root = tag_leaf(new_node);
+		ext->len = new->ext;
+		ext->root = tag_leaf(new);
 		return;
 	}
 
 	walker_begin(walker, ext);
 	walker_walk(walker, offset);
 
-	new_node->off = offset;
+	new->off = offset;
 
-	node_insert(walker, new_node);
-	node_shift(walker, new_node->ext);
+	node_insert(walker, new);
+	node_shift(walker, new->ext);
 
 	walker_surface(walker);
 }
