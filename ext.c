@@ -168,7 +168,7 @@ ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust)
 }
 
 void *
-ext_remove(struct ext *ext, size_t offset)
+ext_remove(struct ext *ext, size_t offset, size_t extent)
 {
 	struct ext_walker walker[1];
 	struct ext_node *result;
