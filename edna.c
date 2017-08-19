@@ -35,7 +35,7 @@ add_lines(struct ext *lines, char *buffer, size_t length)
 	list = 0x0;
 	for (offset=0; offset<length; offset+=extent) {
 		nl = memchr(buffer+offset, '\n', length-offset);
-		extent = nl - buffer + 15;
+		extent = nl - buffer + 1;
 
 		node = calloc(1, sizeof *node);
 		if (!node) goto fail;
