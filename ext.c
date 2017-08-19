@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <tag.h>
 #include <util.h>
@@ -57,9 +58,50 @@ ext_continue(struct ext_walker *walker)
 }
 
 void
-ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
+ext_free(struct ext *ext)
 {
 	struct ext_walker walker[1];
+	struct ext_node *node;
+	int b;
+
+	if (!ext->root) return;
+
+	walker_begin(walker, ext);
+
+ descend:
+	if (is_leaf(walker->tag)) {
+		node = untag(walker->tag);
+		if (!node->chld[1]) goto free;
+		else goto rise;
+	}
+
+	node = untag(walker->tag);
+	b = !node->chld[0];
+	if (b && !node->chld[1]) goto free;
+
+	walker_visit(walker, b);
+	goto descend;
+
+ free:
+	free(node);
+	if (is_root(walker->prev)) return;
+	goto rise;
+
+ rise:
+	node = untag(walker->prev);
+	b = is_back(node->chld[1]);
+
+	walker->tag = walker->prev;
+	walker->prev = flip_tag(node->chld[b]);
+	node->chld[b] = 0;
+
+	goto descend;
+}
+
+void
+ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
+{
+	struct ext_walker walker[1];{}
 
 	if (!ext->root) {
 		new->chld[0]=0, new->chld[1]=0;
