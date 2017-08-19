@@ -9,19 +9,13 @@
 
 #define untag_ext(t) ((struct ext *)untag(t))
 
-struct walker {
-	uintptr_t prev;
-	uintptr_t tag;
-	size_t off;
-};
+static void node_insert(struct ext_walker *walker, struct ext_node *new_node);
+static void node_shift(struct ext_walker *walker, size_t offset);
 
-static void node_insert(struct walker *walker, struct ext_node *new_node);
-static void node_shift(struct walker *walker, size_t offset);
-
-static void walker_begin(struct walker *walker, struct ext *ext);
-static void walker_rise(struct walker *walker);
-static void walker_surface(struct walker *walker);
-static void walker_walk(struct walker *walker, size_t p);
+static void walker_begin(struct ext_walker *walker, struct ext *ext);
+static void walker_rise(struct ext_walker *walker);
+static void walker_surface(struct ext_walker *walker);
+static void walker_walk(struct ext_walker *walker, size_t p);
 
 void
 ext_append(struct ext *ext, struct ext_node *new_node)
@@ -32,7 +26,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 void
 ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 {
-	struct walker walker[1];
+	struct ext_walker walker[1];
 
 	if (!ext->root) {
 		new_node->off = new_node->ext;
@@ -79,7 +73,7 @@ ext_stab(struct ext *ext, size_t point)
 }
 
 void
-node_insert(struct walker *walker, struct ext_node *new)
+node_insert(struct ext_walker *walker, struct ext_node *new)
 {
 	struct ext_node *leaf;
 	struct ext_node *node;
@@ -120,7 +114,7 @@ node_insert(struct walker *walker, struct ext_node *new)
 }
 
 void
-node_shift(struct walker *walker, size_t offset)
+node_shift(struct ext_walker *walker, size_t offset)
 {
 	struct ext_node *node;
 	struct ext *ext;
@@ -139,7 +133,7 @@ node_shift(struct walker *walker, size_t offset)
 }
 
 void
-walker_begin(struct walker *walker, struct ext *ext)
+walker_begin(struct ext_walker *walker, struct ext *ext)
 {
 	walker->prev = tag_root(ext);
 	walker->tag = ext->root;
@@ -147,7 +141,7 @@ walker_begin(struct walker *walker, struct ext *ext)
 }
 
 void
-walker_rise(struct walker *walker)
+walker_rise(struct ext_walker *walker)
 {
 	struct ext_node *node;
 	struct ext *ext;
@@ -170,14 +164,14 @@ walker_rise(struct walker *walker)
 }
 
 void
-walker_surface(struct walker *walker)
+walker_surface(struct ext_walker *walker)
 {
 	do walker_rise(walker);
 	while (!is_root(walker->prev));
 }
 
 void
-walker_visit(struct walker *walker, int b)
+walker_visit(struct ext_walker *walker, int b)
 {
 	struct ext_node *node;
 	uintptr_t next;
@@ -195,7 +189,7 @@ walker_visit(struct walker *walker, int b)
 }
 
 void
-walker_walk(struct walker *walker, size_t p)
+walker_walk(struct ext_walker *walker, size_t p)
 {
 	struct ext_node *node;
 	int b;
