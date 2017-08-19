@@ -116,6 +116,7 @@ edna_fini(struct edna *edna)
 	text_free(edna->chain);
 	text_free(edna->dead);
 	rec_free(edna->hist);
+	ext_free(edna->lines);
 }
 
 int
