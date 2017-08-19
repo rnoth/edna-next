@@ -6,11 +6,6 @@
 #include <ext.h>
 #include <tag.h>
 
-struct action {
-	struct action *chld;
-	uintptr_t arg[2];
-};
-
 struct piece {
 	struct ext_node node[1];
 	uintptr_t link;

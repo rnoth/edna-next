@@ -8,6 +8,11 @@
 #include <util.h>
 #include <vec.h>
 
+struct action {
+	struct action *chld;
+	uintptr_t arg[2];
+};
+
 struct record {
 	struct record *prev;
 	struct action *acts;
