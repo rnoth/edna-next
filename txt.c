@@ -108,6 +108,21 @@ text_dtor(struct piece *txt)
 	}
 }
 
+void
+text_free(struct piece *text)
+{
+	struct piece *next;
+	struct piece *prev=0;
+
+	while (text) {
+		next = text_next(text, prev);
+		free(text->buffer);
+		free(text);
+		prev=text;
+		text=next;
+	}
+}
+
 int
 text_insert(struct piece **dest, size_t offset, char *buffer, size_t length)
 {

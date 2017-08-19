@@ -15,6 +15,7 @@ struct piece {
 
 struct piece *text_ctor(void);
 void text_dtor(struct piece *text);
+void text_free(struct piece *text);
 
 int text_delete(struct piece **dest, size_t offset, size_t extent);
 int text_insert(struct piece **dest, size_t offset, char *buffer, size_t length);
