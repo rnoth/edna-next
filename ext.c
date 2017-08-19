@@ -62,6 +62,7 @@ ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
 	struct ext_walker walker[1];
 
 	if (!ext->root) {
+		new->chld[0]=0, new->chld[1]=0;
 		new->off = new->ext;
 		ext->off = offset;
 		ext->len = new->ext;
