@@ -42,7 +42,6 @@ fd_read(struct read *dest, int fd)
 
 	res = read(fd, dest->buffer, dest->length);
 	if (res == -1) return errno;
-	if (res == 0) return -1;
 
 	return 0;
 }
