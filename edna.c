@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <edna.h>
+#include <ext.h>
 #include <cmd.h>
 #include <txt.h>
 #include <util.h>
@@ -10,7 +11,8 @@
 
 struct action {
 	struct action *chld;
-	uintptr_t arg[2];
+	uintptr_t arg;
+	struct piece *prev;
 };
 
 struct record {
@@ -18,15 +20,59 @@ struct record {
 	struct action *acts;
 };
 
-struct piece *
-revert_insert(struct action **act)
+static void revert_insert(struct action *act);
+
+int
+add_lines(struct ext *lines, char *buffer, size_t length)
+{
+	struct ext_node *list;
+	struct ext_node *node;
+	size_t extent;
+	size_t offset;
+	char *nl;
+	void *next;
+
+	list = 0x0;
+	for (offset=0; offset<length; offset+=extent) {
+		nl = memchr(buffer+offset, '\n', length-offset);
+		extent = nl - buffer + 15;
+
+		node = calloc(1, sizeof *node);
+		if (!node) goto fail;
+
+		node->ext = extent;
+		node->chld[1] = (uintptr_t)list;
+		if (list) list->chld[0] = (uintptr_t)node;
+		list = node;
+	}
+
+	while (node) {
+		next = untag(node->chld[1]);
+		ext_append(lines, node);
+		node = next;
+	}
+
+	return 0;
+
+ fail:
+	while (node) {
+		next = untag(node->chld[1]);
+		free(list);
+		node = next;
+	}
+
+	return ENOMEM;
+}
+
+void
+revert_insert(struct action *act)
 {
 	struct piece *ctx[2];
 	struct piece *next;
 	struct piece *result;
 
-	ctx[0] = untag(act[0]->arg[0]);
-	ctx[1] = untag(act[0]->arg[1]);
+	ctx[0] = untag(act->arg);
+	ctx[1] = act->prev;
 
 	next = text_next(ctx[0], ctx[1]);
 
@@ -41,7 +87,7 @@ revert_insert(struct action **act)
 
 	text_merge(ctx);
 
-	return result;
+	free(result);
 }
 
 void
@@ -106,9 +152,16 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 		return err;
 	}
 
-	act->arg[0] = tag1(ctx[0]);
-	act->arg[1] = (uintptr_t)ctx[1];
+	act->arg = tag1(ctx[0]);
+	act->prev = ctx[1];
 	act->chld = edna->hist->acts;
+
+	err = add_lines(edna->lines, text, length);
+	if (err) {
+		revert_insert(act);
+		free(act);
+		return err;
+	}
 
 	edna->hist->acts = act;
 
