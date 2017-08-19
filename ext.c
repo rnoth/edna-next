@@ -15,12 +15,46 @@ static void node_shift(struct ext_walker *walker, size_t offset);
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
 static void walker_rise(struct ext_walker *walker);
 static void walker_surface(struct ext_walker *walker);
+static void walker_visit(struct ext_walker *walker, int b);
 static void walker_walk(struct ext_walker *walker, size_t p);
 
 void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	ext_insert(ext, new_node, ext->len);
+}
+
+void *
+ext_contine(struct ext_walker *walker)
+{
+	struct ext_node *node;
+	int b;
+
+	if (!walker->prev) {
+		return 0;
+	}
+
+	if (is_root(walker->prev)) {
+		node = untag(walker->tag);
+		*walker = (struct ext_walker){0};
+		return node;
+	}
+
+	while (!is_root(walker->prev)) {
+		node = untag(walker->prev);
+		b = is_back(node->chld[1]);
+		walker_rise(walker);
+		if (!b) goto cont;
+	}
+
+	*walker = (struct ext_walker){0};
+	return 0;
+
+ cont:
+	walker_visit(walker, 1);
+	walker_walk(walker, 0);
+
+	return untag(walker->tag);
 }
 
 void
@@ -45,6 +79,13 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 	node_shift(walker, new_node->ext);
 
 	walker_surface(walker);
+}
+
+void
+ext_iterate(struct ext_walker *walker, struct ext *ext)
+{
+	walker_begin(walker, ext);
+	walker_walk(walker, 0);
 }
 
 void *
