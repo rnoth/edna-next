@@ -22,8 +22,11 @@ static void insert_line(char *ln);
 static void send_line(char *ln);
 static void send_eof();
 
+static void test_back();
+
 static void test_empty_line();
 
+static void test_insert_back();
 static void test_insert_dot();
 static void test_insert_eof();
 static void test_insert_empty();
@@ -38,6 +41,7 @@ static void spawn_edna();
 static void quit_edna();
 static void wait_edna();
 
+#define edna_list(...) unit_list(spawn_edna, __VA_ARGS__, quit_edna)
 struct unit_test tests[] = {
 	{.msg = "should see a prompt",
 	 .fun = unit_list(spawn_edna, expect_prompt, kill_edna),},
@@ -47,30 +51,33 @@ struct unit_test tests[] = {
 	 .fun = unit_list(spawn_edna, quit_edna),},
 
 	{.msg = "should accept empty lines",
-	 .fun = unit_list(spawn_edna, test_empty_line, quit_edna),},
+	 .fun = edna_list(test_empty_line),},
 	{.msg = "should produce errors on unknown commands",
-	 .fun = unit_list(spawn_edna, test_unknown_cmd, quit_edna),},
+	 .fun = edna_list(test_unknown_cmd),},
 
 	{.msg = "should read multiple lines",
-	 .fun = unit_list(spawn_edna, test_multiple_lines, quit_edna),},
+	 .fun = edna_list(test_multiple_lines),},
 
 	{.msg = "should be able to exit insert mode with eof",
-	 .fun = unit_list(spawn_edna, test_insert_eof, quit_edna),},
+	 .fun = edna_list(test_insert_eof),},
 	{.msg = "should be able to exit insert mode with dot",
-	 .fun = unit_list(spawn_edna, test_insert_dot, quit_edna),},
+	 .fun = edna_list(test_insert_dot),},
 
 	{.msg = "should be able to insert lines",
-	 .fun = unit_list(spawn_edna,
-	                  test_insert_simple,
-	                  quit_edna),},
+	 .fun = edna_list(test_insert_simple),},
 
 	{.msg = "should be able to insert multiple lines",
-	 .fun = unit_list(spawn_edna, test_insert0, quit_edna),},
+	 .fun = edna_list(test_insert0),},
 	{.msg = "should be able to insert multiple lines seperately",
-	 .fun = unit_list(spawn_edna, test_insert1, quit_edna),},
+	 .fun = edna_list(test_insert1),},
 
 	{.msg = "should handle empty lines properly",
-	 .fun = unit_list(spawn_edna, test_insert_empty, quit_edna),},
+	 .fun = edna_list(test_insert_empty),},
+
+	{.msg = "should be able to move backwards",
+	 .fun = edna_list(test_back),},
+	{.msg = "should be able to insert anywhere",
+	 .fun = edna_list(test_insert_back),},
 };
 
 static pid_t edna_pid;
@@ -236,11 +243,47 @@ spawn_edna()
 }
 
 void
+test_back()
+{
+	expect_prompt();
+	send_line("i");
+	send_line("one");
+	send_line("two");
+	send_eof();
+	expect_prompt();
+	send_line("-");
+	expect_prompt();
+	send_line("p");
+	readf("one\n" ":");
+}
+
+void
 test_empty_line()
 {
 	expect_prompt();
 	send_line("");
 	expect_prompt();
+}
+
+void
+test_insert_back()
+{
+	expect_prompt();
+	send_line("i");
+	send_line("above");
+	send_line("below");
+	send_eof();
+
+	expect_prompt();
+	send_line("-");
+	expect_prompt();
+	send_line("i");
+	send_line("in-between");
+	send_eof();
+
+	expect_prompt();
+	send_line("p");
+	readf("in-between\n" ":");
 }
 
 void
@@ -257,7 +300,7 @@ test_insert_eof()
 {
 	expect_prompt();
 	send_line("i");
-	dprintf(edna_pty, "\x04");
+	send_eof();
 	expect_prompt();
 
 	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
