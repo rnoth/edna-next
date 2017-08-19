@@ -80,9 +80,9 @@ test_insert(void)
 	struct ext_node c[1]={{.ext=75}};
 	struct ext ext[1]={0};
 
-	try(ext_insert(ext, a, 0));
+	try(ext_insert(ext, 0, a));
 	ok(ext->root == tag_leaf(a));
-	try(ext_insert(ext, b, 0));
+	try(ext_insert(ext, 0, b));
 	ok(ext->root == tag_node(b));
 
 	ok(b->chld[0] == tag_leaf(b));
@@ -91,7 +91,7 @@ test_insert(void)
 	ok(ext_stab(ext, 99) == b);
 	ok(ext_stab(ext, 300) == a);
 
-	try(ext_insert(ext, c, 250));
+	try(ext_insert(ext, 250, c));
 
 	ok(ext->root == tag_node(b));
 	ok(b->chld[0] == tag_leaf(b));
@@ -110,9 +110,9 @@ test_iter(void)
 	struct ext_walker w[1];
 	struct ext x[1]={{0}};
 
-	ext_insert(x, a, 0);
-	ext_insert(x, b, 0);
-	ext_insert(x, c, 250);
+	ext_insert(x, 0, a);
+	ext_insert(x, 0, b);
+	ext_insert(x, 250, c);
 
 	ok(ext_iterate(w, x) == b);
 	ok(ext_continue(w) == c);
@@ -160,7 +160,7 @@ test_remove(void)
 	ok(ext_stab(ext, 5) == b);
 	ok(!ext_stab(ext, 14));
 
-	ext_insert(ext, a, 0);
+	ext_insert(ext, 0, a);
 	ext_append(ext, c);
 
 	ok(ext_remove(ext, 0) == a);

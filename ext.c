@@ -23,7 +23,7 @@ static void walker_walk(struct ext_walker *walker, size_t p);
 void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
-	ext_insert(ext, new_node, ext->len);
+	ext_insert(ext, ext->len, new_node);
 }
 
 void
@@ -110,7 +110,7 @@ ext_free(struct ext *ext)
 }
 
 void
-ext_insert(struct ext *ext, struct ext_node *new, size_t offset)
+ext_insert(struct ext *ext, size_t offset, struct ext_node *new)
 {
 	struct ext_walker walker[1];
 

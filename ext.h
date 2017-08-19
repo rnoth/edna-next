@@ -25,7 +25,7 @@ struct ext_walker {
 void ext_append(struct ext *ext, struct ext_node *new);
 void ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust);
 void ext_free(struct ext *ext);
-void ext_insert(struct ext *ext, struct ext_node *new, size_t offset);
+void ext_insert(struct ext *ext, size_t offset, struct ext_node *new);
 void *ext_iterate(struct ext_walker *walker, struct ext *ext);
 void *ext_continue(struct ext_walker *walker);
 void *ext_remove(struct ext *ext, size_t offset);
