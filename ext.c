@@ -25,7 +25,7 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 }
 
 void *
-ext_contine(struct ext_walker *walker)
+ext_continue(struct ext_walker *walker)
 {
 	struct ext_node *node;
 	int b;
@@ -35,9 +35,8 @@ ext_contine(struct ext_walker *walker)
 	}
 
 	if (is_root(walker->prev)) {
-		node = untag(walker->tag);
 		*walker = (struct ext_walker){0};
-		return node;
+		return 0;
 	}
 
 	while (!is_root(walker->prev)) {
@@ -81,11 +80,12 @@ ext_insert(struct ext *ext, struct ext_node *new_node, size_t offset)
 	walker_surface(walker);
 }
 
-void
+void *
 ext_iterate(struct ext_walker *walker, struct ext *ext)
 {
 	walker_begin(walker, ext);
-	walker_walk(walker, 0);
+	if (ext->root) walker_walk(walker, 0);
+	return untag(walker->tag);
 }
 
 void *
