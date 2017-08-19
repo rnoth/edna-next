@@ -114,7 +114,9 @@ test_iter(void)
 	ext_insert(x, 0, b);
 	ext_insert(x, 250, c);
 
-	ok(ext_iterate(w, x) == b);
+	
+	try(ext_iterate(w, x));
+	ok(ext_continue(w) == b);
 	ok(ext_continue(w) == c);
 	ok(ext_continue(w) == a);
 	ok(ext_continue(w) == 0);
@@ -129,12 +131,14 @@ test_iter_edge(void)
 	struct ext_node leaf[1]={{.ext=56}};
 	struct ext_walker w[1];
 	
-	ok(ext_iterate(w, empty) == 0);
+	try(ext_iterate(w, empty));
+	ok(ext_continue(w) == 0);
 	ok(ext_continue(w) == 0);
 
 	ext_append(smol, leaf);
 
-	ok(ext_iterate(w, smol) == leaf);
+	try(ext_iterate(w, smol));
+	ok(ext_continue(w) == leaf);
 	ok(ext_continue(w) == 0);
 }
 
