@@ -23,7 +23,7 @@ struct record {
 static void revert_insert(struct action *act);
 
 int
-add_lines(struct ext *lines, char *buffer, size_t length)
+add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 {
 	struct ext_node *list;
 	struct ext_node *node;
@@ -48,7 +48,7 @@ add_lines(struct ext *lines, char *buffer, size_t length)
 
 	while (node) {
 		next = untag(node->chld[1]);
-		ext_append(lines, node);
+		ext_insert(lines, start, node);
 		node = next;
 	}
 
@@ -184,7 +184,7 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 	act->prev = ctx[1];
 	act->chld = edna->hist->acts;
 
-	err = add_lines(edna->lines, text, length);
+	err = add_lines(edna->lines, offset, text, length);
 	if (err) {
 		revert_insert(act);
 		free(act);
