@@ -10,6 +10,7 @@
 #include <util.h>
 
 static int cmd_back();
+static int cmd_forth();
 static int cmd_insert();
 static int cmd_print();
 static int cmd_quit();
@@ -23,6 +24,7 @@ struct command commands[] = {
 	cmd("i", cmd_insert, cursor),
 	cmd("p", cmd_print, cursor),
 	cmd("-", cmd_back, cursor),
+	cmd("+", cmd_forth, cursor),
 };
 
 int
@@ -33,6 +35,23 @@ cmd_back(struct edna *edna, size_t *cursor)
 
 	ln = ext_stab(edna->lines, cursor[0] - 1);
 	cursor[0] -= cursor[1] = ln->ext;
+
+	return 0;
+}
+
+int
+cmd_forth(struct edna *edna, size_t *cursor)
+{
+	struct ext_node *ln;
+	size_t end;
+
+	end = cursor[0] + cursor[1] + 1;
+
+	ln = ext_stab(edna->lines, end);
+	if (!ln) return 0;
+
+	cursor[0] += cursor[1] + 1;
+	cursor[1] = ln->ext;
 
 	return 0;
 }
