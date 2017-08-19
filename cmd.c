@@ -45,12 +45,12 @@ cmd_forth(struct edna *edna, size_t *cursor)
 	struct ext_node *ln;
 	size_t end;
 
-	end = cursor[0] + cursor[1] + 1;
+	end = cursor[0] + cursor[1];
 
 	ln = ext_stab(edna->lines, end);
 	if (!ln) return 0;
 
-	cursor[0] += cursor[1] + 1;
+	cursor[0] = end;
 	cursor[1] = ln->ext;
 
 	return 0;
