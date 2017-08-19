@@ -23,7 +23,7 @@ run(struct edna *edna)
 	ssize_t length;
 	int err;
 
-	err = dprintf(1, ":");
+	err = write_str(1, ":");
 	if (err < 0) return errno;
 
 	length = read(0, buffer, 4096);
@@ -48,7 +48,7 @@ main()
 	int err = 0;
 
 	if (!isatty(0)) {
-		dprintf(2, "fatal: stdin is not a terminal\n");
+		write_str(2, "fatal: stdin is not a terminal\n");
 		exit(EX_USAGE);
 	}
 

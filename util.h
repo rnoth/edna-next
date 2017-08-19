@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
+#define write_str(fd, str) write(fd, str, strlen(str))
 
 typedef unsigned long ulong;
 typedef unsigned int uint;
