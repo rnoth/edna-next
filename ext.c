@@ -26,16 +26,6 @@ ext_append(struct ext *ext, struct ext_node *new_node)
 	ext_insert(ext, ext->len, new_node);
 }
 
-void
-ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust)
-{
-	struct ext_walker walker[1];
-
-	walker_begin(walker, ext);
-	walker_walk(walker, offset);
-	node_shift(walker, adjust);
-}
-
 void *
 ext_continue(struct ext_walker *walker)
 {
@@ -70,6 +60,23 @@ ext_continue(struct ext_walker *walker)
 	walker_walk(walker, 0);
 
 	return untag(walker->tag);
+}
+
+void
+ext_extend(struct ext *ext, size_t offset, ptrdiff_t adjust)
+{
+	struct ext_walker walker[1];
+	struct ext_node *node;
+
+	walker_begin(walker, ext);
+	walker_walk(walker, offset);
+
+	node = untag(walker->tag);
+	if (offset - walker->off >= node->ext) return;
+
+	node->ext += adjust;
+
+	node_shift(walker, adjust);
 }
 
 void
@@ -143,6 +150,21 @@ void
 ext_iterate(struct ext_walker *walker, struct ext *ext)
 {
 	walker_begin(walker, ext);
+}
+
+void
+ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust)
+{
+	struct ext_walker walker[1];
+	struct ext_node *node;
+
+	walker_begin(walker, ext);
+	walker_walk(walker, offset);
+
+	node = untag(walker->tag);
+	if (offset - walker->off >= node->ext) return;
+
+	node_shift(walker, adjust);
 }
 
 void *
