@@ -11,6 +11,7 @@
 #define untag_ext(t) ((struct ext *)untag(t))
 
 static void node_insert(struct ext_walker *walker, struct ext_node *new_node);
+static void node_detatch(struct ext_walker *walker);
 static void node_shift(struct ext_walker *walker, size_t offset);
 
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
@@ -132,6 +133,21 @@ ext_iterate(struct ext_walker *walker, struct ext *ext)
 }
 
 void *
+ext_remove(struct ext *ext, size_t offset)
+{
+	struct ext_walker walker[1];
+	void *result;
+
+	walker_begin(walker, ext);
+	walker_walk(walker, offset);
+	result = untag(walker->tag);
+
+	node_detatch(walker);
+
+	return result;
+}
+
+void *
 ext_stab(struct ext *ext, size_t point)
 {
 	struct ext_node *node;
@@ -154,6 +170,32 @@ ext_stab(struct ext *ext, size_t point)
 	node = (off + node->ext > point) ? node : 0x0;
 
 	return node;
+}
+
+void
+node_detatch(struct ext_walker *walker)
+{
+	struct ext_node *prev;
+	struct ext_node *del;
+	uintptr_t sib;
+	int b;
+
+	del = untag(walker->tag);
+
+	prev = untag(walker->prev);
+	b = is_back(prev->chld[1]);
+	sib = prev->chld[!b];
+
+	walker_rise(walker);
+	prev->chld[0] = 0, prev->chld[1] = 0;
+	if (!is_root(walker->prev)) {
+		walker->tag = sib;
+		return;
+	}
+
+	prev->off = del->off;
+	prev->chld[0] = del->chld[0];
+	prev->chld[1] = del->chld[1];
 }
 
 void
