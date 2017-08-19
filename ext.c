@@ -15,7 +15,7 @@ static void node_detatch(struct ext_walker *walker);
 static void node_shift(struct ext_walker *walker, ptrdiff_t offset);
 
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
-static void walker_locate(struct ext_walker *walker, size_t p);
+static void walker_locate(struct ext_walker *walker, size_t offset, size_t extent);
 static void walker_rise(struct ext_walker *walker);
 static void walker_surface(struct ext_walker *walker);
 static void walker_visit(struct ext_walker *walker, int b);
@@ -37,7 +37,7 @@ ext_continue(struct ext_walker *walker)
 	}
 
 	if (is_root(walker->prev)) {
-		walker_locate(walker, 0);
+		walker_locate(walker, 0, 0);
 		node = untag(walker->tag);
 		if (is_root(walker->prev)) {
 			*walker = (struct ext_walker){0};
@@ -57,7 +57,7 @@ ext_continue(struct ext_walker *walker)
 
  cont:
 	walker_visit(walker, 1);
-	walker_locate(walker, 0);
+	walker_locate(walker, 0, 0);
 
 	return untag(walker->tag);
 }
@@ -69,7 +69,7 @@ ext_extend(struct ext *ext, size_t offset, ptrdiff_t adjust)
 	struct ext_node *node;
 
 	walker_begin(walker, ext);
-	walker_locate(walker, offset);
+	walker_locate(walker, offset, 0);
 
 	node = untag(walker->tag);
 	if (offset - walker->off >= node->ext) return;
@@ -136,7 +136,7 @@ ext_insert(struct ext *ext, size_t offset, struct ext_node *new)
 	}
 
 	walker_begin(walker, ext);
-	walker_locate(walker, offset);
+	walker_locate(walker, offset, 0);
 
 	new->off = offset;
 
@@ -159,7 +159,7 @@ ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust)
 	struct ext_node *node;
 
 	walker_begin(walker, ext);
-	walker_locate(walker, offset);
+	walker_locate(walker, offset, 0);
 
 	node = untag(walker->tag);
 	if (offset - walker->off >= node->ext) return;
@@ -176,7 +176,7 @@ ext_remove(struct ext *ext, size_t offset, size_t extent)
 	if (!ext->root) return 0x0;
 
 	walker_begin(walker, ext);
-	walker_locate(walker, offset);
+	walker_locate(walker, offset, extent);
 	result = untag(walker->tag);
 	if (offset - walker->off > result->ext) {
 		walker_rise(walker);
@@ -223,7 +223,7 @@ ext_stab(struct ext *ext, size_t point)
 void *
 ext_walk(struct ext_walker *walker, size_t offset)
 {
-	walker_locate(walker, offset);
+	walker_locate(walker, offset, 0);
 	return untag(walker->tag);
 }
 
@@ -368,15 +368,20 @@ walker_visit(struct ext_walker *walker, int b)
 }
 
 void
-walker_locate(struct ext_walker *walker, size_t p)
+walker_locate(struct ext_walker *walker, size_t offset, size_t extent)
 {
 	struct ext_node *node;
+	size_t len;
 	int b;
 
+	len = untag_ext(walker->prev)->len;
 	while (is_node(walker->tag)) {
 		node = untag(walker->tag);
-		b = p >= walker->off + node->off;
+		b = offset >= walker->off + node->off;
+
+		len = b ? len - node->off : node->off;
+		if (len - walker->off < extent) break;
+
 		walker_visit(walker, b);
 	}
 }
-
