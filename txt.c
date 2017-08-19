@@ -33,45 +33,62 @@ text_step(struct piece **links)
 	links[1] = links[0], links[0] = next;
 }
 
-int
-text_delete(struct piece **dest, size_t offset, size_t extent)
+void
+text_delete_across(struct piece **ctx, size_t offset, size_t extent)
 {
 	struct piece *end[2];
-	size_t temp;
-	int err;
-
-	if (offset >= dest[0]->length) text_walk(dest, offset);
-
-	if (offset + extent < dest[0]->length) {
-		err = text_split(dest, offset, extent);
-		if (err) return err;
-		dest[0] = 0, dest[1] = 0;
-		return 0;
-	}
 
 	if (offset) {
-		temp = dest[0]->length;
-		dest[0]->length = offset;
-		extent -= temp - offset;
-		text_step(dest);
+		extent -= ctx[0]->length - offset;
+		ctx[0]->length = offset;
 		offset = 0;
+
+		text_step(ctx);
 	}
 
-	end[0] = dest[0], end[1] = dest[1];
+	end[0] = ctx[0], end[1] = ctx[1];
 
-	if (extent >= dest[0]->length) {
+	if (extent >= ctx[0]->length) {
 		extent = text_walk(end, extent);
-		text_unlink(dest[0], dest[1]);
+
+		text_unlink(ctx[0], ctx[1]);
 		text_unlink(end[0], end[1]);
-		text_link(end[0], dest[1]);
-		dest[1] = 0;
-	}
+
+		text_link(end[0], ctx[1]);
+		end[1] = ctx[1];
+
+	} else ctx[0] = 0;
+	ctx[1] = 0;
 
 	if (extent) {
 		end[0]->length -= extent;
 		end[0]->buffer += extent;
 	}
+}
 
+int
+text_delete_within(struct piece **ctx, size_t offset, size_t extent)
+{
+	int err;
+
+	err = text_split(ctx, offset, extent);
+	if (err) return err;
+
+	ctx[0] = 0, ctx[1] = 0;
+	return 0;
+}
+
+int
+text_delete(struct piece **ctx, size_t offset, size_t extent)
+{
+	bool is_within;
+
+	if (offset >= ctx[0]->length) text_walk(ctx, offset);
+
+	is_within = offset + extent < ctx[0]->length;
+	if (is_within) return text_delete_within(ctx, offset, extent);
+
+	text_delete_across(ctx, offset, extent);
 	return 0;
 }
 
