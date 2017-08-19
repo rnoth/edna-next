@@ -30,6 +30,7 @@ static void test_back();
 static void test_empty_line();
 
 static void test_forth();
+static void test_forth_traverse();
 
 static void test_insert_back();
 static void test_insert_dot();
@@ -86,6 +87,8 @@ struct unit_test tests[] = {
 
 	{.msg = "should be able to move forwards",
 	 .fun = edna_list(test_forth),},
+	{.msg = "should be able to move forwards multiple times",
+	 .fun = edna_list(test_forth_traverse),},
 };
 
 static pid_t edna_pid;
@@ -199,6 +202,13 @@ read_line(char *ln)
 }
 
 void
+send_cmd(char *cmd)
+{
+	rwritef("%s\n", cmd);
+	readf(":");
+}
+
+void
 send_line(char *ln)
 {
 	rwritef("%s\n", ln);
@@ -298,6 +308,36 @@ test_forth()
 	expect_prompt();
 	send_line("p");
 	read_line("back yet?");
+}
+
+void
+test_forth_traverse()
+{
+	expect_prompt();
+	insert_lines("eeny", "meeny", "miny", "moe");
+
+	expect_prompt();
+	send_cmd("-");
+	send_cmd("-");
+	send_cmd("-");
+
+	rwritef("p\n");
+	read_line("eeny");
+
+	send_cmd("+");
+
+	rwritef("p\n");
+	read_line("meeny");
+
+	send_cmd("+");
+
+	rwritef("p\n");
+	read_line("miny");
+
+	send_cmd("+");
+
+	rwritef("p\n");
+	read_line("moe");
 }
 
 void
