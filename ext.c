@@ -10,13 +10,15 @@
 
 #define untag_ext(t) ((struct ext *)untag(t))
 
-static void node_insert(struct ext_walker *walker, struct ext_node *new_node);
 static void node_detatch(struct ext_walker *walker);
+static void node_insert(struct ext_walker *walker, struct ext_node *new);
+static void node_replace(struct ext_walker *walker, struct ext_node *del,
+                         uintptr_t rep);
 
 static struct ext_node *tree_detatch(struct ext_walker *walker,
                                      size_t offset, size_t extent);
-static void tree_marshal(struct ext_walker *walker);
-static ptrdiff_t tree_prune(struct ext_walker *walker, size_t off, int b);
+//static void tree_marshal(struct ext_walker *walker);
+//static ptrdiff_t tree_prune(struct ext_walker *walker, size_t off, int b);
 
 static void walker_adjust(struct ext_walker *walker);
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
@@ -244,6 +246,7 @@ node_detatch(struct ext_walker *walker)
 {
 	struct ext_node *prev;
 	struct ext_node *del;
+	struct ext *ext;
 	int b;
 
 	del = untag(walker->tag);
@@ -258,7 +261,11 @@ node_detatch(struct ext_walker *walker)
 	prev->chld[0] = 0, prev->chld[1] = 0;
 
 	if (is_root(walker->prev)) {
-		untag_ext(walker->prev)->len -= del->ext;
+		ext = untag(walker->prev);
+		ext->len -= del->ext;
+		if (untag(ext->root) == prev) {
+			ext->root = walker->tag;
+		}
 		return;
 	}
 
@@ -267,6 +274,8 @@ node_detatch(struct ext_walker *walker)
 	prev->chld[1] = del->chld[1];
 
 	walker_adjust(walker);
+
+	node_replace(walker, prev, walker->tag);
 }
 
 void
@@ -312,9 +321,28 @@ node_insert(struct ext_walker *walker, struct ext_node *new)
 	walker->adj = new->ext;
 }
 
+void
+node_replace(struct ext_walker *walker, struct ext_node *del,
+             uintptr_t rep)
+{
+	struct ext_node *node;
+	int b;
+
+	while (is_node(walker->prev)) {
+		node = untag(walker->prev);
+		b = is_back(node->chld[1]);
+		if (untag(node->chld[b]) == del) {
+			node->chld[b] = flip_tag(rep);
+			return;
+		}
+		walker_rise(walker);
+	}
+}
+
 struct ext_node *
 tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 {
+#if 0
 	struct ext_node *node;
 	struct ext_node *result;
 	uintptr_t ancestor;
@@ -345,11 +373,14 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 	walker->prev = flip_tag(node->chld[b]);
 	walker->tag = new;
 	return result;
+#endif
+	__builtin_trap();
 }
 
 void
 tree_marshal(struct ext_walker *walker)
 {
+#if 0
 	//struct ext_node *list;
 	struct ext_node *node;
 	uintptr_t ancestor;
@@ -388,6 +419,7 @@ tree_marshal(struct ext_walker *walker)
 
  /* done: */
  /* 	__builtin_trap(); */
+#endif
 }
 
 ptrdiff_t
