@@ -14,6 +14,11 @@ static void node_insert(struct ext_walker *walker, struct ext_node *new_node);
 static void node_detatch(struct ext_walker *walker);
 static void node_shift(struct ext_walker *walker, ptrdiff_t offset);
 
+static struct ext_node *tree_detatch(struct ext_walker *walker,
+                                     size_t offset, size_t extent);
+static void tree_marshal(struct ext_walker *walker);
+static void tree_shift_until(struct ext_walker *walker, uintptr_t, ptrdiff_t);
+
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
 static void walker_locate(struct ext_walker *walker, size_t offset, size_t extent);
 static void walker_rise(struct ext_walker *walker);
@@ -197,6 +202,8 @@ ext_remove(struct ext *ext, size_t offset, size_t extent)
 		return result;
 	}
 
+	tree_detatch(walker, offset, extent);
+
 	__builtin_trap();
 }
 
@@ -314,6 +321,94 @@ node_shift(struct ext_walker *walker, ptrdiff_t offset)
 	ext = untag(walker->prev);
 	ext->len += offset;
 	ext->root = walker->tag;
+}
+
+struct ext_node *
+tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
+{
+	struct ext_node *node;
+	struct ext_node *result;
+	ptrdiff_t adjust;
+	ptrdiff_t adjust1;
+	uintptr_t ancestor;
+	uintptr_t new;
+	size_t rel_off;
+	int b;
+
+	ancestor = walker->tag;
+
+	adjust = tree_prune(walker, offset, 0);
+	adjust1 = tree_prune(walker, offset+extent, 1);
+
+	offset += adjust;
+	extent += adjust1;
+
+	adjust += adjust1;
+
+	rel_off = offset - walker->off;
+	walker_locate(walker, rel_off, extent);
+
+	tree_marshal(walker);
+	result = untag(walker->tag);
+
+	if (is_root(walker->prev)) {
+		walker->tag = 0;
+		return result;
+	}
+
+	node = untag(walker->prev);
+	b = is_back(node->chld[1]);
+	new = node->chld[b];
+
+	walker->prev = flip_tag(node->chld[b]);
+	walker->tag = new;
+	return result;
+}
+
+void
+tree_marshal(struct ext_walker *walker)
+{
+	__builtin_trap();
+}
+
+ptrdiff_t
+tree_prune(struct ext_walker *walker, size_t offset, int b)
+{
+	struct ext_node *node;
+	uintptr_t ancestor;
+	ptrdiff_t adjust;
+	size_t off;
+	size_t lef;
+	size_t rit;
+
+	ancestor = walker->tag;
+
+	off = offset - walker->off;
+	walker_locate(walker, off, 0);
+
+	node = untag(walker->tag);
+	lef = offset - walker->off;
+	rit = node->ext - lef;
+
+	adjust = b ? -lef : -rit;
+
+	node->ext += adjust;
+	tree_shift_until(walker, ancestor, adjust);
+
+	return adjust;
+}
+
+void
+tree_shift_until(struct ext_walker *walker, uintptr_t until, ptrdiff_t adjust)
+{
+	struct ext_node *node;
+	int b;
+
+	while (walker->tag != until) {
+		node = untag(walker->prev);
+		b = is_back(node->chld[1]);
+		node->off -= b ? 0 : adjust;
+	}
 }
 
 void
