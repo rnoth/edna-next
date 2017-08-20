@@ -17,7 +17,7 @@ static void node_replace(struct ext_walker *walker, struct ext_node *del,
 
 static struct ext_node *tree_detatch(struct ext_walker *walker,
                                      size_t offset, size_t extent);
-static void tree_marshal(struct ext_walker *walker);
+static struct ext_node *tree_marshal(struct ext_walker *walker);
 static ptrdiff_t tree_prune(struct ext_walker *walker, size_t off, int b);
 
 static void walker_adjust(struct ext_walker *walker);
@@ -143,9 +143,9 @@ ext_remove(struct ext *ext, size_t offset, size_t extent)
 		return result;
 	}
 
-	tree_detatch(walker, offset, extent);
+	result = tree_detatch(walker, offset, extent);
 
-	__builtin_trap();
+	return result;
 }
 
 void *
@@ -293,13 +293,9 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 	rel_off = offset - walker->off;
 	walker_locate(walker, rel_off, extent);
 
-	tree_marshal(walker);
-	result = untag(walker->tag);
+	result = tree_marshal(walker);
 
-	if (is_root(walker->prev)) {
-		walker->tag = 0;
-		return result;
-	}
+	if (is_root(walker->prev)) return result;
 
 	node = untag(walker->prev);
 	b = is_back(node->chld[1]);
@@ -310,49 +306,50 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 	return result;
 }
 
-void
+struct ext_node *
 tree_marshal(struct ext_walker *walker)
 {
 	struct ext_node *list = 0x0;
 	struct ext_node *node;
 	uintptr_t ancestor;
+	uintptr_t prev;
+	uintptr_t sib;
 	int b;
 
 	ancestor = walker->prev;
 
- descend:
-	if (is_leaf(walker->tag)) {
+	walker_locate(walker, 0, 0);
+
+	while (walker->prev != ancestor) {
 		node = untag(walker->tag);
-		if (!node->chld[1]) goto link;
-		else goto rise;
+		if (is_node(walker->tag) || !node->chld[1]){
+			node->chld[0] = tag_node(list);
+			if (list) list->chld[1] = tag_node(node);
+			list = node;
+		}
+
+		walker_next(walker);
 	}
 
-	node = untag(walker->tag);
-	b = !node->chld[0];
-	if (b && !node->chld[1]) goto link;
+	if (is_root(ancestor)) {
+		walker->tag = 0;
+		return 0;
+	}
 
-	walker_visit(walker, b);
-	goto descend;
-
- link:
-	node->chld[1] = tag_node(list);
-	if (list) list->chld[0] = tag_node(node);
-
-	if (walker->prev == ancestor) goto done;
-	goto rise;
-
- rise:
-	node = untag(walker->prev);
+	node = untag(ancestor);
 	b = is_back(node->chld[1]);
 
-	walker->tag = walker->prev;
-	walker->prev = flip_tag(node->chld[b]);
-	node->chld[b] = 0;
+	prev = node->chld[b];
+	sib = node->chld[!b];
 
-	goto descend;
+	node->chld[0] = tag_node(list);
+	if (list) list->chld[1] = tag_node(node);
+	list = node;
 
- done:
-	__builtin_trap();
+	walker->prev = prev;
+	walker->tag = sib;
+
+	return list;
 }
 
 ptrdiff_t
@@ -453,12 +450,9 @@ void
 walker_rise(struct ext_walker *walker)
 {
 	struct ext_node *node;
-	struct ext *ext;
 	int b;
 
 	if (is_root(walker->prev)) {
-		ext = untag(walker->prev);
-		ext->root = walker->tag;
 		return;
 	}
 
@@ -477,9 +471,12 @@ walker_rise(struct ext_walker *walker)
 void
 walker_surface(struct ext_walker *walker)
 {
+	struct ext *ext;
+
 	while (!is_root(walker->prev)) walker_rise(walker);
 
-	walker_rise(walker);
+	ext = untag(walker->prev);
+	ext->root = walker->tag;
 }
 
 void
