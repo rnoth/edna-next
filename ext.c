@@ -353,7 +353,44 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 void
 tree_marshal(struct ext_walker *walker)
 {
+	//struct ext_node *list;
+	struct ext_node *node;
+	uintptr_t ancestor;
+	int b;
+
+	ancestor = walker->prev;
+
+ descend:
+	if (is_leaf(walker->tag)) {
+		node = untag(walker->tag);
+		if (!node->chld[1]) goto link;
+		else goto rise;
+	}
+
+	node = untag(walker->tag);
+	b = !node->chld[0];
+	if (b && !node->chld[1]) goto link;
+
+	walker_visit(walker, b);
+	goto descend;
+
+ link:
 	__builtin_trap();
+	/* if (walker->prev == ancestor) goto done; */
+	/* goto rise; */
+
+ rise:
+	node = untag(walker->prev);
+	b = is_back(node->chld[1]);
+
+	walker->tag = walker->prev;
+	walker->prev = flip_tag(node->chld[b]);
+	node->chld[b] = 0;
+
+	goto descend;
+
+ /* done: */
+ /* 	__builtin_trap(); */
 }
 
 ptrdiff_t
