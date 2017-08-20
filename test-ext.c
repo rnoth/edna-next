@@ -9,6 +9,7 @@ static void test_insert(void);
 static void test_iter(void);
 static void test_iter_edge(void);
 static void test_remove(void);
+static void test_remove_relink(void);
 static void test_query(void);
 
 static struct unit_test tests[] = {
@@ -26,6 +27,8 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_iter_edge),},
 	{.msg = "should remove extents",
 	 .fun = unit_list(test_remove),},
+	{.msg = "should remove extents consistently",
+	 .fun = unit_list(test_remove_relink),},
 };
 
 void
@@ -179,6 +182,23 @@ test_remove(void)
 	ok(ext_remove(ext, 0, 10) == b);
 	ok(ext->root = tag_leaf(c));
 	ok(ext_stab(ext, 15) == c);
+}
+
+void
+test_remove_relink(void)
+{
+	struct ext_node a[1]={{.ext=8}};
+	struct ext_node b[1]={{.ext=4}};
+	struct ext_node c[1]={{.ext=2}};
+	struct ext x[1]={{0}};
+
+	ext_append(x, a);
+	ext_append(x, b);
+	ext_append(x, c);
+
+	ext_remove(x, 0, 8);
+	*c = (struct ext_node){0};
+	ok(ext_stab(x, 1) == b);
 }
 
 void
