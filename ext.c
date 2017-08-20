@@ -29,56 +29,9 @@ static void walker_surface(struct ext_walker *walker);
 static void walker_visit(struct ext_walker *walker, int b);
 
 void
-lrotate(ulong *lef, ulong *mid, ulong *rit)
-{
-	ulong tmp = *lef;
-	*lef = *mid;
-	*mid = *rit;
-	*rit = tmp;
-}
-
-void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	ext_insert(ext, ext->len, new_node);
-}
-
-void *
-ext_continue(struct ext_walker *walker)
-{
-	struct ext_node *node;
-	int b;
-
-	if (0) walker_next(walker);
-
-	if (!walker->tag) {
-		return 0;
-	}
-
-	if (is_root(walker->prev)) {
-		walker_locate(walker, 0, 0);
-		node = untag(walker->tag);
-		if (is_root(walker->prev)) {
-			*walker = (struct ext_walker){0};
-		}
-		return node;
-	}
-
-	while (!is_root(walker->prev)) {
-		node = untag(walker->prev);
-		b = is_back(node->chld[1]);
-		walker_rise(walker);
-		if (!b) goto cont;
-	}
-
-	*walker = (struct ext_walker){0};
-	return 0;
-
- cont:
-	walker_visit(walker, 1);
-	walker_locate(walker, 0, 0);
-
-	return untag(walker->tag);
 }
 
 void
@@ -142,12 +95,6 @@ ext_insert(struct ext *ext, size_t offset, struct ext_node *new)
 
 	node_insert(walker, new);
 	walker_surface(walker);
-}
-
-void
-ext_iterate(struct ext_walker *walker, struct ext *ext)
-{
-	walker_begin(walker, ext);
 }
 
 void
