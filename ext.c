@@ -17,8 +17,6 @@ static struct ext_node *tree_detatch(struct ext_walker *walker,
                                      size_t offset, size_t extent);
 static void tree_marshal(struct ext_walker *walker);
 static ptrdiff_t tree_prune(struct ext_walker *walker, size_t off, int b);
-static void tree_shift_until(struct ext_walker *walker, uintptr_t offset,
-                             ptrdiff_t adjust);
 
 static void walker_adjust(struct ext_walker *walker);
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
@@ -322,8 +320,6 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 {
 	struct ext_node *node;
 	struct ext_node *result;
-	ptrdiff_t adjust;
-	ptrdiff_t adjust1;
 	uintptr_t ancestor;
 	uintptr_t new;
 	size_t rel_off;
@@ -331,13 +327,8 @@ tree_detatch(struct ext_walker *walker, size_t offset, size_t extent)
 
 	ancestor = walker->tag;
 
-	adjust = tree_prune(walker, offset, 0);
-	adjust1 = tree_prune(walker, offset+extent, 1);
-
-	offset += adjust;
-	extent += adjust1;
-
-	adjust += adjust1;
+	offset += tree_prune(walker, offset, 0);
+	offset += tree_prune(walker, offset+extent, 1);
 
 	rel_off = offset - walker->off;
 	walker_locate(walker, rel_off, extent);
@@ -370,7 +361,6 @@ tree_prune(struct ext_walker *walker, size_t offset, int b)
 {
 	struct ext_node *node;
 	uintptr_t ancestor;
-	ptrdiff_t adjust;
 	size_t off;
 	size_t lef;
 	size_t rit;
@@ -384,25 +374,14 @@ tree_prune(struct ext_walker *walker, size_t offset, int b)
 	lef = offset - walker->off;
 	rit = node->ext - lef;
 
-	adjust = b ? -lef : -rit;
+	walker->adj += b ? -lef : -rit;
 
-	node->ext += adjust;
-	tree_shift_until(walker, ancestor, adjust);
+	node->ext += walker->adj;
+	walker_adjust(walker);
 
-	return adjust;
-}
+	while (walker->tag != ancestor) walker_rise(walker);
 
-void
-tree_shift_until(struct ext_walker *walker, uintptr_t until, ptrdiff_t adjust)
-{
-	struct ext_node *node;
-	int b;
-
-	while (walker->tag != until) {
-		node = untag(walker->prev);
-		b = is_back(node->chld[1]);
-		node->off -= b ? 0 : adjust;
-	}
+	return b ? -lef : -rit;
 }
 
 void
