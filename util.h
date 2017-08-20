@@ -7,6 +7,10 @@
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 #define write_str(fd, str) write(fd, str, strlen(str))
 
+#ifndef LONG_BIT
+# define LONG_BIT sizeof (long) * 8
+#endif
+
 typedef unsigned long ulong;
 typedef unsigned int uint;
 
