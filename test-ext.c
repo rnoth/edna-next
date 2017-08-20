@@ -8,6 +8,7 @@ static void test_add_simple(void);
 static void test_insert(void);
 static void test_iter(void);
 static void test_iter_edge(void);
+static void test_next(void);
 static void test_remove(void);
 static void test_remove_relink(void);
 static void test_query(void);
@@ -21,7 +22,7 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_query),},
 	{.msg = "should insert extents",
 	 .fun = unit_list(test_insert),},
-	{.msg = "should iterate over an extent tree",
+	{.msg = "should iterate over leaves in an extent tree",
 	 .fun = unit_list(test_iter),},
 	{.msg = "should handle edge cases with iterating",
 	 .fun = unit_list(test_iter_edge),},
@@ -29,6 +30,8 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_remove),},
 	{.msg = "should remove extents consistently",
 	 .fun = unit_list(test_remove_relink),},
+	{.msg = "should iterate over nodes in an extent tree",
+	 .fun = unit_list(test_next),}
 };
 
 void
@@ -143,6 +146,38 @@ test_iter_edge(void)
 	try(ext_iterate(w, smol));
 	ok(ext_continue(w) == leaf);
 	ok(ext_continue(w) == 0);
+}
+
+void
+test_next(void)
+{
+	struct ext_walker w[1];
+	struct ext_node a[1]={{.ext=8}};
+	struct ext_node b[1]={{.ext=4}};
+	struct ext_node c[1]={{.ext=2}};
+	struct ext x[1]={{0}};
+
+	ext_append(x, a);
+	ext_append(x, b);
+	ext_append(x, c);
+
+	ok(ext_stab(x, 7) == a);
+	ok(ext_stab(x, 11) == b);
+	ok(ext_stab(x, 13) == c);
+
+	walker_begin(w, x);
+	walker_locate(w, 0, 0);
+	ok(w->tag == tag_leaf(a));
+	try(walker_next(w));
+	ok(w->tag == tag_leaf(b));
+	try(walker_next(w));
+	ok(w->tag == tag_leaf(c));
+	try(walker_next(w));
+	ok(w->tag == tag_node(c));
+	try(walker_next(w));
+	ok(w->tag == tag_node(b));
+	try(walker_next(w));
+	ok(w->tag == tag_node(b));
 }
 
 void
