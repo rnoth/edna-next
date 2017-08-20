@@ -104,8 +104,8 @@ rwritef(char *fmt, ...)
 
 	va_start(args, fmt);
 	len = vsnprintf(0, 0, fmt, args);
-	ok(s = calloc(len + 1, 1));
-	ok(t = calloc(len + 1, 1));
+	ok(s = calloc(len + 2, 1));
+	ok(t = calloc(len + 2, 1));
 	va_start(args, fmt);
 	ok(vsnprintf(s, len + 1, fmt, args));
 
@@ -150,7 +150,11 @@ readf(char *fmt, ...)
 
 	ok(read(edna_pty, t, avail) == (ssize_t)avail);
 
-	if (avail == len && !strncmp(s, t, len)) return;
+	if (avail == len && !strncmp(s, t, len)) {
+		free(s);
+		free(t);
+		return;
+	}
 
 	msleep(5);
 
