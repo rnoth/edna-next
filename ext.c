@@ -17,7 +17,9 @@ static void node_shift(struct ext_walker *walker, ptrdiff_t offset);
 static struct ext_node *tree_detatch(struct ext_walker *walker,
                                      size_t offset, size_t extent);
 static void tree_marshal(struct ext_walker *walker);
-static void tree_shift_until(struct ext_walker *walker, uintptr_t, ptrdiff_t);
+static ptrdiff_t tree_prune(struct ext_walker *walker, size_t off, int b);
+static void tree_shift_until(struct ext_walker *walker, uintptr_t offset,
+                             ptrdiff_t adjust);
 
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
 static void walker_locate(struct ext_walker *walker, size_t offset, size_t extent);
@@ -417,6 +419,7 @@ walker_begin(struct ext_walker *walker, struct ext *ext)
 	walker->prev = tag_root(ext);
 	walker->tag = ext->root;
 	walker->off = ext->off;
+	walker->len = ext->len;
 }
 
 void
