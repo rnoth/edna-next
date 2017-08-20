@@ -242,7 +242,6 @@ ext_walk(struct ext_walker *walker, size_t offset)
 void
 node_detatch(struct ext_walker *walker)
 {
-	struct ext_node *great;
 	struct ext_node *prev;
 	struct ext_node *del;
 	int b;
@@ -267,9 +266,7 @@ node_detatch(struct ext_walker *walker)
 	prev->chld[0] = del->chld[0];
 	prev->chld[1] = del->chld[1];
 
-	great = untag(walker->prev);
-	b = is_back(great->chld[1]);
-	great->off -= b ? 0 : del->ext;
+	walker_adjust(walker);
 }
 
 void
