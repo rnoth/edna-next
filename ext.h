@@ -19,6 +19,7 @@ struct ext_node {
 struct ext_walker {
 	uintptr_t prev;
 	uintptr_t tag;
+	ptrdiff_t adj;
 	size_t off;
 	size_t len;
 };
