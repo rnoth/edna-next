@@ -197,7 +197,7 @@ test_remove_relink(void)
 	ext_append(x, c);
 
 	ext_remove(x, 0, 8);
-	*c = (struct ext_node){0};
+	*a = (struct ext_node){0};
 	ok(ext_stab(x, 1) == b);
 }
 
