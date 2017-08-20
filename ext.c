@@ -29,6 +29,15 @@ static void walker_surface(struct ext_walker *walker);
 static void walker_visit(struct ext_walker *walker, int b);
 
 void
+lrotate(ulong *lef, ulong *mid, ulong *rit)
+{
+	ulong tmp = *lef;
+	*lef = *mid;
+	*mid = *rit;
+	*rit = tmp;
+}
+
+void
 ext_append(struct ext *ext, struct ext_node *new_node)
 {
 	ext_insert(ext, ext->len, new_node);
