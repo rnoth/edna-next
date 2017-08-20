@@ -16,6 +16,16 @@ typedef unsigned int uint;
 
 static inline
 void
+lrotate(ulong *lef, ulong *mid, ulong *rit)
+{
+	ulong tmp = *lef;
+	*lef = *mid;
+	*mid = *rit;
+	*rit = tmp;
+}
+
+static inline
+void
 ptr_swap(void *va, void *vb)
 {
 	void **a=va, **b=vb;

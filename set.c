@@ -36,15 +36,6 @@ static void walker_walk(struct walker *, void *, size_t);
 
 static inline void lrotate(ulong *lef, ulong *mid, ulong *rit);
 
-void
-lrotate(ulong *lef, ulong *mid, ulong *rit)
-{
-	ulong tmp = *lef;
-	*lef = *mid;
-	*mid = *rit;
-	*rit = tmp;
-}
-
 bit
 bit_index_bytes(uint8_t *key, size_t len, size_t crit)
 {
