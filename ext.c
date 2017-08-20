@@ -443,6 +443,7 @@ walker_next(struct ext_walker *walker)
 
 	b = is_back(node->chld[0]);
 	lrotate(node->chld+!b, &walker->tag, node->chld+b);
+	walker->off += node->off;
 	walker_locate(walker, 0, 0);
 }
 
