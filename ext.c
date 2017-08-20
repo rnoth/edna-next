@@ -95,40 +95,20 @@ ext_free(struct ext *ext)
 {
 	struct ext_walker walker[1];
 	struct ext_node *node;
-	int b;
 
 	if (!ext->root) return;
 
 	walker_begin(walker, ext);
+	walker_locate(walker, 0, 0);
 
- descend:
-	if (is_leaf(walker->tag)) {
+	while (is_node(walker->prev)) {
 		node = untag(walker->tag);
-		if (!node->chld[1]) goto free;
-		else goto rise;
+		if (!node->chld[1]) free(node);
+		if (is_node(walker->tag)) free(node);
+		walker_next(walker);
 	}
 
-	node = untag(walker->tag);
-	b = !node->chld[0];
-	if (b && !node->chld[1]) goto free;
-
-	walker_visit(walker, b);
-	goto descend;
-
- free:
-	free(node);
-	if (is_root(walker->prev)) return;
-	goto rise;
-
- rise:
-	node = untag(walker->prev);
-	b = is_back(node->chld[1]);
-
-	walker->tag = walker->prev;
-	walker->prev = flip_tag(node->chld[b]);
-	node->chld[b] = 0;
-
-	goto descend;
+	free(untag(walker->tag));
 }
 
 void
