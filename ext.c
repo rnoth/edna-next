@@ -186,6 +186,7 @@ node_detatch(struct ext_walker *walker)
 	b = is_back(prev->chld[1]);
 	walker->tag = prev->chld[!b];
 	walker->prev = flip_tag(prev->chld[b]);
+	walker->len = b ? prev->off : prev->off + walker->adj; // ???
 
 	prev->chld[0] = 0, prev->chld[1] = 0;
 
@@ -247,6 +248,7 @@ node_insert(struct ext_walker *walker, struct ext_node *new)
 	walker->prev = tag_node(new);
 	walker->tag = tag_leaf(new);
 	walker->adj = new->ext;
+	walker->len = new->ext;
 }
 
 void
@@ -330,6 +332,7 @@ void
 walker_rise(struct ext_walker *walker)
 {
 	struct ext_node *node;
+	size_t len;
 	int b;
 
 	if (is_root(walker->prev)) {
@@ -339,11 +342,14 @@ walker_rise(struct ext_walker *walker)
 	node = untag(walker->prev);
 	b = is_back(node->chld[1]);
 
+	len = node->off;
 	walker->prev = flip_tag(node->chld[b]);
 	node->chld[b] = walker->tag;
+	node->off = b ? node->off : walker->len;
 
 	walker->tag = tag_node(node);
 	walker->off -= b ? node->off : 0;
+	walker->len = b ? walker->len + len : len;
 
 	walker_adjust(walker);
 }
@@ -352,6 +358,7 @@ void
 walker_step(struct ext_walker *walker, size_t offset, size_t extent)
 {
 	struct ext_node *node;
+	size_t len;
 	int b;
 
 	if (is_leaf(walker->tag)) return;
@@ -359,8 +366,9 @@ walker_step(struct ext_walker *walker, size_t offset, size_t extent)
 	node = untag(walker->tag);
 	b = offset >= walker->off + node->off;
 
-	walker->len = b ? walker->len - node->off : node->off;
-	if (walker->len - walker->off < extent) return;
+	len = b ? walker->len - node->off : node->off;
+
+	if (len - walker->off < extent) return;
 
 	walker_visit(walker, b);
 }
@@ -381,6 +389,7 @@ walker_visit(struct ext_walker *walker, int b)
 {
 	struct ext_node *node;
 	uintptr_t next;
+	size_t temp;
 
 	if (is_leaf(walker->tag)) return;
 
@@ -389,6 +398,10 @@ walker_visit(struct ext_walker *walker, int b)
 
 	next = node->chld[b];
 	node->chld[b] = flip_tag(walker->prev);
+
+	temp = node->off;
+	node->off = b ? node->off : walker->len;
+	walker->len = b ? walker->len - temp : temp;
 
 	walker->prev = walker->tag;
 	walker->tag = next;
