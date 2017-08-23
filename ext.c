@@ -186,7 +186,7 @@ node_detatch(struct ext_walker *walker)
 	b = is_back(prev->chld[1]);
 	walker->tag = prev->chld[!b];
 	walker->prev = flip_tag(prev->chld[b]);
-	walker->len = b ? prev->off : prev->off + walker->adj; // ???
+	walker->len = b ? prev->off : prev->off + walker->adj;
 
 	prev->chld[0] = 0, prev->chld[1] = 0;
 
