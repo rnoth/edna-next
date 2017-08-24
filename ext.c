@@ -173,7 +173,7 @@ ext_tell(struct ext *ext, size_t offset)
 	size_t res;
 	int b;
 
-	if (!ext->root) return ext->off;
+	if (!ext->root) return 0;
 
 	tag = ext->root;
 	res = ext->off;
