@@ -20,6 +20,8 @@ struct record {
 	struct action *acts;
 };
 
+static int add_lines(struct ext *lines, size_t offset, char *buffer, size_t length);
+static void rm_lines(struct ext *lines, size_t offset, size_t extent);
 static void revert_insert(struct action *act);
 
 int
@@ -30,7 +32,6 @@ add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 	size_t extent;
 	size_t offset;
 	char *nl;
-	void *next;
 
 	list = 0x0;
 	for (offset=0; offset<length; offset+=extent) {
@@ -41,33 +42,65 @@ add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 		if (!node) goto fail;
 
 		node->ext = extent;
-		node->chld[1] = (uintptr_t)list;
-		if (list) list->chld[0] = (uintptr_t)node;
+		node->chld[0] = (uintptr_t)list;
 		list = node;
 	}
 
 	while (node) {
-		next = untag(node->chld[1]);
+		list = untag(node->chld[0]);
 		ext_insert(lines, start, node);
-		node = next;
+		node = list;
 	}
 
 	return 0;
 
  fail:
 	while (node) {
-		next = untag(node->chld[1]);
-		free(list);
-		node = next;
+		list = untag(node->chld[0]);
+		free(node);
+		node = list;
 	}
 
 	return ENOMEM;
 }
 
 void
-remove_lines(struct ext *lines, size_t offset, size_t extent)
+rm_lines(struct ext *lines, size_t offset, size_t extent)
 {
-	__builtin_trap();
+	struct ext_node *dead;
+	struct ext_node *list=0x0;
+	size_t start;
+	size_t diff;
+
+	start = ext_tell(lines, offset);
+	ext_adjust(lines, offset, start - offset);
+
+	diff = offset - start;
+	offset += diff;
+	extent -= diff;
+
+	while (extent) {
+		diff = ext_tell(lines, offset);
+		if (diff < extent) break;
+
+		dead = ext_remove(lines, offset);
+
+		offset += diff;
+		extent -= diff;
+
+		dead->chld[0] = (uintptr_t)list;
+		list = dead;
+	}
+
+	ext_adjust(lines, offset, -extent);
+
+	while (dead) {
+		list = untag(dead->chld[0]);
+		free(dead);
+		dead = list;
+	}
+
+	return;
 }
 
 void
@@ -148,17 +181,26 @@ edna_init(struct edna *edna)
 int
 edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 {
-	struct piece *links[2];
+	struct action *act;
+	struct piece *ctx[2];
 	int err;
 
-	links[0] = edna->chain, links[1] = 0;
-	err = text_delete(links, offset, extent);
-	if (err) return err;
+	act = calloc(1, sizeof *act);
+	if (!act) return ENOMEM;
 
-	if (links[0]) {
-		text_link(links[0], edna->dead);
-		edna->dead = links[0];
+	ctx[0] = edna->chain, ctx[1] = 0;
+	err = text_delete(ctx, offset, extent);
+	if (err) {
+		free(act);
+		return err;
 	}
+
+	act->arg = tag0(ctx[0]);
+	act->chld = edna->hist->acts;
+
+	rm_lines(edna->lines, offset, extent);
+
+	edna->hist->acts = act;
 
 	return 0;
 }
