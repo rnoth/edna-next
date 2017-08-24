@@ -163,6 +163,32 @@ ext_stab(struct ext *ext, size_t point)
 	return node;
 }
 
+size_t
+ext_tell(struct ext *ext, size_t offset)
+{
+	struct ext_node *node;
+	struct ext_node *leaf;
+	uintptr_t tag;
+	size_t res;
+	int b;
+
+	if (!ext->root) return ext->off;
+
+	tag = ext->root;
+	res = ext->off;
+	while (is_node(tag)) {
+		node = untag(tag);
+		b = offset >= res + node->off;
+		res += b ? node->off : 0;
+		tag = node->chld[b];
+	}
+
+	leaf = untag(tag);
+	res = (res + leaf->ext > offset) ? res : ext->len;
+
+	return res;
+}
+
 void *
 ext_walk(struct ext_walker *walker, size_t offset)
 {

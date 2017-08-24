@@ -30,7 +30,8 @@ void ext_free(struct ext *ext);
 void ext_insert(struct ext *ext, size_t offset, struct ext_node *new);
 void ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust);
 void *ext_remove(struct ext *ext, size_t offset, size_t extent);
-void *ext_stab(struct ext *ext, size_t point);
+void *ext_stab(struct ext *ext, size_t offset);
+size_t ext_tell(struct ext *ext, size_t offset);
 void *ext_walk(struct ext_walker *walker, size_t offset);
 
 
