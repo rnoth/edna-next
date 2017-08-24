@@ -110,7 +110,7 @@ ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust)
 }
 
 void *
-ext_remove(struct ext *ext, size_t offset, size_t extent)
+ext_remove(struct ext *ext, size_t offset)
 {
 	struct ext_walker walker[1];
 	struct ext_node *result;
@@ -118,7 +118,7 @@ ext_remove(struct ext *ext, size_t offset, size_t extent)
 	if (!ext->root) return 0x0;
 
 	walker_begin(walker, ext);
-	walker_locate(walker, offset, extent);
+	walker_locate(walker, offset, 0);
 	result = untag(walker->tag);
 
 	if (offset - walker->off > result->ext) {

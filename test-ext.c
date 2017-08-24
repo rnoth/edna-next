@@ -141,15 +141,15 @@ test_remove(void)
 	struct ext_node c[1]={{.ext=20}};
 	struct ext ext[1]={{0}};
 
-	ok(!ext_remove(ext, 5, 1));
+	ok(!ext_remove(ext, 5));
 
 	ext_append(ext, a);
-	ok(ext_remove(ext, 0, 5) == a);
+	ok(ext_remove(ext, 0) == a);
 	ok(!ext->root);
 
 	ext_append(ext, a);
 	ext_append(ext, b);
-	ok(ext_remove(ext, 0, 5) == a);
+	ok(ext_remove(ext, 0) == a);
 	ok(ext->root == tag_leaf(b));
 	ok(!b->chld[0] && !b->chld[1]);
 	ok(ext_stab(ext, 5) == b);
@@ -158,7 +158,7 @@ test_remove(void)
 	ext_insert(ext, 0, a);
 	ext_append(ext, c);
 
-	ok(ext_remove(ext, 0, 5) == a);
+	ok(ext_remove(ext, 0) == a);
 	ok(ext->root == tag_node(c));
 	expect(10, c->off);
 	ok(c->chld[0] == tag_leaf(b));
@@ -167,7 +167,7 @@ test_remove(void)
 	ok(ext_stab(ext, 5) == b);
 	ok(ext_stab(ext, 15) == c);
 
-	ok(ext_remove(ext, 0, 10) == b);
+	ok(ext_remove(ext, 0) == b);
 	ok(ext->root = tag_leaf(c));
 	ok(ext_stab(ext, 15) == c);
 }
@@ -184,7 +184,7 @@ test_remove_relink(void)
 	ext_append(x, b);
 	ext_append(x, c);
 
-	ext_remove(x, 0, 8);
+	ext_remove(x, 0);
 	*a = (struct ext_node){0};
 	ok(ext_stab(x, 1) == b);
 }
