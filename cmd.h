@@ -13,7 +13,6 @@ int edna_cmd_back();
 int edna_cmd_forth();
 int edna_cmd_insert();
 int edna_cmd_print();
-int edna_cmd_quit();
 
 struct command {
 	struct set_node node[1];

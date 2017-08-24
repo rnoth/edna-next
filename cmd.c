@@ -80,12 +80,6 @@ edna_cmd_insert(struct edna *edna, size_t *cursor)
 }
 
 int
-edna_cmd_quit()
-{
-	return -1;
-}
-
-int
 edna_cmd_print(struct edna *edna, size_t *cursor)
 {
 	struct piece *links[2];

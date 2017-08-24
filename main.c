@@ -17,19 +17,45 @@
 	err = errno; \
 	goto lbl;    \
 } while (0)
+
+static void init(struct edna *edna);
 static int run(struct edna *edna);
+
+static int cmd_quit();
+static int cmd_help();
 
 static char *errmsg;
 static size_t cursor[2] = {0, 0};
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
 static struct command commands[] = {
-	cmd("q", edna_cmd_quit, 0),
+	cmd("q", cmd_quit, 0),
+	cmd("h", cmd_help, 0),
 	cmd("i", edna_cmd_insert, cursor),
 	cmd("p", edna_cmd_print, cursor),
 	cmd("-", edna_cmd_back, cursor),
 	cmd("+", edna_cmd_forth, cursor),
 };
+
+int
+cmd_help()
+{
+	int err;
+
+	err = write_str(2, errmsg);
+	if (err < 0) return errno;
+
+	err = write_str(2, "\n");
+	if (err < 0) return errno;
+
+	return 0;
+}
+
+int
+cmd_quit()
+{
+	return -1;
+}
 
 void
 init(struct edna *edna)
