@@ -13,8 +13,13 @@
 #include <set.h>
 #include <util.h>
 
+#define throw(lbl, err) do { \
+	err = errno; \
+	goto lbl;    \
+} while (0)
 static int run(struct edna *edna);
 
+static char *errmsg;
 static size_t cursor[2] = {0, 0};
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
@@ -67,11 +72,18 @@ run(struct edna *edna)
 	if (length < 0) return errno;
 
 	err = parse_ln(&parse, buffer, length);
-	if (err) goto done;
+	if (err) return err;
 
 	err = exec_ln(edna, parse);
 	if (err) goto done;
 
+	if (edna->errmsg) {
+		errmsg = edna->errmsg;
+		edna->errmsg = 0;
+		err = write_str(2, "?\n");
+		if (err) return errno;
+		return 0;
+	}
  done:
 	free(parse);
 	return err;

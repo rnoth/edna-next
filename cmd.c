@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <cmd.h>
+#include <err.h>
 #include <fd.h>
 #include <set.h>
 #include <txt.h>
@@ -14,7 +15,10 @@ edna_cmd_back(struct edna *edna, size_t *cursor)
 {
 	struct ext_node *ln;
 
-	if (!cursor[0]) return -1;
+	if (!cursor[0]) {
+		edna_fail(edna, "beginning of file");
+		return 0;
+	}
 
 	ln = ext_stab(edna->lines, cursor[0] - 1);
 	cursor[0] -= cursor[1] = ln->ext;
@@ -31,7 +35,10 @@ edna_cmd_forth(struct edna *edna, size_t *cursor)
 	end = cursor[0] + cursor[1];
 
 	ln = ext_stab(edna->lines, end);
-	if (!ln) return 0;
+	if (!ln) {
+		edna_fail(edna, "end of file");
+		return 0;
+	}
 
 	cursor[0] = end;
 	cursor[1] = ln->ext;

@@ -51,7 +51,7 @@ eat_spaces(char *buffer, size_t length)
 }
 
 int
-parse_ln(struct parse **dest, char *buffer, size_t length)
+parse_ln(struct parse **dest, char *buffer, size_t length, char **errmsg)
 {
 	size_t offset;
 	size_t extent;
@@ -82,7 +82,7 @@ exec_ln(struct edna *edna, struct parse *parse)
 
 	cmd = edna_lookup_cmd(edna, parse->string, parse->length);
 	if (!cmd) {
-		dprintf(1, "?\n");
+		edna->errmsg = "unknown command";
 		return 0;
 	}
 

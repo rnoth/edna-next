@@ -16,6 +16,7 @@ struct edna {
 	struct piece *dead;
 	struct ext lines[1];
 	struct set cmds[1];
+	char *errmsg;
 };
 
 #endif
