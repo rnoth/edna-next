@@ -9,28 +9,11 @@
 #include <txt.h>
 #include <util.h>
 
-static int cmd_back();
-static int cmd_forth();
-static int cmd_insert();
-static int cmd_print();
-static int cmd_quit();
-
-static size_t cursor[2] = {0, 0};
-
-#define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
-
-struct command commands[] = {
-	cmd("q", cmd_quit, 0),
-	cmd("i", cmd_insert, cursor),
-	cmd("p", cmd_print, cursor),
-	cmd("-", cmd_back, cursor),
-	cmd("+", cmd_forth, cursor),
-};
-
 int
-cmd_back(struct edna *edna, size_t *cursor)
+edna_cmd_back(struct edna *edna, size_t *cursor)
 {
 	struct ext_node *ln;
+
 	if (!cursor[0]) return -1;
 
 	ln = ext_stab(edna->lines, cursor[0] - 1);
@@ -40,7 +23,7 @@ cmd_back(struct edna *edna, size_t *cursor)
 }
 
 int
-cmd_forth(struct edna *edna, size_t *cursor)
+edna_cmd_forth(struct edna *edna, size_t *cursor)
 {
 	struct ext_node *ln;
 	size_t end;
@@ -57,7 +40,7 @@ cmd_forth(struct edna *edna, size_t *cursor)
 }
 
 int
-cmd_insert(struct edna *edna, size_t *cursor)
+edna_cmd_insert(struct edna *edna, size_t *cursor)
 {
 	struct read ln[1]={0};
 	int err;
@@ -90,13 +73,13 @@ cmd_insert(struct edna *edna, size_t *cursor)
 }
 
 int
-cmd_quit()
+edna_cmd_quit()
 {
 	return -1;
 }
 
 int
-cmd_print(struct edna *edna, size_t *cursor)
+edna_cmd_print(struct edna *edna, size_t *cursor)
 {
 	struct piece *links[2];
 	size_t end = cursor[0] + cursor[1];
@@ -118,27 +101,16 @@ cmd_print(struct edna *edna, size_t *cursor)
 }
 
 void
-cmd_add(struct set *cmds, struct command *cmd)
+edna_add_cmd(struct edna *edna, struct command *cmd)
 {
-	set_add(cmds, cmd->node, cmd->len);
-}
-
-void
-cmd_init(struct set *cmds)
-{
-	size_t i;
-
-	for (i=0; i<arr_len(commands); ++i) {
-		commands[i].len = strlen(commands[i].node->key) + 1;
-		cmd_add(cmds, commands + i);
-	}
+	set_add(edna->cmds, cmd->node, cmd->len);
 }
 
 struct command *
-cmd_lookup(struct set *cmds, char *name, size_t len)
+edna_lookup_cmd(struct edna *edna, char *name, size_t len)
 {
 	struct command *res;
 
-	res = set_query(cmds, name, len);
+	res = set_query(edna->cmds, name, len);
 	return !strncmp(res->node->key, name, len) ? res : 0;
 }

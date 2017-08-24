@@ -172,9 +172,6 @@ edna_init(struct edna *edna)
 		return ENOMEM;
 	}
 
-	*edna->cmds = (struct set){0};
-	cmd_init(edna->cmds);
-
 	return 0;
 }
 

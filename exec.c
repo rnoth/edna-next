@@ -24,14 +24,14 @@ struct parse {
 	struct parse *chld[2];
 };
 
-#define eat(RES, VAR, EXPR, BUF, LEN) do {	  \
-	size_t off=0; \
-	while (off < (LEN)) { \
-		VAR = (BUF)[off]; \
-		if (!(EXPR)) break; \
-		else ++off; \
-	} \
-	(RES) = off; \
+#define eat(RES, VAR, EXPR, BUF, LEN) do {  \
+	size_t off=0;                       \
+	while (off < (LEN)) {               \
+		VAR = (BUF)[off];           \
+		if (!(EXPR)) break;         \
+		else ++off;                 \
+	}                                   \
+	(RES) = off;                        \
 } while (0)
 
 size_t
@@ -80,7 +80,7 @@ exec_ln(struct edna *edna, struct parse *parse)
 
 	if (!parse) return 0;
 
-	cmd = cmd_lookup(edna->cmds, parse->string, parse->length);
+	cmd = edna_lookup_cmd(edna, parse->string, parse->length);
 	if (!cmd) {
 		dprintf(1, "?\n");
 		return 0;
