@@ -47,6 +47,40 @@ edna_cmd_forth(struct edna *edna, size_t *cursor)
 }
 
 int
+edna_cmd_delete(struct edna *edna, size_t *cursor)
+{
+	struct ext_node *node;
+	int err;
+
+	if (!cursor[1]) {
+		edna_fail(edna, "empty selection");
+		return 0;
+	}
+
+	err = edna_text_delete(edna, cursor[0], cursor[1]);
+	if (err) return err;
+
+	node = ext_stab(edna->lines, cursor[0]);
+
+	if (node) {
+		cursor[1] = node->ext;
+		return 0;
+	}
+
+	if (!cursor[0]) {
+		cursor[1] = 0;
+		return 0;
+	}
+
+	node = ext_stab(edna->lines, cursor[0] - 1);
+
+	cursor[0] -= node->ext;
+	cursor[1] = node->ext;
+
+	return 0;
+}
+
+int
 edna_cmd_insert(struct edna *edna, size_t *cursor)
 {
 	struct read ln[1]={0};

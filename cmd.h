@@ -11,6 +11,7 @@ struct command *edna_lookup_cmd(struct edna *edna, char *name, size_t len);
 
 int edna_cmd_back();
 int edna_cmd_forth();
+int edna_cmd_delete();
 int edna_cmd_insert();
 int edna_cmd_print();
 

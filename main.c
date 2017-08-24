@@ -31,6 +31,7 @@ static size_t cursor[2] = {0, 0};
 static struct command commands[] = {
 	cmd("q", cmd_quit, 0),
 	cmd("h", cmd_help, 0),
+	cmd("d", edna_cmd_delete, cursor),
 	cmd("i", edna_cmd_insert, cursor),
 	cmd("p", edna_cmd_print, cursor),
 	cmd("-", edna_cmd_back, cursor),
