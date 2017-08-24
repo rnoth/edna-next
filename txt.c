@@ -61,6 +61,11 @@ text_delete_across(struct piece **ctx, size_t offset, size_t extent)
 		text_step(ctx);
 	}
 
+	if (!ctx[0]->length) {
+		ctx[0] = 0, ctx[0] = 0;
+		return;
+	}
+
 	end[0] = ctx[0], end[1] = ctx[1];
 
 	if (extent >= ctx[0]->length) {
