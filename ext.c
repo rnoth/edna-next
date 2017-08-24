@@ -29,6 +29,8 @@ ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust)
 	struct ext_walker walker[1];
 	struct ext_node *node;
 
+	if (!adjust) return;
+
 	walker_begin(walker, ext);
 	walker_locate(walker, offset);
 
