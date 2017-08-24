@@ -8,6 +8,7 @@ struct edna;
 
 void edna_fini(struct edna *edna);
 int edna_init(struct edna *edna);
+int edna_text_delete(struct edna *edna, size_t offset, size_t extent);
 int edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length);
 
 struct edna {
