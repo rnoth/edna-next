@@ -19,6 +19,7 @@
 extern char **environ;
 
 static void kill_edna();
+static void expect_error();
 static void expect_prompt();
 static void _insert_lines(char **lns);
 static void read_line(char *ln);
@@ -28,6 +29,7 @@ static void send_eof();
 static void test_back();
 
 static void test_empty_line();
+static void test_ends();
 
 static void test_forth();
 static void test_forth_traverse();
@@ -41,6 +43,7 @@ static void test_insert0();
 static void test_insert1();
 
 static void test_multiple_lines();
+static void test_print_empty();
 static void test_unknown_cmd();
 
 static void spawn_edna();
@@ -69,6 +72,9 @@ struct unit_test tests[] = {
 	{.msg = "should exit insert mode with dot",
 	 .fun = edna_list(test_insert_dot),},
 
+	{.msg = "should error when printing empty selections",
+	 .fun = edna_list(test_print_empty),},
+
 	{.msg = "should insert lines",
 	 .fun = edna_list(test_insert_simple),},
 
@@ -77,7 +83,7 @@ struct unit_test tests[] = {
 	{.msg = "should insert multiple lines seperately",
 	 .fun = edna_list(test_insert1),},
 
-	{.msg = "should handle empty lines properly",
+	{.msg = "should handle empty lines",
 	 .fun = edna_list(test_insert_empty),},
 
 	{.msg = "should move backwards",
@@ -89,6 +95,9 @@ struct unit_test tests[] = {
 	 .fun = edna_list(test_forth),},
 	{.msg = "should move forwards multiple times",
 	 .fun = edna_list(test_forth_traverse),},
+
+	{.msg = "should error when moving to ends of file",
+	 .fun = edna_list(test_ends),},
 };
 
 static pid_t edna_pid;
@@ -183,6 +192,14 @@ kill_edna()
 	res = kill(edna_pid, SIGTERM);
 	if (res) unit_perror("kill failed");
 	return;
+}
+
+void
+expect_error(char *msg)
+{
+	read_line("?");
+	send_line("h");
+	read_line(msg);
 }
 
 void
@@ -294,6 +311,16 @@ test_empty_line()
 	expect_prompt();
 	send_line("");
 	expect_prompt();
+}
+
+void
+test_ends()
+{
+	expect_prompt();
+	send_line("-");
+	expect_error("beginning of file");
+	send_line("+");
+	expect_error("end of file");
 }
 
 void
@@ -433,11 +460,21 @@ test_multiple_lines()
 }
 
 void
+test_print_empty()
+{
+	expect_prompt();
+	send_line("p");
+	expect_error("empty selection");
+}
+
+void
 test_unknown_cmd()
 {
 	expect_prompt();
 	send_line("hi");
 	read_line("?");
+	send_line("h");
+	read_line("unknown command");
 }
 
 void
