@@ -93,6 +93,11 @@ edna_cmd_print(struct edna *edna, size_t *cursor)
 	size_t off = cursor[0];
 	size_t min;
 
+	if (!cursor[1]) {
+		edna_fail(edna, "empty selection");
+		return 0;
+	}
+
 	links[0] = edna->chain, links[1] = 0;
 	text_walk(links, cursor[0]);
 
