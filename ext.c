@@ -25,13 +25,7 @@ static void walker_surface(struct ext_walker *walker);
 static void walker_visit(struct ext_walker *walker, int b);
 
 void
-ext_append(struct ext *ext, struct ext_node *new_node)
-{
-	ext_insert(ext, ext->len, new_node);
-}
-
-void
-ext_extend(struct ext *ext, size_t offset, ptrdiff_t adjust)
+ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust)
 {
 	struct ext_walker walker[1];
 	struct ext_node *node;
@@ -43,9 +37,15 @@ ext_extend(struct ext *ext, size_t offset, ptrdiff_t adjust)
 	if (offset - walker->off >= node->ext) return;
 
 	node->ext += adjust;
-
 	walker->adj = adjust;
+
 	walker_surface(walker);
+}
+
+void
+ext_append(struct ext *ext, struct ext_node *new_node)
+{
+	ext_insert(ext, ext->len, new_node);
 }
 
 void
