@@ -119,7 +119,7 @@ test_next(void)
 	ok(ext_stab(x, 13) == c);
 
 	walker_begin(w, x);
-	walker_locate(w, 0, 0);
+	walker_locate(w, 0);
 	ok(w->tag == tag_leaf(a));
 	try(walker_next(w));
 	ok(w->tag == tag_leaf(b));
