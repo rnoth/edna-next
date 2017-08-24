@@ -13,15 +13,15 @@
 int
 edna_cmd_back(struct edna *edna, size_t *cursor)
 {
-	struct ext_node *ln;
+	struct ext_node *node;
 
 	if (!cursor[0]) {
 		edna_fail(edna, "beginning of file");
 		return 0;
 	}
 
-	ln = ext_stab(edna->lines, cursor[0] - 1);
-	cursor[0] -= cursor[1] = ln->ext;
+	node = ext_stab(edna->lines, cursor[0] - 1);
+	cursor[0] -= cursor[1] = node->ext;
 
 	return 0;
 }
@@ -29,19 +29,19 @@ edna_cmd_back(struct edna *edna, size_t *cursor)
 int
 edna_cmd_forth(struct edna *edna, size_t *cursor)
 {
-	struct ext_node *ln;
+	struct ext_node *node;
 	size_t end;
 
 	end = cursor[0] + cursor[1];
 
-	ln = ext_stab(edna->lines, end);
-	if (!ln) {
+	node = ext_stab(edna->lines, end);
+	if (!node) {
 		edna_fail(edna, "end of file");
 		return 0;
 	}
 
 	cursor[0] = end;
-	cursor[1] = ln->ext;
+	cursor[1] = node->ext;
 
 	return 0;
 }
@@ -83,7 +83,9 @@ edna_cmd_delete(struct edna *edna, size_t *cursor)
 int
 edna_cmd_insert(struct edna *edna, size_t *cursor)
 {
+	struct ext_node *node;
 	struct read ln[1]={0};
+	size_t end;
 	int err;
 
  again:
@@ -107,8 +109,10 @@ edna_cmd_insert(struct edna *edna, size_t *cursor)
 		return 0;
 	}
 
-	cursor[0] += cursor[1];
-	cursor[1] = ln->length;
+	end = cursor[0] + cursor[1] + ln->length;
+	node = ext_stab(edna->lines, end - 1);
+	cursor[0] = ext_tell(edna->lines, end - 1);
+	cursor[1] = node->ext;
 
 	goto again;
 }

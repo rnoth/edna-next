@@ -36,7 +36,7 @@ add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 	list = 0x0;
 	for (offset=0; offset<length; offset+=extent) {
 		nl = memchr(buffer+offset, '\n', length-offset);
-		extent = nl - buffer + 1;
+		extent = nl - buffer - offset + 1;
 
 		node = calloc(1, sizeof *node);
 		if (!node) goto fail;
@@ -68,20 +68,24 @@ void
 rm_lines(struct ext *lines, size_t offset, size_t extent)
 {
 	struct ext_node *dead;
-	struct ext_node *list=0x0;
+	struct ext_node *list;
+	struct ext_node *node;
 	size_t start;
 	size_t diff;
 
 	start = ext_tell(lines, offset);
-	ext_adjust(lines, offset, start - offset);
+	if (start < offset){
+		ext_adjust(lines, offset, start - offset);
 
-	diff = offset - start;
-	offset += diff;
-	extent -= diff;
+		diff = offset - start;
+		offset += diff;
+		extent -= diff;
+	}
 
+	list = dead = 0;
 	while (extent) {
-		diff = ext_tell(lines, offset);
-		if (diff < extent) break;
+		node = ext_stab(lines, offset);
+		if (node->ext > extent) break;
 
 		dead = ext_remove(lines, offset);
 
@@ -103,24 +107,108 @@ rm_lines(struct ext *lines, size_t offset, size_t extent)
 	return;
 }
 
-void
-rec_free(struct record *rec)
-{
-	struct action *cur_act;
-	struct action *next_act;
-	struct record *next_rec;
+struct piece *kill_piece(struct piece *dead, struct piece *new);
 
-	while (rec) {
-		cur_act = rec->acts;
-		while (cur_act) {
-			next_act = cur_act->chld;
-			free(cur_act);
-			cur_act = next_act;
-		}
-		next_rec = rec->prev;
-		free(rec);
-		rec = next_rec;
+struct piece *
+arrange_pieces(struct piece *chain)
+{
+	struct piece *ctx[2];
+	struct piece *dead=0;
+
+	ctx[0] = chain, ctx[1] = 0;
+	do {
+		text_step(ctx);
+		dead = kill_piece(dead, ctx[1]);
+	} while (text_next(ctx[0], ctx[1]));
+
+	dead = kill_piece(dead, ctx[0]);
+
+	return dead;
+}
+
+void
+free_pieces(struct piece *dead)
+{
+	uintptr_t temp;
+
+	while (dead) {
+		temp = dead->link;
+		free(dead->buffer);
+		free(dead);
+		dead = untag(temp);
 	}
+}
+
+struct piece *
+kill_piece(struct piece *dead, struct piece *new)
+{
+	struct piece *head=dead;
+
+	if (!new) return dead;
+
+	if (!dead) {
+		new->link = 0;
+		return new;
+	}
+
+	if (tag0(dead) > tag0(new)) {
+		new->link = tag0(dead);
+		return new;
+	}
+
+	while (dead) {
+		if (dead == new) return head;
+		if (dead->link > tag0(new)) {
+			new->link = dead->link;
+			dead->link = tag0(new);
+			return head;
+		}
+
+		if (!dead->link) break;
+		dead = untag(dead->link);
+	}
+
+	new->link = 0;
+	dead->link = tag0(new);
+
+	return head;
+}
+
+struct piece *
+act_free(struct action *cur, struct piece *dead)
+{
+	struct action *next;
+	struct piece *result=0;
+
+	while (cur) {
+		next = cur->chld;
+
+		result = untag(cur->arg);
+		dead = kill_piece(dead, result);
+
+		free(cur);
+
+		cur = next;
+	}
+
+	return dead;
+}
+
+struct piece *
+rec_free(struct record *cur, struct piece *dead)
+{
+	struct record *next;
+	struct action *act;
+
+	while (cur) {
+		act = cur->acts;
+		dead = act_free(act, dead);
+		next = cur->prev;
+		free(cur);
+		cur = next;
+	}
+
+	return dead;
 }
 
 void
@@ -152,9 +240,11 @@ revert_insert(struct action *act)
 void
 edna_fini(struct edna *edna)
 {
-	text_free(edna->chain);
-	text_free(edna->dead);
-	rec_free(edna->hist);
+	struct piece *dead;
+
+	dead = arrange_pieces(edna->chain);
+	dead = rec_free(edna->hist, dead);
+	free_pieces(dead);
 	ext_free(edna->lines);
 }
 
