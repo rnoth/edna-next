@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <txt.h>
 
+static void text_delete_across(struct piece **ctx, size_t offset, size_t extent);
+static int text_delete_within(struct piece **ctx, size_t offset, size_t extent);
 static void text_relink(struct piece *, struct piece *, struct piece *);
-static int text_split(struct piece **dest, size_t offset, size_t extent);
+static int text_split(struct piece **ctx, size_t offset, size_t extent);
 
 struct piece *
 text_ctor(void)
@@ -31,6 +33,19 @@ text_step(struct piece **links)
 	struct piece *next;
 	next = text_next(links[0], links[1]);
 	links[1] = links[0], links[0] = next;
+}
+
+int
+text_delete(struct piece **ctx, size_t offset, size_t extent)
+{
+	if (offset >= ctx[0]->length) offset = text_walk(ctx, offset);
+
+	if (offset + extent < ctx[0]->length) {
+		return text_delete_within(ctx, offset, extent);
+	}
+
+	text_delete_across(ctx, offset, extent);
+	return 0;
 }
 
 void
@@ -77,20 +92,6 @@ text_delete_within(struct piece **ctx, size_t offset, size_t extent)
 	if (err) return err;
 
 	ctx[0] = 0, ctx[1] = 0;
-	return 0;
-}
-
-int
-text_delete(struct piece **ctx, size_t offset, size_t extent)
-{
-	bool is_within;
-
-	if (offset >= ctx[0]->length) offset = text_walk(ctx, offset);
-
-	is_within = offset + extent < ctx[0]->length;
-	if (is_within) return text_delete_within(ctx, offset, extent);
-
-	text_delete_across(ctx, offset, extent);
 	return 0;
 }
 
