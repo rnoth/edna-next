@@ -28,11 +28,11 @@ text_ctor(void)
 }
 
 void
-text_step(struct piece **links)
+text_step(struct piece **ctx)
 {
 	struct piece *next;
-	next = text_next(links[0], links[1]);
-	links[1] = links[0], links[0] = next;
+	next = text_next(ctx[0], ctx[1]);
+	ctx[1] = ctx[0], ctx[0] = next;
 }
 
 int
@@ -82,7 +82,7 @@ text_delete_across(struct piece **ctx, size_t offset, size_t extent)
 
 	if (extent) {
 		end[0]->length -= extent;
-		end[0]->buffer += extent;
+		end[0]->offset += extent;
 	}
 
 	text_merge(end);
@@ -114,23 +114,8 @@ text_dtor(struct piece *txt)
 	}
 }
 
-void
-text_free(struct piece *text)
-{
-	struct piece *next;
-	struct piece *prev=0;
-
-	while (text) {
-		next = text_next(text, prev);
-		free(text->buffer);
-		free(text);
-		prev=text;
-		text=next;
-	}
-}
-
 int
-text_insert(struct piece **dest, size_t offset, char *buffer, size_t length)
+text_insert(struct piece **dest, size_t where, size_t offset, size_t length)
 {
 	struct piece *new;
 	int err;
@@ -138,12 +123,12 @@ text_insert(struct piece **dest, size_t offset, char *buffer, size_t length)
 	new = calloc(1, sizeof *new);
 	if (!new) return ENOMEM;
 
-	new->buffer = buffer;
+	new->offset = offset;
 	new->length = length;
 
-	offset = text_walk(dest, offset);
+	where = text_walk(dest, where);
 
-	err = text_split(dest, offset, 0);
+	err = text_split(dest, where, 0);
 	if (err) {
 		free(new);
 		return err;
@@ -168,12 +153,12 @@ text_merge(struct piece **ctx)
 {
 	struct piece *dead;
 	struct piece *next;
-	char *end;
+	size_t end;
 
-	if (!ctx[1]->buffer) return;
+	if (!ctx[1]->length) return;
 
-	end = ctx[1]->buffer + ctx[1]->length;
-	if (end != ctx[0]->buffer) return;
+	end = ctx[1]->offset + ctx[1]->length;
+	if (end != ctx[0]->offset) return;
 
 	ctx[1]->length += ctx[0]->length;
 
@@ -218,7 +203,7 @@ text_split(struct piece **dest, size_t offset, size_t extent)
 	if (!new) return ENOMEM;
 
 	new->length = dest[0]->length - offset - extent;
-	new->buffer = dest[0]->buffer + offset + extent;
+	new->offset = dest[0]->offset + offset + extent;
 
 	dest[0]->length = offset;
 

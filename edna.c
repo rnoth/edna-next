@@ -27,10 +27,12 @@ struct record {
 static struct piece *act_free(struct action *act, struct piece *dead);
 static struct piece *arrange_pieces(struct piece *chain);
 static int add_lines(struct ext *lines, size_t offset, char *buffer, size_t length);
+static int edit_append(struct map *edit, char *buffer, size_t length);
+static int edit_ctor(struct map *edit);
+static int edit_dtor(struct map *edit);
+static int edit_expand(struct map *edit);
 static void free_pieces(struct piece *dead);
 static struct piece *kill_piece(struct piece *dead, struct piece *new);
-static void edit_dtor(struct map *edit);
-static int edit_ctor(struct map *edit);
 static void rm_lines(struct ext *lines, size_t offset, size_t extent);
 static void revert_insert(struct action *act);
 
@@ -111,24 +113,29 @@ add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 	return ENOMEM;
 }
 
-void
-free_pieces(struct piece *dead)
+int
+edit_append(struct map *edit, char *text, size_t length)
 {
-	uintptr_t temp;
+	int err;
 
-	while (dead) {
-		temp = dead->link;
-		free(dead->buffer);
-		free(dead);
-		dead = untag(temp);
+	if (edit->offset + length > edit->length) {
+		err = edit_expand(edit);
+		if (err) return err;
 	}
+
+	memcpy(edit->map+edit->offset, text, length);
+	edit->offset += length;
+
+	return 0;
 }
 
-void
+int
 edit_dtor(struct map *edit)
 {
 	munmap(edit->map, edit->length);
 	close(edit->fd);
+
+	return 0;
 }
 
 int
@@ -147,6 +154,37 @@ edit_ctor(struct map *edit)
 	}
 
 	return 0;
+}
+
+int
+edit_expand(struct map *edit)
+{
+	char *tmp;
+	int err;
+
+	tmp = mmap(0, edit->length*2, PROT_READ | PROT_WRITE,
+	           MAP_PRIVATE, edit->fd, 0);
+	if (tmp == MAP_FAILED) return errno;
+
+	err = munmap(edit->map, edit->length);
+	if (err) return errno;
+
+	edit->map = tmp;
+	edit->length *= 2;
+
+	return 0;
+}
+
+void
+free_pieces(struct piece *dead)
+{
+	uintptr_t temp;
+
+	while (dead) {
+		temp = dead->link;
+		free(dead);
+		dead = untag(temp);
+	}
 }
 
 struct piece *
@@ -347,7 +385,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 	if (!act) return ENOMEM;
 
 	ctx[0] = edna->chain, ctx[1] = 0;
-	err = text_insert(ctx, offset, text, length);
+	err = text_insert(ctx, offset, edna->edit->offset, length);
 	if (err) {
 		free(act);
 		return err;
@@ -356,6 +394,13 @@ edna_text_insert(struct edna *edna, size_t offset,
 	act->arg = tag1(ctx[0]);
 	act->prev = ctx[1];
 	act->chld = edna->hist->acts;
+
+	err = edit_append(edna->edit, text, length);
+	if (err) {
+		revert_insert(act);
+		free(act);
+		return err;
+	}
 
 	err = add_lines(edna->lines, offset, text, length);
 	if (err) {

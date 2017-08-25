@@ -70,13 +70,13 @@ struct unit_test tests[] = {
 	{.msg = "should read multiple lines",
 	 .fun = edna_list(test_multiple_lines),},
 
+	{.msg = "should error when printing empty selections",
+	 .fun = edna_list(test_print_empty),},
+
 	{.msg = "should exit insert mode with eof",
 	 .fun = edna_list(test_insert_eof),},
 	{.msg = "should exit insert mode with dot",
 	 .fun = edna_list(test_insert_dot),},
-
-	{.msg = "should error when printing empty selections",
-	 .fun = edna_list(test_print_empty),},
 
 	{.msg = "should insert lines",
 	 .fun = edna_list(test_insert_simple),},

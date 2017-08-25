@@ -84,32 +84,24 @@ int
 edna_cmd_insert(struct edna *edna, size_t *cursor)
 {
 	struct ext_node *node;
-	struct read ln[1]={0};
+	static char buffer[4096];
+	ssize_t len;
 	size_t end;
 	int err;
 
  again:
-	err = fd_read(ln, 0);
-	if (err == -1) return 0;
+	len = read(0, buffer, 4096);
+	if (len == -1) return errno;
+	if (!len) return 0;
+
+	if (len == 2 && !memcmp(buffer, ".\n", 2)) {
+		return 0;
+	}
+
+	err = edna_text_insert(edna, cursor[0] + cursor[1], buffer, len);
 	if (err) return err;
 
-	if (!ln->length) {
-		return 0;
-	}
-
-	if (ln->length == 2 && !memcmp(ln->buffer, ".\n", 2)) {
-		free(ln->buffer);
-		return 0;
-	}
-
-	err = edna_text_insert(edna, cursor[0] + cursor[1],
-	                       ln->buffer, ln->length);
-	if (err) {
-		free(ln->buffer);
-		return 0;
-	}
-
-	end = cursor[0] + cursor[1] + ln->length;
+	end = cursor[0] + cursor[1] + len;
 	node = ext_stab(edna->lines, end - 1);
 	cursor[0] = ext_tell(edna->lines, end - 1);
 	cursor[1] = node->ext;
@@ -120,25 +112,33 @@ edna_cmd_insert(struct edna *edna, size_t *cursor)
 int
 edna_cmd_print(struct edna *edna, size_t *cursor)
 {
-	struct piece *links[2];
-	size_t end = cursor[0] + cursor[1];
+	struct piece *ctx[2];
+	size_t ext = cursor[1];
 	size_t off = cursor[0];
 	size_t min;
+	char *text;
 
 	if (!cursor[1]) {
 		edna_fail(edna, "empty selection");
 		return 0;
 	}
 
-	links[0] = edna->chain, links[1] = 0;
-	text_walk(links, cursor[0]);
+	text_start(ctx, edna->chain);
+	off = text_walk(ctx, off);
+	text = edna->edit->map + ctx[0]->offset + off;
+	min = umin(ctx[0]->length - off, ext);
+	write(1, text, min);
 
-	while (off < end) {
-		min = umin(links[0]->length, end - off);
-		write(1, links[0]->buffer, min);
-		off += links[0]->length;
+	ext -= min;
 
-		text_step(links);
+	while (ext) {
+		text_step(ctx);
+		text = edna->edit->map + ctx[0]->offset;
+		min = umin(ctx[0]->length, ext);
+		write(1, text, min);
+
+		ext -= min;
+
 	}
 
 	return 0;

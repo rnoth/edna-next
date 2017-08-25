@@ -5,10 +5,8 @@
 #include <util.h>
 #include <txt.c>
 
-#define text_insert_str(txt, off, str) \
-	text_insert(txt, off, str, strlen(str))
-
-static void make_links(struct piece **);
+static struct piece *make_chain(size_t *);
+static void name_links(struct piece ***);
 
 static void test_delete();
 static void test_delete2();
@@ -44,88 +42,112 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_merge),},
 };
 
-void
-make_links(struct piece **pies)
+struct piece *
+make_chain(size_t *lens)
 {
+	struct piece *beg;
+	struct piece *prev=0;
+	struct piece *pie;
+	size_t off=0;
 	size_t i;
 
-	for (i=0; pies[i]; ++i) {
-		text_link(pies[i], pies[i+1]);
-		if (pies[i]->buffer) {
-			pies[i]->length = strlen(pies[i]->buffer);
-		}
+	ok(beg = prev = calloc(1, sizeof *prev));
+
+	for (i=0; lens[i]; ++i) {
+		ok(pie = calloc(1, sizeof *pie));
+		text_link(pie, prev);
+
+		pie->length = lens[i];
+		pie->offset = off;
+
+		off += pie->length;
+
+		prev = pie;
+	}
+
+	pie = calloc(1, sizeof *pie);
+	text_link(pie, prev);
+
+	return beg;
+}
+#define make_chain(...) make_chain((size_t []){__VA_ARGS__, 0})
+
+void
+name_links(struct piece ***links)
+{
+	struct piece *ctx[2];
+	size_t i;
+
+	text_start(ctx, *links[0]);
+	for (i=1; links[i]; ++i) {
+		try(text_step(ctx));
+		*links[i] = ctx[0];
 	}
 }
-#define make_links(...) make_links((struct piece *[]){__VA_ARGS__, 0})
+#define name_links(...) name_links((struct piece **[]){__VA_ARGS__, 0})
 
 void
 test_delete()
 {
-	struct piece beg[1] = {{0}};
-	struct piece pie[1] = {{.buffer="tyypo"}};
-	struct piece end[1] = {{0}};
-	struct piece *new;
-	struct piece *links[2];
+	struct piece *beg, *end, *pie, *pie1;
+	struct piece *ctx[2];
 
-	make_links(beg, pie, end);
+	beg = make_chain(5);
 
-	links[0] = beg, links[1] = 0;
-	text_walk(links, 3);
+	text_start(ctx, beg);
+	text_walk(ctx, 3);
 
-	expect(0, text_delete(links, 2, 1));
+	expect(0, text_delete(ctx, 2, 1));
+
+	ok(!ctx[0] && !ctx[1]);
+
+	ok(pie = text_next(beg, 0));
+	ok(pie1 = text_next(pie, beg));
+	ok(end = text_next(pie1, pie));
 
 	expect(2, pie->length);
-	ok(text_next(pie, beg) != end);
-	new = text_next(pie, beg);
-	ok(text_next(new, pie) == end);
+	expect(0, pie->offset);
+	expect(2, pie1->length);
+	expect(3, pie1->offset);
 
-	ok(links[0] == 0);
-
-	free(new);
+	text_dtor(beg);
 }
 
 void
 test_delete2()
 {
-	struct piece beg[1] = {{0}};
-	struct piece end[1] = {{0}};
-	struct piece one[1] = {{.buffer="abc__"}};
-	struct piece two[1] = {{.buffer="__def"}};
-	struct piece *links[2];
+	struct piece *beg, *end, *one, *two;
+	struct piece *ctx[2];
 
-	make_links(beg, one, two, end);
+	beg = make_chain(6, 6);
+	name_links(&beg, &one, &two, &end);
 
-	links[0] = beg, links[1] = 0;
-	text_walk(links, 3);
+	text_start(ctx, beg);
 
-	expect(0, text_delete(links, 3, 4));
+	expect(0, text_delete(ctx, 4, 4));
 
-	expect(3, one->length);
-	expect(3, two->length);
-	ok(*two->buffer == 'd');
+	expect(4, one->length);
+	expect(0, one->offset);
+	expect(4, two->length);
+	expect(8, two->offset);
 }
 
 void
 test_delete3()
 {
-	struct piece beg[1] = {{0}};
-	struct piece end[1] = {{0}};
-	struct piece one[1] = {{.buffer="hello, "}};
-	struct piece two[1] = {{.buffer="(not you)"}};
-	struct piece thr[1] = {{.buffer="friends."}};
-	struct piece *links[2];
+	struct piece *beg, *end, *one, *two, *thr;
+	struct piece *ctx[2];
 
-	make_links(beg, one, two, thr, end);
+	beg = make_chain(5, 7, 9);
+	name_links(&beg, &one, &two, &thr, &end);
 
-	links[0] = beg, links[1] = 0;
-	text_walk(links, 7);
+	text_start(ctx, beg);
+	expect(0, text_delete(ctx, 5, 7));
 
-	expect(0, text_delete(links, 0, 9));
+	expect(5, one->length);
+	expect(9, thr->length);
 
-	expect(7, one->length);
-	expect(8, thr->length);
-
-	ok(*links == two);
+	ok(ctx[0] == two && !ctx[1]);
 	ok(text_next(one, beg) == thr);
 	ok(text_next(thr, end) == one);
 }
@@ -133,17 +155,16 @@ test_delete3()
 void
 test_empty()
 {
-	struct piece *one;
-	struct piece *two;
+	struct piece *one, *two;
 
 	ok(one = text_ctor());
 	ok(one->link);
-	ok(!one->buffer);
+	ok(!one->offset);
 	ok(!one->length);
 	ok(two = text_next(one, 0));
 	ok(two->link == (uintptr_t)one);
 	ok(one->link == (uintptr_t)two);
-	ok(!two->buffer);
+	ok(!two->offset);
 	ok(!two->length);
 
 	try(text_dtor(one));
@@ -152,98 +173,92 @@ test_empty()
 void
 test_insert()
 {
-	struct piece beg[1] = {{0}};
-	struct piece hi[1] = {{.buffer="hello!", .length=6}};
-	struct piece end[1] = {{0}};
-	struct piece *new;
-	struct piece *new1;
-	struct piece *links[2];
+	struct piece *beg, *one, *new, *new1, *end;
+	struct piece *ctx[2];
 
-	make_links(beg, hi, end);
+	beg = make_chain(4);
+	name_links(&beg, &one, &end);
 
-	links[0] = beg, links[1] = 0;
-	text_walk(links, 5);
-	ok(!text_insert_str(links, 5, ", friend"));
+	text_start(ctx, beg);
+	ok(!text_insert(ctx, 2, 4, 3));
 
-	ok(hi->length == 5);
+	expect(2, one->length);
 
-	ok(new = text_next(hi, beg));
-	ok(new != hi);
+	ok(new = text_next(one, beg));
+	ok(new != one);
 	ok(new != beg);
 	ok(new != end);
+	expect(4, new->offset);
+	expect(3, new->length);
 
-	new1 = text_next(new, hi);
+	new1 = text_next(new, one);
 	ok(new1 != new);
 	ok(new1 != end);
 
-	ok(new1->length == 1);
-	ok(*new1->buffer == '!');
+	expect(2, new1->offset);
+	expect(2, new1->length);
 
-	links[0] = beg, links[1] = 0;
-	text_walk(links, 13);
-
-	ok(links[0] == new1);
-	ok(links[1] == new);
-
-	free(new1);
-	free(new);
+	try(text_dtor(beg));
 }
 
 void
 test_insert2()
 {
-	struct piece beg[1] = {{0}};
-	struct piece pie[1] = {{.buffer="two, ", .length=5}};
-	struct piece end[1] = {{0}};
-	struct piece *new;
-	struct piece *new1;
-	struct piece *links[2];
+	struct piece *beg, *end, *pie, *new, *new1;
+	struct piece *ctx[2];
 
-	make_links(beg, pie, end);
+	beg = make_chain(10);
+	name_links(&beg, &pie, &end);
 
-	links[0] = beg, links[1] = 0;
-
-	ok(!text_insert_str(links, 0, "one, "));
+	text_start(ctx, beg);
+	ok(!text_insert(ctx, 0, 10, 5));
 	ok(new = text_next(beg, 0));
 	ok(new != pie);
 
-	ok(text_next(new, beg) == pie);
-	ok(pie->length == 5);
+	expect(10, new->offset);
+	expect(5, new->length);
 
-	links[0] = beg, links[1] = 0;
-	ok(!text_insert_str(links, 10, "three."));
+	ok(text_next(new, beg) == pie);
+
+	text_start(ctx, beg);
+	ok(!text_insert(ctx, 15, 15, 5));
 	ok(new1 = text_next(end, 0));
 	ok(new1 != pie);
+	ok(new1 != end);
+
+	ok(new1->offset == 15);
+	ok(new1->length == 5);
 	
 	ok(text_next(new1, end) == pie);
-	ok(beg->length == 0);
 
-	free(new);
-	free(new1);
+	text_dtor(beg);
 }
 
 void
 test_insert3()
 {
-	struct piece beg[1] = {{0}};
-	struct piece end[1] = {{0}};
-	struct piece *new;
-	struct piece *links[2];
+	struct piece *beg, *end, *new;
+	struct piece *ctx[2];
 
-	make_links(beg, end);
+	beg = make_chain(0);
+	name_links(&beg, &end);
 
-	links[0] = beg, links[1] = 0;
+	text_start(ctx, beg);
 
-	try(text_insert_str(links, 0, "I'm in"));
+	try(text_insert(ctx, 0, 0, 3));
 
 	ok(new = text_next(beg, 0));
 	ok(new != end);
-
 	ok(text_next(new, beg) == end);
 	ok(text_next(end, new) == 0);
 
+	ok(new->offset == 0);
+	ok(new->length == 3);
+
 	ok(beg->length == 0);
 	ok(end->length == 0);
+
+	text_dtor(beg);
 }
 
 void
@@ -285,67 +300,71 @@ test_link()
 void
 test_merge(void)
 {
-	struct piece beg[1]={{0}};
-	struct piece pie[1]={{.buffer="~~><~~"}};
-	struct piece end[1]={{0}};
+	struct piece *beg, *end, *pie;
 	struct piece *ctx[2];
 
-	make_links(beg, pie, end);
+	beg = make_chain(6);
+	name_links(&beg, &pie, &end);
 
-	ctx[0] = beg, ctx[1] = 0;
-	expect(0, text_insert_str(ctx, 3, "!"));
+	text_start(ctx, beg);
+	expect(0, text_insert(ctx, 3, 7, 1));
 
-	ctx[0] = beg, ctx[1] = 0;
+	text_start(ctx, beg);
+
 	expect(0, text_delete(ctx, 3, 1));
+
 	ok(text_next(pie, beg) == end);
 	ok(text_next(pie, end) == beg);
 	ok(pie->length = 6);
+
+	text_dtor(beg);
+	free(ctx[0]);
 }
 
 void
 test_traverse()
 {
 	struct piece beg[1] = {{0}};
-	struct piece foo[1] = {{.buffer="foo", .length=3}};
-	struct piece bar[1] = {{.buffer="bar", .length=3}};
-	struct piece baz[1] = {{.buffer="baz", .length=3}};
+	struct piece foo[1] = {{.offset=0, .length=3}};
+	struct piece bar[1] = {{.offset=3, .length=3}};
+	struct piece baz[1] = {{.offset=6, .length=3}};
 	struct piece end[1] = {{0}};
-	struct piece *links[2];
+	struct piece *ctx[2];
 
 	text_link(beg, foo);
 	text_link(foo, bar);
 	text_link(bar, baz);
 	text_link(baz, end);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 0));
-	ok(links[0] == foo);
-	ok(links[1] == beg);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 0));
+	ok(ctx[0] == foo);
+	ok(ctx[1] == beg);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 2));
-	ok(links[0] == foo);
-	ok(links[1] == beg);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 2));
+	ok(ctx[0] == foo);
+	ok(ctx[1] == beg);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 3));
-	ok(links[0] == bar);
-	ok(links[1] == foo);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 3));
+	ok(ctx[0] == bar);
+	ok(ctx[1] == foo);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 5));
-	ok(links[0] == bar);
-	ok(links[1] == foo);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 5));
+	ok(ctx[0] == bar);
+	ok(ctx[1] == foo);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 6));
-	ok(links[0] == baz);
-	ok(links[1] == bar);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 6));
+	ok(ctx[0] == baz);
+	ok(ctx[1] == bar);
 
-	links[0] = beg, links[1] = 0;
-	try(text_walk(links, 10));
-	ok(links[0] == end);
-	ok(links[1] == baz);
+	ctx[0] = beg, ctx[1] = 0;
+	try(text_walk(ctx, 10));
+	ok(ctx[0] == end);
+	ok(ctx[1] == baz);
 }
 
 int
