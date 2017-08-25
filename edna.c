@@ -1,6 +1,9 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include <edna.h>
 #include <ext.h>
@@ -249,8 +252,28 @@ edna_fini(struct edna *edna)
 }
 
 int
+modify_ctor(struct map *modify)
+{
+	modify->fd = memfd_create("edna-modify");
+	if (modify->fd == -1) return errno;
+
+	modify->length = sysconf(_SC_PAGESIZE);
+	ftruncate(modify->fd, modify->length);
+	modify->map = mmap(0, modify->length, PROT_READ | PROT_WRITE,
+	                   MAP_PRIVATE, modify->fd, 0);
+	if (modify->map == MAP_FAILED) {
+		close(modify->fd);
+		return errno;
+	}
+
+	return 0;
+}
+
+int
 edna_init(struct edna *edna)
 {
+	int err;
+
 	*edna = (struct edna){0};
 
 	edna->hist = calloc(1, sizeof *edna->hist);
@@ -260,6 +283,13 @@ edna_init(struct edna *edna)
 	if (!edna->chain) {
 		free(edna->hist);
 		return ENOMEM;
+	}
+
+	err = modify_ctor(edna->modify);
+	if (err) {
+		free(edna->hist);
+		text_dtor(edna->chain);
+		return err;
 	}
 
 	return 0;
@@ -322,5 +352,5 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 
 	edna->hist->acts = act;
 
-	return 0;
+return 0;
 }
