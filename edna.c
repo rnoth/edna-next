@@ -8,6 +8,7 @@
 #include <edna.h>
 #include <ext.h>
 #include <cmd.h>
+#include <mem.h>
 #include <txt.h>
 #include <util.h>
 #include <vec.h>
@@ -23,9 +24,52 @@ struct record {
 	struct action *acts;
 };
 
+static struct piece *act_free(struct action *act, struct piece *dead);
+static struct piece *arrange_pieces(struct piece *chain);
 static int add_lines(struct ext *lines, size_t offset, char *buffer, size_t length);
+static void free_pieces(struct piece *dead);
+static struct piece *kill_piece(struct piece *dead, struct piece *new);
+static void modify_dtor(struct map *modify);
+static int modify_ctor(struct map *modify);
 static void rm_lines(struct ext *lines, size_t offset, size_t extent);
 static void revert_insert(struct action *act);
+
+struct piece *
+act_free(struct action *cur, struct piece *dead)
+{
+	struct action *next;
+	struct piece *result=0;
+
+	while (cur) {
+		next = cur->chld;
+
+		result = untag(cur->arg);
+		dead = kill_piece(dead, result);
+
+		free(cur);
+
+		cur = next;
+	}
+
+	return dead;
+}
+
+struct piece *
+arrange_pieces(struct piece *chain)
+{
+	struct piece *ctx[2];
+	struct piece *dead=0;
+
+	ctx[0] = chain, ctx[1] = 0;
+	do {
+		text_step(ctx);
+		dead = kill_piece(dead, ctx[1]);
+	} while (text_next(ctx[0], ctx[1]));
+
+	dead = kill_piece(dead, ctx[0]);
+
+	return dead;
+}
 
 int
 add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
@@ -68,68 +112,6 @@ add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
 }
 
 void
-rm_lines(struct ext *lines, size_t offset, size_t extent)
-{
-	struct ext_node *dead;
-	struct ext_node *list;
-	struct ext_node *node;
-	size_t start;
-	size_t diff;
-
-	start = ext_tell(lines, offset);
-	if (start < offset){
-		ext_adjust(lines, offset, start - offset);
-
-		diff = offset - start;
-		offset += diff;
-		extent -= diff;
-	}
-
-	list = dead = 0;
-	while (extent) {
-		node = ext_stab(lines, offset);
-		if (node->ext > extent) break;
-
-		dead = ext_remove(lines, offset);
-
-		offset += diff;
-		extent -= diff;
-
-		dead->chld[0] = (uintptr_t)list;
-		list = dead;
-	}
-
-	ext_adjust(lines, offset, -extent);
-
-	while (dead) {
-		list = untag(dead->chld[0]);
-		free(dead);
-		dead = list;
-	}
-
-	return;
-}
-
-struct piece *kill_piece(struct piece *dead, struct piece *new);
-
-struct piece *
-arrange_pieces(struct piece *chain)
-{
-	struct piece *ctx[2];
-	struct piece *dead=0;
-
-	ctx[0] = chain, ctx[1] = 0;
-	do {
-		text_step(ctx);
-		dead = kill_piece(dead, ctx[1]);
-	} while (text_next(ctx[0], ctx[1]));
-
-	dead = kill_piece(dead, ctx[0]);
-
-	return dead;
-}
-
-void
 free_pieces(struct piece *dead)
 {
 	uintptr_t temp;
@@ -140,6 +122,31 @@ free_pieces(struct piece *dead)
 		free(dead);
 		dead = untag(temp);
 	}
+}
+
+void
+modify_dtor(struct map *modify)
+{
+	munmap(modify->map, modify->length);
+	close(modify->fd);
+}
+
+int
+modify_ctor(struct map *modify)
+{
+	modify->fd = memfd_create("edna-modify");
+	if (modify->fd == -1) return errno;
+
+	modify->length = sysconf(_SC_PAGESIZE);
+	ftruncate(modify->fd, modify->length);
+	modify->map = mmap(0, modify->length, PROT_READ | PROT_WRITE,
+	                   MAP_PRIVATE, modify->fd, 0);
+	if (modify->map == MAP_FAILED) {
+		close(modify->fd);
+		return errno;
+	}
+
+	return 0;
 }
 
 struct piece *
@@ -175,26 +182,6 @@ kill_piece(struct piece *dead, struct piece *new)
 	dead->link = tag0(new);
 
 	return head;
-}
-
-struct piece *
-act_free(struct action *cur, struct piece *dead)
-{
-	struct action *next;
-	struct piece *result=0;
-
-	while (cur) {
-		next = cur->chld;
-
-		result = untag(cur->arg);
-		dead = kill_piece(dead, result);
-
-		free(cur);
-
-		cur = next;
-	}
-
-	return dead;
 }
 
 struct piece *
@@ -241,6 +228,49 @@ revert_insert(struct action *act)
 }
 
 void
+rm_lines(struct ext *lines, size_t offset, size_t extent)
+{
+	struct ext_node *dead;
+	struct ext_node *list;
+	struct ext_node *node;
+	size_t start;
+	size_t diff;
+
+	start = ext_tell(lines, offset);
+	if (start < offset){
+		ext_adjust(lines, offset, start - offset);
+
+		diff = offset - start;
+		offset += diff;
+		extent -= diff;
+	}
+
+	list = dead = 0;
+	while (extent) {
+		node = ext_stab(lines, offset);
+		if (node->ext > extent) break;
+
+		dead = ext_remove(lines, offset);
+
+		offset += diff;
+		extent -= diff;
+
+		dead->chld[0] = (uintptr_t)list;
+		list = dead;
+	}
+
+	ext_adjust(lines, offset, -extent);
+
+	while (dead) {
+		list = untag(dead->chld[0]);
+		free(dead);
+		dead = list;
+	}
+
+	return;
+}
+
+void
 edna_fini(struct edna *edna)
 {
 	struct piece *dead;
@@ -249,24 +279,7 @@ edna_fini(struct edna *edna)
 	dead = rec_free(edna->hist, dead);
 	free_pieces(dead);
 	ext_free(edna->lines);
-}
-
-int
-modify_ctor(struct map *modify)
-{
-	modify->fd = memfd_create("edna-modify");
-	if (modify->fd == -1) return errno;
-
-	modify->length = sysconf(_SC_PAGESIZE);
-	ftruncate(modify->fd, modify->length);
-	modify->map = mmap(0, modify->length, PROT_READ | PROT_WRITE,
-	                   MAP_PRIVATE, modify->fd, 0);
-	if (modify->map == MAP_FAILED) {
-		close(modify->fd);
-		return errno;
-	}
-
-	return 0;
+	modify_dtor(edna->modify);
 }
 
 int
@@ -323,7 +336,8 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 }
 
 int
-edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
+edna_text_insert(struct edna *edna, size_t offset,
+                 char *text, size_t length)
 {
 	struct action *act;
 	struct piece *ctx[2];
@@ -352,5 +366,5 @@ edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length)
 
 	edna->hist->acts = act;
 
-return 0;
+	return 0;
 }
