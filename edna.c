@@ -29,8 +29,8 @@ static struct piece *arrange_pieces(struct piece *chain);
 static int add_lines(struct ext *lines, size_t offset, char *buffer, size_t length);
 static void free_pieces(struct piece *dead);
 static struct piece *kill_piece(struct piece *dead, struct piece *new);
-static void modify_dtor(struct map *modify);
-static int modify_ctor(struct map *modify);
+static void edit_dtor(struct map *edit);
+static int edit_ctor(struct map *edit);
 static void rm_lines(struct ext *lines, size_t offset, size_t extent);
 static void revert_insert(struct action *act);
 
@@ -125,24 +125,24 @@ free_pieces(struct piece *dead)
 }
 
 void
-modify_dtor(struct map *modify)
+edit_dtor(struct map *edit)
 {
-	munmap(modify->map, modify->length);
-	close(modify->fd);
+	munmap(edit->map, edit->length);
+	close(edit->fd);
 }
 
 int
-modify_ctor(struct map *modify)
+edit_ctor(struct map *edit)
 {
-	modify->fd = memfd_create("edna-modify");
-	if (modify->fd == -1) return errno;
+	edit->fd = memfd_create("edna-edit");
+	if (edit->fd == -1) return errno;
 
-	modify->length = sysconf(_SC_PAGESIZE);
-	ftruncate(modify->fd, modify->length);
-	modify->map = mmap(0, modify->length, PROT_READ | PROT_WRITE,
-	                   MAP_PRIVATE, modify->fd, 0);
-	if (modify->map == MAP_FAILED) {
-		close(modify->fd);
+	edit->length = sysconf(_SC_PAGESIZE);
+	ftruncate(edit->fd, edit->length);
+	edit->map = mmap(0, edit->length, PROT_READ | PROT_WRITE,
+	                   MAP_PRIVATE, edit->fd, 0);
+	if (edit->map == MAP_FAILED) {
+		close(edit->fd);
 		return errno;
 	}
 
@@ -279,7 +279,7 @@ edna_fini(struct edna *edna)
 	dead = rec_free(edna->hist, dead);
 	free_pieces(dead);
 	ext_free(edna->lines);
-	modify_dtor(edna->modify);
+	edit_dtor(edna->edit);
 }
 
 int
@@ -298,7 +298,7 @@ edna_init(struct edna *edna)
 		return ENOMEM;
 	}
 
-	err = modify_ctor(edna->modify);
+	err = edit_ctor(edna->edit);
 	if (err) {
 		free(edna->hist);
 		text_dtor(edna->chain);

@@ -22,7 +22,7 @@ struct edna {
 	struct piece *chain;
 	struct ext lines[1];
 	struct set cmds[1];
-	struct map modify[1];
+	struct map edit[1];
 	char *errmsg;
 };
 
