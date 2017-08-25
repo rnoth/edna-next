@@ -77,4 +77,5 @@ char *vasprintf(char *fmt, va_list args);
 int msleep(size_t);
 int mk_pty(void);
 int open_pty(int);
+
 #endif
