@@ -290,8 +290,8 @@ rm_lines(struct ext *lines, size_t offset, size_t extent)
 
 		dead = ext_remove(lines, offset);
 
-		offset += diff;
-		extent -= diff;
+		offset += dead->ext;
+		extent -= dead->ext;
 
 		dead->chld[0] = (uintptr_t)list;
 		list = dead;
