@@ -188,7 +188,7 @@ unit_run_tests(struct unit_test *tl, size_t len)
 
 	if (unit_opt_test_num) run_test(tl + unit_opt_test_num - 1);
 	else for (i=0; i<len; ++i) {
-		dprintf(0, "%*zd| ", width, i+1);
+		dprintf(2, "%*zd| ", width, i+1);
 		run_test(tl + i);
 	}
 
