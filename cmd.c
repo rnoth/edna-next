@@ -94,7 +94,7 @@ edna_cmd_insert(struct edna *edna, size_t *cursor)
 	if (len == -1) return errno;
 	if (!len) return 0;
 
-	if (len == 2 && !memcmp(buffer, ".\n", 2)) {
+	if (len > 1 && !memcmp(buffer, ".\n", 2)) {
 		return 0;
 	}
 
