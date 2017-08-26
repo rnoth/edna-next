@@ -42,7 +42,7 @@ static void test_insert_dot();
 static void test_insert_eof();
 static void test_insert_flat();
 static void test_insert_empty();
-/* static void test_insert_large(); */
+static void test_insert_large();
 static void test_insert_simple();
 static void test_insert0();
 static void test_insert1();
@@ -111,8 +111,8 @@ struct unit_test tests[] = {
 	{.msg = "should delete text at the end of buffer",
 	 .fun = edna_list(test_delete_end),},
 
-	/* {.msg = "should expand the edit buffer as necessary", */
-	/*  .fun = edna_list(test_insert_large),}, */
+	{.msg = "should expand the edit buffer as necessary",
+	 .fun = edna_list(test_insert_large),},
 };
 
 static pid_t edna_pid;
@@ -137,7 +137,7 @@ rwritef(char *fmt, ...)
 	va_end(args);
 
 	ok(write(edna_pty, s, len));
-	msleep(1);
+	msleep(2);
 
 	try(res = read(edna_pty, t, len));
 	if (res == len && !strncmp(s, t, len)) {
@@ -513,6 +513,7 @@ test_insert_large()
 	expect_prompt();
 	send_line("p");
 	read_line(buffer);
+
 	send_line("-");
 	expect_prompt();
 	send_line("p");
