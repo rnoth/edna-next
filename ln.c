@@ -57,16 +57,17 @@ nodes_from_lines(char *buffer, size_t length)
 	struct ext_node *list=0x0;
 	struct ext_node *node=0;
 	size_t extent=0;
-	size_t offset=0;
 
-	while ((offset += extent) < length) {
-		extent = next_line(buffer + offset, length - offset);
+	while (length) {
+		extent = next_line(buffer, length);
 
 		node = calloc(1, sizeof *node);
 		if (!node) goto fail;
 
 		node->ext = extent;
 		list = link_node(node, list);
+
+		buffer += extent, length -= extent;
 	}
 
 	return list;
