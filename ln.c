@@ -44,7 +44,9 @@ link_node(struct ext_node *node, struct ext_node *list)
 size_t
 next_line(char *buffer, size_t length)
 {
-	char *nl = memchr(buffer, '\n', length);
+	char *nl;
+
+	nl = memchr(buffer, '\n', length);
 	if (!nl) return length;
 	return nl - buffer + 1;
 }
