@@ -282,7 +282,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	act->arg = tag0(ctx[0]);
 	act->chld = edna->hist->acts;
 
-	rm_lines(edna->lines, offset, extent);
+	ln_delete(edna->lines, offset, extent);
 
 	edna->hist->acts = act;
 
@@ -318,7 +318,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 		return err;
 	}
 
-	err = add_lines(edna->lines, offset, text, length);
+	err = ln_insert(edna->lines, offset, text, length);
 	if (err) {
 		revert_insert(act);
 		free(act);

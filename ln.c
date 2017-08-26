@@ -20,7 +20,7 @@ static struct ext_node *nodes_from_lines(char *buffer, size_t length);
 static struct ext_node *link_node(struct ext_node *node, struct ext_node *list);
 
 int
-add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
+ln_insert(struct ext *lines, size_t start, char *buffer, size_t length)
 {
 	struct ext_node *list, *node;
 
@@ -74,22 +74,25 @@ nodes_from_lines(char *buffer, size_t length)
 }
 
 void
-rm_lines(struct ext *lines, size_t offset, size_t extent)
+ln_delete(struct ext *lines, size_t offset, size_t extent)
 {
 	struct ext_node *dead;
 	struct ext_node *list=0x0;
 	struct ext_node *node=0x0;
-	size_t start;
+	size_t endoff = offset + extent;
 	size_t diff;
-	size_t end = offset + extent;
+	size_t start;
 
 	start = ext_tell(lines, offset);
-	ext_adjust(lines, offset, start - offset);
+	if (start < offset) {
+		node = ext_stab(lines, offset);
+		ext_adjust(lines, offset, offset - start + node->ext);
 
-	diff = offset - start;
-	offset += diff;
+		diff = offset - start + node->ext;
+		offset += diff;
+	}
 
-	while (offset < end) {
+	while (offset < endoff) {
 		node = ext_stab(lines, offset);
 		if (node->ext > extent) break;
 
@@ -98,7 +101,7 @@ rm_lines(struct ext *lines, size_t offset, size_t extent)
 		list = link_node(dead, list);
 	}
 
-	ext_adjust(lines, offset, offset - end);
+	ext_adjust(lines, offset, offset - endoff);
 
 	foreach_node(dead, list) free(dead);
 
