@@ -5,9 +5,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <cmd.h>
 #include <edna.h>
 #include <ext.h>
-#include <cmd.h>
+#include <ln.h>
 #include <mem.h>
 #include <txt.h>
 #include <util.h>
@@ -26,14 +27,12 @@ struct record {
 
 static struct piece *act_free(struct action *act, struct piece *dead);
 static struct piece *arrange_pieces(struct piece *chain);
-static int add_lines(struct ext *lines, size_t offset, char *buffer, size_t length);
 static int edit_append(struct map *edit, char *buffer, size_t length);
 static int edit_ctor(struct map *edit);
 static int edit_dtor(struct map *edit);
 static int edit_expand(struct map *edit);
 static void free_pieces(struct piece *dead);
 static struct piece *kill_piece(struct piece *dead, struct piece *new);
-static void rm_lines(struct ext *lines, size_t offset, size_t extent);
 static void revert_insert(struct action *act);
 
 struct piece *
@@ -71,46 +70,6 @@ arrange_pieces(struct piece *chain)
 	dead = kill_piece(dead, ctx[0]);
 
 	return dead;
-}
-
-int
-add_lines(struct ext *lines, size_t start, char *buffer, size_t length)
-{
-	struct ext_node *list;
-	struct ext_node *node;
-	size_t extent;
-	size_t offset;
-	char *nl;
-
-	list = 0x0;
-	for (offset=0; offset<length; offset+=extent) {
-		nl = memchr(buffer+offset, '\n', length-offset);
-		extent = nl - buffer - offset + 1;
-
-		node = calloc(1, sizeof *node);
-		if (!node) goto fail;
-
-		node->ext = extent;
-		node->chld[0] = (uintptr_t)list;
-		list = node;
-	}
-
-	while (node) {
-		list = untag(node->chld[0]);
-		ext_insert(lines, start, node);
-		node = list;
-	}
-
-	return 0;
-
- fail:
-	while (node) {
-		list = untag(node->chld[0]);
-		free(node);
-		node = list;
-	}
-
-	return ENOMEM;
 }
 
 int
@@ -263,49 +222,6 @@ revert_insert(struct action *act)
 	text_merge(ctx);
 
 	free(result);
-}
-
-void
-rm_lines(struct ext *lines, size_t offset, size_t extent)
-{
-	struct ext_node *dead;
-	struct ext_node *list;
-	struct ext_node *node;
-	size_t start;
-	size_t diff;
-
-	start = ext_tell(lines, offset);
-	if (start < offset){
-		ext_adjust(lines, offset, start - offset);
-
-		diff = offset - start;
-		offset += diff;
-		extent -= diff;
-	}
-
-	list = dead = 0;
-	while (extent) {
-		node = ext_stab(lines, offset);
-		if (node->ext > extent) break;
-
-		dead = ext_remove(lines, offset);
-
-		offset += dead->ext;
-		extent -= dead->ext;
-
-		dead->chld[0] = (uintptr_t)list;
-		list = dead;
-	}
-
-	ext_adjust(lines, offset, -extent);
-
-	while (dead) {
-		list = untag(dead->chld[0]);
-		free(dead);
-		dead = list;
-	}
-
-	return;
 }
 
 void
