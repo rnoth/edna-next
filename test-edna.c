@@ -41,6 +41,7 @@ static void test_insert_back();
 static void test_insert_dot();
 static void test_insert_eof();
 static void test_insert_empty();
+static void test_insert_large();
 static void test_insert_simple();
 static void test_insert0();
 static void test_insert1();
@@ -106,6 +107,9 @@ struct unit_test tests[] = {
 	 .fun = edna_list(test_delete_empty),},
 	{.msg = "should delete text at the end of buffer",
 	 .fun = edna_list(test_delete_end),},
+
+	{.msg = "should expand the edit buffer as necessary",
+	 .fun = edna_list(test_insert_large),},
 };
 
 static pid_t edna_pid;
@@ -115,7 +119,9 @@ void
 rwritef(char *fmt, ...)
 {
 	va_list args;
+	size_t res;
 	size_t len;
+	int ws;
 	char *s;
 	char *t;
 
@@ -125,19 +131,34 @@ rwritef(char *fmt, ...)
 	ok(t = calloc(len + 2, 1));
 	va_start(args, fmt);
 	ok(vsnprintf(s, len + 1, fmt, args));
-
-	ok(write(edna_pty, s, len) == (ssize_t)len);
-	msleep(1);
-
-	ok(read(edna_pty, t, len) == (ssize_t)len);
-	okf(!strncmp(s, t, len),
-	    "expected input string to be echoed: %s, "
-	    "instead got %s\n",
-	    s, t);
 	va_end(args);
 
-	free(s);
-	free(t);
+	ok(write(edna_pty, s, len));
+	msleep(1);
+
+	try(res = read(edna_pty, t, len));
+	if (res == len && !strncmp(s, t, len)) {
+		free(s);
+		free(t);
+		return;
+	}
+
+	msleep(1);
+	if (!waitpid(edna_pid, &ws, WNOHANG)) {
+		kill_edna();
+		unit_fail_fmt("expected input string to be echoed: %s, "
+		              "instead got %s\n", s, t);
+	}
+
+	if (WIFSIGNALED(ws)) {
+		unit_fail_fmt("edna died unexpectedly (killed by signal %d)",
+		              WTERMSIG(ws));
+	}
+
+	if (WIFEXITED(ws)) {
+		unit_fail_fmt("edna exited unexpectedly with code %d",
+		              WEXITSTATUS(ws));
+	}
 }
 
 void
@@ -451,6 +472,35 @@ test_insert_empty()
 	expect_prompt();
 	send_line("p");
 	read_line("");
+}
+
+void
+test_insert_large()
+{
+	char *buffer;
+	size_t i;
+	char c=' ';
+
+	ok(buffer = malloc(4095));
+
+	for (i=0; i<4094; ++i) {
+		buffer[i] = c;
+		++c;
+		if (c>'~') c='a';
+	}
+
+	buffer[4094] = 0;
+
+	expect_prompt();
+	insert_lines(buffer, buffer);
+
+	expect_prompt();
+	send_line("p");
+	read_line(buffer);
+	send_line("-");
+	expect_prompt();
+	send_line("p");
+	read_line(buffer);
 }
 
 void
