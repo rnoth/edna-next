@@ -23,13 +23,12 @@ struct walker {
 };
 
 static bit bit_index_bytes(uint8_t *bytes, size_t len, size_t crit);
-static size_t byte_diff(void *lef, void *rit, size_t len);
+static size_t byte_diff(uint8_t *lef, uint8_t *rit, size_t len);
 static void node_attach(struct walker *walk, struct set_node *el_node,
                         uint8_t *key, size_t len);
 static uintptr_t node_traverse(uintptr_t root, uint8_t *, size_t len);
 static void walker_begin(struct walker *, struct set *);
 static void walker_finish(struct walker *);
-//static void walker_next(struct walker *);
 static void walker_rise(struct walker *);
 static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
@@ -48,9 +47,8 @@ bit_index_bytes(uint8_t *key, size_t len, size_t crit)
 }
 
 size_t
-byte_diff(void *_lef, void *_rit, size_t len)
+byte_diff(uint8_t *lef, uint8_t *rit, size_t len)
 {
-	uint8_t *lef=_lef, *rit=_rit;
 	size_t off;
 
 	off=len;
@@ -155,31 +153,6 @@ walker_visit(struct walker *wal, bit b)
 
 	wal->bit = b;
 	if (is_node(wal->cur)) ++wal->dep;
-}
-
-void
-walker_next(struct walker *walk) // probably doesn't work
-{
-	struct set_node *node;
-
-	if (is_leaf(walk->cur)) {
-		walker_rise(walk);
-		return;
-	}
-
-	node = untag(walk->cur);
-
-	if (!is_back(node->chld[0])) {
-		walker_visit(walk, 0);
-		return;
-	}
-
-	if (!is_back(node->chld[1])) {
-		walker_visit(walk, 1);
-		return;
-	}
-
-	walker_rise(walk);
 }
 
 void

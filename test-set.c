@@ -38,7 +38,10 @@ struct unit_test tests[] = {
 void
 test_compare()
 {
-	ok(!~byte_diff((int[]){56}, (int[]){56}, sizeof (int)));
+	void *p = (int[]){56};
+	void *q = (int[]){56};
+
+	ok(!~byte_diff(p, q, sizeof (int)));
 }
 
 void
