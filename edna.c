@@ -27,10 +27,6 @@ struct record {
 
 static struct piece *act_free(struct action *act, struct piece *dead);
 static struct piece *arrange_pieces(struct piece *chain);
-static int edit_append(struct map *edit, char *buffer, size_t length);
-static int edit_ctor(struct map *edit);
-static int edit_dtor(struct map *edit);
-static int edit_expand(struct map *edit);
 static void free_pieces(struct piece *dead);
 static struct piece *kill_piece(struct piece *dead, struct piece *new);
 static void revert_insert(struct action *act);
@@ -70,68 +66,6 @@ arrange_pieces(struct piece *chain)
 	dead = kill_piece(dead, ctx[0]);
 
 	return dead;
-}
-
-int
-edit_append(struct map *edit, char *text, size_t length)
-{
-	int err;
-
-	if (edit->offset + length > edit->length) {
-		err = edit_expand(edit);
-		if (err) return err;
-	}
-
-	memcpy(edit->map+edit->offset, text, length);
-	edit->offset += length;
-
-	return 0;
-}
-
-int
-edit_dtor(struct map *edit)
-{
-	munmap(edit->map, edit->length);
-	close(edit->fd);
-
-	return 0;
-}
-
-int
-edit_ctor(struct map *edit)
-{
-	edit->fd = memfd_create("edna-edit");
-	if (edit->fd == -1) return errno;
-
-	edit->length = sysconf(_SC_PAGESIZE);
-	ftruncate(edit->fd, edit->length);
-	edit->map = mmap(0, edit->length, PROT_READ | PROT_WRITE,
-	                   MAP_PRIVATE, edit->fd, 0);
-	if (edit->map == MAP_FAILED) {
-		close(edit->fd);
-		return errno;
-	}
-
-	return 0;
-}
-
-int
-edit_expand(struct map *edit)
-{
-	char *tmp;
-	int err;
-
-	tmp = mmap(0, edit->length*2, PROT_READ | PROT_WRITE,
-	           MAP_PRIVATE, edit->fd, 0);
-	if (tmp == MAP_FAILED) return errno;
-
-	err = munmap(edit->map, edit->length);
-	if (err) return errno;
-
-	edit->map = tmp;
-	edit->length *= 2;
-
-	return 0;
 }
 
 void
