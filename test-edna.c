@@ -40,8 +40,9 @@ static void test_forth_traverse();
 static void test_insert_back();
 static void test_insert_dot();
 static void test_insert_eof();
+static void test_insert_flat();
 static void test_insert_empty();
-static void test_insert_large();
+/* static void test_insert_large(); */
 static void test_insert_simple();
 static void test_insert0();
 static void test_insert1();
@@ -90,6 +91,8 @@ struct unit_test tests[] = {
 	{.msg = "should handle empty lines",
 	 .fun = edna_list(test_insert_empty),},
 
+	{.msg = "should accept text without newlines",
+	 .fun = edna_list(test_insert_flat),},
 	{.msg = "should move backwards",
 	 .fun = edna_list(test_back),},
 	{.msg = "should insert anywhere",
@@ -108,8 +111,8 @@ struct unit_test tests[] = {
 	{.msg = "should delete text at the end of buffer",
 	 .fun = edna_list(test_delete_end),},
 
-	{.msg = "should expand the edit buffer as necessary",
-	 .fun = edna_list(test_insert_large),},
+	/* {.msg = "should expand the edit buffer as necessary", */
+	/*  .fun = edna_list(test_insert_large),}, */
 };
 
 static pid_t edna_pid;
@@ -462,6 +465,19 @@ test_insert_eof()
 	expect_prompt();
 
 	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
+}
+
+void
+test_insert_flat()
+{
+	expect_prompt();
+	send_line("i");
+	rwritef("hi");
+	send_eof();
+	send_eof();
+	expect_prompt();
+	send_line("p");
+	readf("hi" ":");
 }
 
 void
