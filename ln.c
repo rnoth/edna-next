@@ -45,6 +45,7 @@ size_t
 next_line(char *buffer, size_t length)
 {
 	char *nl = memchr(buffer, '\n', length);
+	if (!nl) return length;
 	return nl - buffer + 1;
 }
 
