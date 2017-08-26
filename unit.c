@@ -14,7 +14,8 @@ static void report_failure();
 static void run_test(struct unit_test *);
 
 unsigned unit_opt_timeout = 1;
-size_t unit_opt_test_num = 0;
+unsigned unit_opt_test_num = 0;
+unsigned unit_opt_flakiness = 0;
 
 static int line_number;
 static char current_expr[256];
@@ -106,7 +107,6 @@ run_test(struct unit_test *te)
 	return;
 
  failed:
-	dprintf(2, "failed\n    %s\n", error_message);
 	longjmp(escape_hatch, 0);
 }
 
@@ -158,6 +158,9 @@ unit_parse_argv(char **argv)
 		case 'a':
 			unit_opt_timeout = 0;
 			break;
+		case 'f':
+			unit_opt_flakiness = strtoul(*++argv, 0, 10);
+			break;
 		case 'n':
 			unit_opt_test_num = strtoul(*++argv, 0, 10);
 			break;
@@ -173,21 +176,36 @@ unit_parse_argv(char **argv)
 int
 unit_run_tests(struct unit_test *tl, size_t len)
 {
-	int width;
+	size_t f=unit_opt_flakiness;
+	volatile int i_saved;
 	size_t i;
+	int width;
 	int err;
 	
 	err = trap_failures();
 	if (err) return err;
 
+	i = 0;
+
 	if (setjmp(escape_hatch)) {
-		return -1;
+		if (!f) {
+			dprintf(2, "failed\n    %s\n", error_message);
+			return -1;
+		}
+		dprintf(2, "\r");
+		--f;
+		i = i_saved;
 	}
 
 	width = snprintf(0, 0, "%zu", len);
 
-	if (unit_opt_test_num) run_test(tl + unit_opt_test_num - 1);
-	else for (i=0; i<len; ++i) {
+	if (unit_opt_test_num) {
+		run_test(tl + unit_opt_test_num - 1);
+		return 0;
+	}
+
+	for (; i<len; ++i) {
+		i_saved = i;
 		dprintf(2, "%*zd| ", width, i+1);
 		run_test(tl + i);
 	}

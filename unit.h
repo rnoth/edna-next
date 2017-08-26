@@ -64,6 +64,10 @@ struct unit_test {
 	void *ctx;
 };
 
+extern unsigned unit_opt_timeout;
+extern unsigned unit_opt_flakiness;
+extern unsigned unit_opt_test_num;
+
 void unit_set_expr(char *, int);
 void unit_unset_expr(void);
 
