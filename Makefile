@@ -11,7 +11,7 @@ test:: $(TESTS) $(patsubst %.c, .run-%, $(TESTS))
 
 clean::
 	@echo cleaning
-	@rm -f *.c.o *.d .run-test-*
+	@rm -f *.c.o *.d .run-test-* $(BIN)
 
 %.c.o: %.c
 	@$(call compile,$@,$<)
