@@ -10,7 +10,6 @@
 
 static int  trap_failures(void);
 static void report_error(int);
-static void report_failure();
 static void run_test(struct unit_test *);
 
 unsigned unit_opt_timeout = 1;
@@ -30,11 +29,6 @@ trap_failures(void)
 {
 	struct sigaction sa[1] = {0};
 	int err;
-
-	sa->sa_handler = report_failure;
-	
-	err = sigaction(SIGHUP, sa, 0x0);
-	if (err) throw("sigaction failed");
 
 	sa->sa_handler = report_error;
 
@@ -58,6 +52,7 @@ void
 report_error(int sig)
 {
 	char *why;
+
 	switch (sig) {
 	case SIGSEGV:
 		why = "segfaulted";
@@ -79,23 +74,17 @@ report_error(int sig)
 
 	dprintf(2, "error\n    %s executing: %s (line %d)\n",
 	        why, current_expr, line_number);
-	longjmp(escape_hatch, 0);
-}
-
-void
-report_failure()
-{
-	longjmp(checkpoint, 0);
+	exit(-1);
 }
 
 void
 run_test(struct unit_test *te)
 {
 	size_t i;
-	
+
 	dprintf(2, "%s...", te->msg);
 
-	if (setjmp(checkpoint)) goto failed;
+	if (setjmp(checkpoint)) longjmp(escape_hatch, 0);
 
 	for (i=0; te->fun[i]; ++i) {
 		alarm(unit_opt_timeout);
@@ -105,9 +94,6 @@ run_test(struct unit_test *te)
 
 	dprintf(2, "ok\n");
 	return;
-
- failed:
-	longjmp(escape_hatch, 0);
 }
 
 void
@@ -145,8 +131,7 @@ void
 unit_fail(char *msg)
 {
 	snprintf(error_message, 256, "%s", msg);
-	raise(SIGHUP);
-	__builtin_unreachable();
+	longjmp(checkpoint, 0);
 }
 
 void
@@ -187,7 +172,7 @@ unit_run_tests(struct unit_test *tl, size_t len)
 
 	i = 0;
 
-	if (setjmp(escape_hatch)) {
+	while (setjmp(escape_hatch)) {
 		if (!f) {
 			dprintf(2, "failed\n    %s\n", error_message);
 			return -1;
