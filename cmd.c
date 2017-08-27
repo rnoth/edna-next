@@ -11,28 +11,28 @@
 #include <util.h>
 
 int
-edna_cmd_back(struct edna *edna, size_t *cursor)
+edna_cmd_back(struct edna *edna)
 {
 	struct ext_node *node;
 
-	if (!cursor[0]) {
+	if (!edna->dot[0]) {
 		edna_fail(edna, "beginning of file");
 		return 0;
 	}
 
-	node = ext_stab(edna->lines, cursor[0] - 1);
-	cursor[0] -= cursor[1] = node->ext;
+	node = ext_stab(edna->lines, edna->dot[0] - 1);
+	edna->dot[0] -= edna->dot[1] = node->ext;
 
 	return 0;
 }
 
 int
-edna_cmd_forth(struct edna *edna, size_t *cursor)
+edna_cmd_forth(struct edna *edna)
 {
 	struct ext_node *node;
 	size_t end;
 
-	end = cursor[0] + cursor[1];
+	end = edna->dot[0] + edna->dot[1];
 
 	node = ext_stab(edna->lines, end);
 	if (!node) {
@@ -40,48 +40,48 @@ edna_cmd_forth(struct edna *edna, size_t *cursor)
 		return 0;
 	}
 
-	cursor[0] = end;
-	cursor[1] = node->ext;
+	edna->dot[0] = end;
+	edna->dot[1] = node->ext;
 
 	return 0;
 }
 
 int
-edna_cmd_delete(struct edna *edna, size_t *cursor)
+edna_cmd_delete(struct edna *edna)
 {
 	struct ext_node *node;
 	int err;
 
-	if (!cursor[1]) {
+	if (!edna->dot[1]) {
 		edna_fail(edna, "empty selection");
 		return 0;
 	}
 
-	err = edna_text_delete(edna, cursor[0], cursor[1]);
+	err = edna_text_delete(edna, edna->dot[0], edna->dot[1]);
 	if (err) return err;
 
-	node = ext_stab(edna->lines, cursor[0]);
+	node = ext_stab(edna->lines, edna->dot[0]);
 
 	if (node) {
-		cursor[1] = node->ext;
+		edna->dot[1] = node->ext;
 		return 0;
 	}
 
-	if (!cursor[0]) {
-		cursor[1] = 0;
+	if (!edna->dot[0]) {
+		edna->dot[1] = 0;
 		return 0;
 	}
 
-	node = ext_stab(edna->lines, cursor[0] - 1);
+	node = ext_stab(edna->lines, edna->dot[0] - 1);
 
-	cursor[0] -= node->ext;
-	cursor[1] = node->ext;
+	edna->dot[0] -= node->ext;
+	edna->dot[1] = node->ext;
 
 	return 0;
 }
 
 int
-edna_cmd_insert(struct edna *edna, size_t *cursor)
+edna_cmd_insert(struct edna *edna)
 {
 	struct ext_node *node;
 	static char buffer[4096];
@@ -98,27 +98,27 @@ edna_cmd_insert(struct edna *edna, size_t *cursor)
 		return 0;
 	}
 
-	err = edna_text_insert(edna, cursor[0] + cursor[1], buffer, len);
+	err = edna_text_insert(edna, edna->dot[0] + edna->dot[1], buffer, len);
 	if (err) return err;
 
-	end = cursor[0] + cursor[1] + len;
+	end = edna->dot[0] + edna->dot[1] + len;
 	node = ext_stab(edna->lines, end - 1);
-	cursor[0] = ext_tell(edna->lines, end - 1);
-	cursor[1] = node->ext;
+	edna->dot[0] = ext_tell(edna->lines, end - 1);
+	edna->dot[1] = node->ext;
 
 	goto again;
 }
 
 int
-edna_cmd_print(struct edna *edna, size_t *cursor)
+edna_cmd_print(struct edna *edna)
 {
 	struct piece *ctx[2];
-	size_t ext = cursor[1];
-	size_t off = cursor[0];
+	size_t ext = edna->dot[1];
+	size_t off = edna->dot[0];
 	size_t min;
 	char *text;
 
-	if (!cursor[1]) {
+	if (!edna->dot[1]) {
 		edna_fail(edna, "empty selection");
 		return 0;
 	}

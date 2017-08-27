@@ -18,6 +18,7 @@ struct edna {
 	struct ext lines[1];
 	struct set cmds[1];
 	struct map edit[1];
+	size_t dot[2];
 	char *errmsg;
 };
 

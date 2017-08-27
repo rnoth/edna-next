@@ -25,17 +25,18 @@ static int cmd_quit();
 static int cmd_help();
 
 static char *errmsg;
-static size_t cursor[2] = {0, 0};
 
 #define cmd(n, f, a) { .node = {{.key = n}}, .fun = f, .arg = a }
 static struct command commands[] = {
 	cmd("q", cmd_quit, 0),
 	cmd("h", cmd_help, 0),
-	cmd("d", edna_cmd_delete, cursor),
-	cmd("i", edna_cmd_insert, cursor),
-	cmd("p", edna_cmd_print, cursor),
-	cmd("-", edna_cmd_back, cursor),
-	cmd("+", edna_cmd_forth, cursor),
+	cmd("d", edna_cmd_delete, 0),
+	cmd("a", edna_cmd_insert, "a"),
+	cmd("c", edna_cmd_insert, "c"),
+	cmd("i", edna_cmd_insert, "i"),
+	cmd("p", edna_cmd_print, 0),
+	cmd("-", edna_cmd_back, 0),
+	cmd("+", edna_cmd_forth, 0),
 };
 
 int
