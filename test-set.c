@@ -47,7 +47,10 @@ test_compare()
 void
 test_dict(struct set *t)
 {
-	struct set_node *s;
+	struct {
+		struct set_node d[1];
+		void *q;
+	} *p, *q=0;
 	char b[256];
 	size_t n;
 	FILE *f;
@@ -57,10 +60,11 @@ test_dict(struct set *t)
 	while (fgets(b, 256, f)) {
 		n = strlen(b);
 		b[n] = 0;
-		ok(s = malloc(sizeof *s));
-		ok(s->key = malloc(n));
-		try(strcpy(s->key, b));
-		try(set_add(t, s, n));
+		ok(p = malloc(sizeof *p));
+		ok(p->d->key = malloc(n+1));
+		try(strcpy(p->d->key, b));
+		try(set_add(t, p->d, n));
+		p->q = q, q = p;
 	}
 
 	rewind(f);
@@ -75,6 +79,12 @@ test_dict(struct set *t)
 	}
 
 	fclose(f);
+
+	while (p = q) {
+		q = p->q;
+		free(p->d->key);
+		free(p);
+	}
 }
 
 void
@@ -193,6 +203,8 @@ test_n_strings(char **strings)
 		    "set_has(set, \"%s\", strlen(\"%s\") + 1)",
 		    strings[i], strings[i]);
 	}
+
+	free(node_array);
 }
 
 int

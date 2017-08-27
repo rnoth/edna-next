@@ -130,6 +130,8 @@ test_delete2()
 	expect(0, one->offset);
 	expect(4, two->length);
 	expect(8, two->offset);
+
+	text_dtor(beg);
 }
 
 void
@@ -150,6 +152,9 @@ test_delete3()
 	ok(ctx[0] == two && !ctx[1]);
 	ok(text_next(one, beg) == thr);
 	ok(text_next(thr, end) == one);
+
+	text_dtor(beg);
+	free(two);
 }
 
 void
