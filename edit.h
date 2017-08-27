@@ -6,7 +6,6 @@ struct map;
 int edit_append(struct map *edit, char *buffer, size_t length);
 int edit_ctor(struct map *edit);
 int edit_dtor(struct map *edit);
-int edit_expand(struct map *edit);
 
 struct map {
 	size_t offset;

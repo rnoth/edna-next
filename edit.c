@@ -8,18 +8,22 @@
 #include <edit.h>
 #include <mem.h>
 
+static int edit_expand(struct map *edit, size_t min);
+
 int
 edit_append(struct map *edit, char *text, size_t length)
 {
+	size_t new;
 	int err;
 
-	if (edit->offset + length > edit->length) {
-		err = edit_expand(edit);
+	new = edit->offset + length;
+	if (new > edit->length) {
+		err = edit_expand(edit, new);
 		if (err) return err;
 	}
 
 	memcpy(edit->map+edit->offset, text, length);
-	edit->offset += length;
+	edit->offset = new;
 
 	return 0;
 }
@@ -52,23 +56,31 @@ edit_ctor(struct map *edit)
 }
 
 int
-edit_expand(struct map *edit)
+edit_expand(struct map *edit, size_t min)
 {
+	size_t new;
 	char *tmp;
 	int err;
+
+	for (new=edit->length; new<min; new*=2) ;
 
 	err = msync(edit->map, edit->length, MS_SYNC);
 	if (err) return errno;
 
-	tmp = mmap(0, edit->length*2, PROT_READ | PROT_WRITE,
+	err = ftruncate(edit->fd, new);
+	if (err) return errno;
+
+	tmp = mmap(0, new, PROT_READ | PROT_WRITE,
 	           MAP_SHARED, edit->fd, 0);
 	if (tmp == MAP_FAILED) return errno;
 
-	err = munmap(edit->map, edit->length);
-	if (err) return errno;
+	if (tmp != edit->map) {
+		err = munmap(edit->map, edit->length);
+		if (err) return errno;
+	}
 
 	edit->map = tmp;
-	edit->length *= 2;
+	edit->length = new;
 
 	return 0;
 }
