@@ -12,7 +12,6 @@
 #include <mem.h>
 #include <txt.h>
 #include <util.h>
-#include <vec.h>
 
 struct action {
 	struct action *chld;
