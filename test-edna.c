@@ -151,16 +151,20 @@ rwritef(char *fmt, ...)
 		kill_edna();
 		unit_fail_fmt("expected input string to be echoed: %s, "
 		              "instead got %s\n", s, t);
+		free(s), free(t);
+		unit_yield();
 	}
 
 	if (WIFSIGNALED(ws)) {
 		unit_fail_fmt("edna died unexpectedly (killed by signal %d)",
 		              WTERMSIG(ws));
+		unit_yield();
 	}
 
 	if (WIFEXITED(ws)) {
 		unit_fail_fmt("edna exited unexpectedly with code %d",
 		              WEXITSTATUS(ws));
+		unit_yield();
 	}
 }
 
@@ -192,25 +196,29 @@ readf(char *fmt, ...)
 	ok(read(edna_pty, t, avail) == (ssize_t)avail);
 
 	if (avail == len && !strncmp(s, t, len)) {
-		free(s);
-		free(t);
+		free(s), free(t);
 		return;
 	}
 
 	if (!waitpid(edna_pid, &ws, WNOHANG)) {
 		kill_edna();
-		unit_fail_fmt("expected \"%*s\", got \"%*s\"",
-		              (int)len, s, (int)avail, t);
+		unit_fail_fmt("expected \"%s\", got \"%s\"", s, t);
+		free(s), free(t);
+		unit_yield();
 	}
+
+	free(s), free(t);
 
 	if (WIFSIGNALED(ws)) {
 		unit_fail_fmt("edna died unexpectedly (killed by signal %d)",
 		              WTERMSIG(ws));
+		unit_yield();
 	}
 
 	if (WIFEXITED(ws)) {
 		unit_fail_fmt("edna exited unexpectedly with code %d",
 		              WEXITSTATUS(ws));
+		unit_yield();
 	}
 }
 
@@ -315,7 +323,7 @@ spawn_edna()
 	res = read(fd[0], (char[]){0}, 1);
 	switch (res) {
 	case -1: unit_perror("internal read failed");
-	case  1: unit_fail("couldn't exec edna");
+	case  1: unit_fail("couldn't exec edna"); unit_yield();
 	case  0: break;
 	}
 	close(fd[0]);
@@ -497,15 +505,15 @@ test_insert_large()
 	size_t i;
 	char c=' ';
 
-	ok(buffer = malloc(4095));
+	ok(buffer = malloc(4001));
 
-	for (i=0; i<4094; ++i) {
+	for (i=0; i<4000; ++i) {
 		buffer[i] = c;
 		++c;
 		if (c>'~') c='a';
 	}
 
-	buffer[4094] = 0;
+	buffer[4000] = 0;
 
 	expect_prompt();
 	insert_lines(buffer, buffer);
@@ -591,12 +599,13 @@ wait_edna()
 	if (res == -1) unit_perror("wait failed");
 
 	if (!res) {
-		unit_fail("edna unexpectedly alive");
+		unit_fail("edna unexpectedly alive"), unit_yield();
 	}
 
 	if (WIFSIGNALED(ws)) {
 		unit_fail_fmt("edna exited abnormally: killed by signal %d",
 		              WTERMSIG(ws));
+		unit_yield();
 	}
 }
 

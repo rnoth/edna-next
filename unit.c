@@ -131,7 +131,7 @@ void
 unit_fail(char *msg)
 {
 	snprintf(error_message, 256, "%s", msg);
-	longjmp(checkpoint, 0);
+	raise(SIGTRAP);
 }
 
 void
@@ -198,3 +198,8 @@ unit_run_tests(struct unit_test *tl, size_t len)
 	return 0;
 }
 
+void
+unit_yield(void)
+{
+	longjmp(checkpoint, 0);
+}
