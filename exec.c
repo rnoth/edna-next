@@ -6,23 +6,10 @@
 #include <unistd.h>
 
 #include <cmd.h>
-
-enum token {
-	tok_nul,
-	tok_cmd,
-};
-
-struct parse;
+#include <exec.h>
 
 static size_t eat_ident(char *buffer, size_t length);
 static size_t eat_spaces(char *buffer, size_t length);
-
-struct parse {
-	char *string;
-	size_t length;
-	enum token token;
-	struct parse *chld[2];
-};
 
 #define eat(RES, VAR, EXPR, BUF, LEN) do {  \
 	size_t off=0;                       \
@@ -51,24 +38,19 @@ eat_spaces(char *buffer, size_t length)
 }
 
 int
-parse_ln(struct parse **dest, char *buffer, size_t length, char **errmsg)
+parse_ln(struct parse *parse, char *buffer, size_t length)
 {
 	size_t offset;
 	size_t extent;
 
-	*dest = 0;
-
+	*parse = (struct parse){0};
 	offset = eat_spaces(buffer, length);
 	if (offset >= length) return 0;
 
-	*dest = malloc(sizeof **dest);
-	if (!*dest) return ENOMEM;
-
 	extent = eat_ident(buffer+offset, length-offset);
 
-	dest[0]->token = tok_cmd;
-	dest[0]->string = buffer+offset;
-	dest[0]->length = extent;
+	parse->string = buffer+offset;
+	parse->length = extent;
 
 	return 0;
 }
@@ -78,7 +60,7 @@ exec_ln(struct edna *edna, struct parse *parse)
 {
 	struct command *cmd;
 
-	if (!parse) return 0;
+	if (!parse->length) return 0;
 
 	cmd = edna_lookup_cmd(edna, parse->string, parse->length);
 	if (!cmd) {

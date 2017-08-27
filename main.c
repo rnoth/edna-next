@@ -86,7 +86,7 @@ init(struct edna *edna)
 int
 run(struct edna *edna)
 {
-	struct parse *parse = 0;;
+	struct parse parse[1];
 	static char buffer[4096];
 	ssize_t length;
 	int err;
@@ -98,22 +98,20 @@ run(struct edna *edna)
 	if (!length) return -1;
 	if (length < 0) return errno;
 
-	err = parse_ln(&parse, buffer, length);
+	err = parse_ln(parse, buffer, length);
 	if (err) return err;
 
 	err = exec_ln(edna, parse);
-	if (err) goto done;
+	if (err) return err;
 
 	if (edna->errmsg) {
 		errmsg = edna->errmsg;
 		edna->errmsg = 0;
 		err = write_str(2, "?\n");
 		if (err) return errno;
-		return 0;
 	}
- done:
-	free(parse);
-	return err;
+
+	return 0;
 }
 
 int
