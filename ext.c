@@ -17,6 +17,7 @@ static void node_replace(struct ext_walker *walker, struct ext_node *del,
 
 static void walker_adjust(struct ext_walker *walker);
 static void walker_begin(struct ext_walker *walker, struct ext *ext);
+static void walker_descend(struct ext_walker *walker);
 static void walker_locate(struct ext_walker *walker, size_t offset);
 static void walker_next(struct ext_walker *walker);
 static void walker_rise(struct ext_walker *walker);
@@ -44,9 +45,30 @@ ext_adjust(struct ext *ext, size_t offset, ptrdiff_t adjust)
 }
 
 void
-ext_append(struct ext *ext, struct ext_node *new_node)
+ext_append(struct ext *ext, struct ext_node *new)
 {
-	ext_insert(ext, ext->len, new_node);
+	struct ext_walker walker[1];
+	struct ext_node *node;
+
+	if (!ext->root) {
+		new->chld[0]=0, new->chld[1]=0;
+		new->off = new->ext;
+
+		ext->off = 0;
+		ext->len = new->ext;
+		ext->root = tag_leaf(new);
+		return;
+	}
+
+	walker_begin(walker, ext);
+
+	while (is_node(walker->tag)) walker_visit(walker, 1);
+
+	node = untag(walker->tag);
+	new->off = walker->off + node->ext;
+
+	node_insert(walker, new);
+	walker_surface(walker);
 }
 
 void
@@ -58,7 +80,7 @@ ext_free(struct ext *ext)
 	if (!ext->root) return;
 
 	walker_begin(walker, ext);
-	walker_locate(walker, 0);
+	walker_descend(walker);
 
 	while (is_node(walker->prev)) {
 		node = untag(walker->tag);
@@ -68,6 +90,12 @@ ext_free(struct ext *ext)
 	}
 
 	free(untag(walker->tag));
+}
+
+void
+ext_iterate(struct ext_walker *walker, struct ext *ext)
+{
+	walker_begin(walker, ext);
 }
 
 void
@@ -107,6 +135,12 @@ ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust)
 	if (offset - walker->off >= node->ext) return;
 
 	walker->adj = adjust;
+	walker_surface(walker);
+}
+
+void
+ext_refresh(struct ext_walker *walker)
+{
 	walker_surface(walker);
 }
 
@@ -325,10 +359,23 @@ walker_begin(struct ext_walker *walker, struct ext *ext)
 }
 
 void
+walker_descend(struct ext_walker *walker)
+{
+	while (is_node(walker->tag)) {
+		walker_visit(walker, 0);
+	}
+}
+
+void
 walker_locate(struct ext_walker *walker, size_t offset)
 {
 	struct ext_node *node;
 	int b;
+
+	while (offset - walker->off >= walker->len) {
+		walker_rise(walker);
+		if (is_root(walker->prev)) break;
+	}
 
 	while (is_node(walker->tag)) {
 		node = untag(walker->tag);
@@ -357,7 +404,7 @@ walker_next(struct ext_walker *walker)
 	b = is_back(node->chld[0]);
 	lrotate(node->chld+!b, &walker->tag, node->chld+b);
 	walker->off += node->off;
-	walker_locate(walker, 0);
+	walker_descend(walker);
 }
 
 void
