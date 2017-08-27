@@ -44,8 +44,9 @@ static void test_insert_flat();
 static void test_insert_empty();
 static void test_insert_large();
 static void test_insert_simple();
-static void test_insert0();
-static void test_insert1();
+static void test_insert_three();
+static void test_insert_two();
+static void test_insert_seperate();
 
 static void test_multiple_lines();
 static void test_print_empty();
@@ -83,10 +84,12 @@ struct unit_test tests[] = {
 	{.msg = "should insert lines",
 	 .fun = edna_list(test_insert_simple),},
 
-	{.msg = "should insert multiple lines",
-	 .fun = edna_list(test_insert0),},
-	{.msg = "should insert multiple lines seperately",
-	 .fun = edna_list(test_insert1),},
+	{.msg = "should insert two lines",
+	 .fun = edna_list(test_insert_two),},
+	{.msg = "should insert lines seperately",
+	 .fun = edna_list(test_insert_seperate),},
+	{.msg = "should insert three lines",
+	 .fun = edna_list(test_insert_three),},
 
 	{.msg = "should handle empty lines",
 	 .fun = edna_list(test_insert_empty),},
@@ -539,17 +542,7 @@ test_insert_simple()
 }
 
 void
-test_insert0()
-{
-	expect_prompt();
-	insert_lines("good day sir", "good day indeed");
-	expect_prompt();
-	send_line("p");
-	read_line("good day indeed");
-}
-
-void
-test_insert1()
+test_insert_seperate()
 {
 	expect_prompt();
 	insert_lines("one");
@@ -558,6 +551,26 @@ test_insert1()
 	expect_prompt();
 	send_line("p");
 	read_line("two");
+}
+
+void
+test_insert_three()
+{
+	expect_prompt();
+	insert_lines("hi", "how are you?", "I'm great thanks for asking");
+	expect_prompt();
+	send_line("p");
+	read_line("I'm great thanks for asking");
+}
+
+void
+test_insert_two()
+{
+	expect_prompt();
+	insert_lines("good day sir", "good day indeed");
+	expect_prompt();
+	send_line("p");
+	read_line("good day indeed");
 }
 
 void
