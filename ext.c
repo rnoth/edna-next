@@ -8,8 +8,6 @@
 
 #include <ext.h>
 
-#define untag_ext(t) ((struct ext *)untag(t))
-
 static void node_detatch(struct ext_walker *walker);
 static void node_insert(struct ext_walker *walker, struct ext_node *new);
 static void node_replace(struct ext_walker *walker, struct ext_node *del,
