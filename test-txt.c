@@ -5,6 +5,14 @@
 #include <util.h>
 #include <txt.c>
 
+#define edit(STR) (struct map[]) {{	  \
+		.map=strdup(STR), \
+		.length=strlen(STR), \
+		.offset=strlen(STR), \
+	}}
+
+static int edit_concat(struct map *edit, char *str);
+
 static struct piece *make_chain(size_t *);
 static void name_links(struct piece ***);
 
@@ -41,6 +49,20 @@ struct unit_test tests[] = {
 	{.msg = "should merge pieces when appropriate",
 	 .fun = unit_list(test_merge),},
 };
+
+int
+edit_concat(struct map *edit, char *str)
+{
+	char *new;
+	if (!edit->map) return EINVAL;
+	new = asprintf("%s%s", edit->map, str);
+	try(free(edit->map));
+	edit->map = new;
+	if (!edit->map) return ENOMEM;
+	edit->offset = edit->length = strlen(edit->map);
+
+	return 0;
+}
 
 struct piece *
 make_chain(size_t *lens)
@@ -180,30 +202,35 @@ test_insert()
 {
 	struct piece *beg, *one, *new, *new1, *end;
 	struct piece *ctx[2];
+	struct map *edit = edit("hello!");
+	char *insert=", friend";
 
-	beg = make_chain(4);
+	beg = make_chain(6);
 	name_links(&beg, &one, &end);
 
 	text_start(ctx, beg);
-	ok(!text_insert(ctx, 2, 4, 3));
+	ok(!text_insert(ctx, 5, edit, edit->length, strlen(insert)));
+	ok(!edit_concat(edit, ", friend"));
 
-	expect(2, one->length);
+	expect(5, one->length);
+	expect(0, one->offset);
 
 	ok(new = text_next(one, beg));
 	ok(new != one);
 	ok(new != beg);
 	ok(new != end);
-	expect(4, new->offset);
-	expect(3, new->length);
+	expect(6, new->offset);
+	expect(8, new->length);
 
 	new1 = text_next(new, one);
 	ok(new1 != new);
 	ok(new1 != end);
 
-	expect(2, new1->offset);
-	expect(2, new1->length);
+	expect(5, new1->offset);
+	expect(1, new1->length);
 
 	try(text_dtor(beg));
+	try(free(edit->map));
 }
 
 void
@@ -211,32 +238,41 @@ test_insert2()
 {
 	struct piece *beg, *end, *pie, *new, *new1;
 	struct piece *ctx[2];
+	struct map *edit = edit("two");
+	char *one = "one, ";
+	char *thr = ", three.";
 
-	beg = make_chain(10);
+	beg = make_chain(3);
 	name_links(&beg, &pie, &end);
 
 	text_start(ctx, beg);
-	ok(!text_insert(ctx, 0, 10, 5));
+	ok(!text_insert(ctx, 0, edit, edit->offset, strlen(one)));
+	ok(!edit_concat(edit, one));
+
 	ok(new = text_next(beg, 0));
 	ok(new != pie);
 
-	expect(10, new->offset);
-	expect(5, new->length);
+	expect(3, new->offset);
+	expect(strlen(one), new->length);
 
 	ok(text_next(new, beg) == pie);
 
 	text_start(ctx, beg);
-	ok(!text_insert(ctx, 15, 15, 5));
+	ok(!text_insert(ctx, 8, edit, edit->offset, strlen(thr)));
+	ok(!edit_concat(edit, thr));
+
 	ok(new1 = text_next(end, 0));
 	ok(new1 != pie);
+	ok(new1 != new);
 	ok(new1 != end);
 
-	ok(new1->offset == 15);
-	ok(new1->length == 5);
+	expect(8, new1->offset);
+	expect(strlen(thr), new1->length);
 	
 	ok(text_next(new1, end) == pie);
 
 	text_dtor(beg);
+	try(free(edit->map));
 }
 
 void
@@ -244,26 +280,29 @@ test_insert3()
 {
 	struct piece *beg, *end, *new;
 	struct piece *ctx[2];
+	struct map *edit = edit("");
+	char *hi="greetings!";
 
 	beg = make_chain(0);
 	name_links(&beg, &end);
 
 	text_start(ctx, beg);
 
-	try(text_insert(ctx, 0, 0, 3));
+	expect(0, text_insert(ctx, 0, edit, edit->offset, strlen(hi)));
 
 	ok(new = text_next(beg, 0));
 	ok(new != end);
 	ok(text_next(new, beg) == end);
 	ok(text_next(end, new) == 0);
 
-	ok(new->offset == 0);
-	ok(new->length == 3);
+	expect(0, new->offset);
+	expect(strlen(hi), new->length);
 
-	ok(beg->length == 0);
-	ok(end->length == 0);
+	expect(0, beg->length);
+	expect(0, end->length);
 
 	text_dtor(beg);
+	try(free(edit->map));
 }
 
 void
@@ -307,23 +346,26 @@ test_merge(void)
 {
 	struct piece *beg, *end, *pie;
 	struct piece *ctx[2];
+	struct map *edit = edit("together forever");
 
 	beg = make_chain(6);
 	name_links(&beg, &pie, &end);
 
 	text_start(ctx, beg);
-	expect(0, text_insert(ctx, 3, 7, 1));
+	expect(0, text_insert(ctx, 8, edit, edit->offset, 1));
+	edit_concat(edit, " |");
 
 	text_start(ctx, beg);
 
-	expect(0, text_delete(ctx, 3, 1));
+	expect(0, text_delete(ctx, 8, 2));
 
 	ok(text_next(pie, beg) == end);
 	ok(text_next(pie, end) == beg);
 	ok(pie->length = 6);
 
 	text_dtor(beg);
-	free(ctx[0]);
+	try(free(ctx[0]));
+	try(free(edit->map));
 }
 
 void

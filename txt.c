@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+
 #include <txt.h>
 
 static void text_delete_across(struct piece **ctx, size_t offset, size_t extent);
@@ -115,7 +116,8 @@ text_dtor(struct piece *txt)
 }
 
 int
-text_insert(struct piece **dest, size_t where, size_t offset, size_t length)
+text_insert(struct piece **dest, size_t where,
+            struct map *edit, size_t offset, size_t length)
 {
 	struct piece *new;
 	int err;
@@ -123,6 +125,7 @@ text_insert(struct piece **dest, size_t where, size_t offset, size_t length)
 	new = calloc(1, sizeof *new);
 	if (!new) return ENOMEM;
 
+	new->edit = edit;
 	new->offset = offset;
 	new->length = length;
 
@@ -156,6 +159,7 @@ text_merge(struct piece **ctx)
 	size_t end;
 
 	if (!ctx[1]->length) return;
+	if (ctx[0]->edit != ctx[1]->edit) return;
 
 	end = ctx[1]->offset + ctx[1]->length;
 	if (end != ctx[0]->offset) return;
@@ -192,20 +196,21 @@ text_relink(struct piece *next, struct piece *new, struct piece *prev)
 }
 
 int
-text_split(struct piece **dest, size_t offset, size_t extent)
+text_split(struct piece **dest, size_t start, size_t length)
 {
 	struct piece *next;
 	struct piece *new;
 
-	if (offset + extent == 0) return 0;
+	if (start + length == 0) return 0;
 
 	new = calloc(1, sizeof *new);
 	if (!new) return ENOMEM;
 
-	new->length = dest[0]->length - offset - extent;
-	new->offset = dest[0]->offset + offset + extent;
+	new->length = dest[0]->length - start - length;
+	new->offset = dest[0]->offset + start + length;
+	new->edit = dest[0]->edit;
 
-	dest[0]->length = offset;
+	dest[0]->length = start;
 
 	next = text_next(dest[0], dest[1]);
 

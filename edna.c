@@ -230,16 +230,12 @@ edna_text_insert(struct edna *edna, size_t offset,
 	struct piece *ctx[2];
 	int err;
 
+	ctx[0] = edna->chain, ctx[1] = 0;
+	err = text_insert(ctx, offset, edna->edit, edna->edit->offset, length);
+	if (err) return err;
+
 	act = calloc(1, sizeof *act);
 	if (!act) return ENOMEM;
-
-	ctx[0] = edna->chain, ctx[1] = 0;
-	err = text_insert(ctx, offset, edna->edit->offset, length);
-	if (err) {
-		free(act);
-		return err;
-	}
-
 	act->arg = tag1(ctx[0]);
 	act->prev = ctx[1];
 	act->chld = edna->hist->acts;
