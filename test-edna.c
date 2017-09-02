@@ -52,7 +52,7 @@ static void test_multiple_lines();
 static void test_print_empty();
 static void test_unknown_cmd();
 
-static void spawn_edna();
+static void spawn_edna(char **argv);
 static void quit_edna();
 static void wait_edna();
 
@@ -291,7 +291,7 @@ quit_edna()
 }
 
 void
-spawn_edna()
+spawn_edna(char **argv)
 {
 	struct termios tattr[1];
 	int fd[2];
@@ -312,7 +312,7 @@ spawn_edna()
 		open_pty(edna_pty); // FIXME: this could fail
 		close(fd[0]);
 		fcntl(fd[1], F_SETFD, FD_CLOEXEC);
-		execve("./edna", (char*[]){"edna",0}, environ);
+		execve("./edna", argv ? argv : (char*[]){"edna",0}, environ);
 		write(fd[1], (char[]){0}, 1);
 		_exit(1);
 
