@@ -38,6 +38,9 @@ trap_failures(void)
 	err = sigaction(SIGALRM, sa, 0x0);
 	if (err) throw("sigaction failed");
 
+	err = sigaction(SIGBUS, sa, 0x0);
+	if (err) throw("sigaction failed");
+
 	err = sigaction(SIGILL, sa, 0x0);
 	if (err) throw("sigaction failed");
 
@@ -65,6 +68,9 @@ report_error(int sig)
 		break;
 	case SIGILL:
 		why = "illegal instruction";
+		break;
+	case SIGBUS:
+		why = "bus error";
 		break;
 	case SIGTRAP:
 	default:
