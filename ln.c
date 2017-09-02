@@ -7,6 +7,7 @@
 #include <tag.h>
 
 #include <ln.h>
+#include <util.h>
 
 // I'm so sorry
 #define foreach_node(NODE, LIST) \
@@ -15,7 +16,6 @@
 	     (_node = (NODE) = *_listp) \
 	     && (*_listp = untag(_node->chld[0]), true);)
 
-static size_t next_line(char *buffer, size_t length);
 static struct ext_node *nodes_from_lines(char *buffer, size_t length);
 static struct ext_node *link_node(struct ext_node *node, struct ext_node *list);
 
@@ -39,16 +39,6 @@ link_node(struct ext_node *node, struct ext_node *list)
 {
 	node->chld[0] = tag0(list);
 	return node;
-}
-
-size_t
-next_line(char *buffer, size_t length)
-{
-	char *nl;
-
-	nl = memchr(buffer, '\n', length);
-	if (!nl) return length;
-	return nl - buffer + 1;
 }
 
 struct ext_node *

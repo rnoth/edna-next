@@ -3,6 +3,7 @@
 
 #include <limits.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 #define write_str(fd, str) write(fd, str, strlen(str))
@@ -22,6 +23,17 @@ lrotate(ulong *lef, ulong *mid, ulong *rit)
 	*lef = *mid;
 	*mid = *rit;
 	*rit = tmp;
+}
+
+static inline
+size_t
+next_line(char *buffer, size_t length)
+{
+	char *nl;
+
+	nl = memchr(buffer, '\n', length);
+	if (!nl) return length;
+	return nl - buffer + 1;
 }
 
 static inline
