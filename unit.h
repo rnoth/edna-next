@@ -45,13 +45,13 @@
 	unit_unset_expr();       \
 } while (0)
 
-#define expect(VAL, EXPR) do { \
-	int unit_res;                                \
+#define expect(VAL, EXPR) do {                       \
 	unit_set_expr(#EXPR, __LINE__);              \
-	unit_res = (EXPR);                           \
-	if (unit_res != VAL) {                       \
+	long unit_res=(EXPR);                       \
+	long unit_val=(VAL);                        \
+	if (unit_res != unit_val) {                 \
 		raise(SIGTRAP);                      \
-		unit_fail_fmt("expected %s, got %d"  \
+		unit_fail_fmt("expected %s, got %ld"  \
 		              " (expr \"%s\", line %d)", \
 			      #VAL, unit_res,        \
 		              #EXPR, __LINE__);      \
