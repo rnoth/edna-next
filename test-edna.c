@@ -16,7 +16,7 @@
 
 #define insert_lines(...) _insert_lines((char *[]){__VA_ARGS__, 0})
 
-extern char **environ;
+#define argv(...) ((char *[]){__VA_ARGS__})
 
 static void kill_edna();
 static void expect_error();
@@ -55,6 +55,11 @@ static void test_unknown_cmd();
 static void spawn_edna(char **argv);
 static void quit_edna();
 static void wait_edna();
+
+extern char **environ;
+
+static pid_t edna_pid;
+static int   edna_pty;
 
 #define edna_list(...) unit_list(spawn_edna, __VA_ARGS__, quit_edna)
 struct unit_test tests[] = {
@@ -117,9 +122,6 @@ struct unit_test tests[] = {
 	{.msg = "should expand the edit buffer as necessary",
 	 .fun = edna_list(test_insert_large),},
 };
-
-static pid_t edna_pid;
-static int   edna_pty;
 
 void
 rwritef(char *fmt, ...)
