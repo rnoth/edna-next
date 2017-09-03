@@ -125,7 +125,7 @@ edna_cmd_print(struct edna *edna)
 
 	text_start(ctx, edna->chain);
 	off = text_walk(ctx, off);
-	text = edna->edit->map + ctx[0]->offset + off;
+	text = ctx[0]->edit->map + ctx[0]->offset + off;
 	min = umin(ctx[0]->length - off, ext);
 	write(1, text, min);
 
