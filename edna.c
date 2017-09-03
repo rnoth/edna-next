@@ -8,6 +8,7 @@
 #include <cmd.h>
 #include <edna.h>
 #include <ext.h>
+#include <file.h>
 #include <ln.h>
 #include <mem.h>
 #include <txt.h>
@@ -196,6 +197,24 @@ edna_init(struct edna *edna)
 }
 
 int
+edna_file_open(struct edna *edna, size_t offset, char *fn)
+{
+	struct piece *ctx[2];
+	int err;
+
+	err = filemap_ctor(edna->file, fn);
+	if (err) return err;
+
+	text_start(ctx, edna->chain);
+	err = text_insert(ctx, offset, edna->file, 0, edna->file->length);
+	if (err) return err;
+
+	ln_insert(edna->lines, offset, edna->file->map, edna->file->length);
+
+	return 0;
+}
+
+int
 edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 {
 	struct action *act;
@@ -205,7 +224,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	act = calloc(1, sizeof *act);
 	if (!act) return ENOMEM;
 
-	ctx[0] = edna->chain, ctx[1] = 0;
+	text_start(ctx, edna->chain);
 	err = text_delete(ctx, offset, extent);
 	if (err) {
 		free(act);
