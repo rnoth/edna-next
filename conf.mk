@@ -20,6 +20,12 @@ test-edna: edna
 
 bench-set: bench-set.c.o
 
+clean-test-edna: .run-test-edna
+	@[ -f edna_test_file ] && rm edna_test_file || true
+	@pgrep edna || true
+
+all:: clean-test-edna
+
 ifndef NDEBUG
 CFLAGS	+= -O0 -ggdb3 -Werror
 CFLAGS	+= -Wunreachable-code \
