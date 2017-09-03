@@ -222,6 +222,24 @@ ext_tell(struct ext *ext, size_t offset)
 	return res;
 }
 
+void
+ext_truncat(struct ext *ext, size_t offset, size_t new_ext)
+{
+	struct ext_walker walker[1];
+	struct ext_node *node;
+
+	walker_begin(walker, ext);
+	walker_locate(walker, offset);
+
+	node = untag(walker->tag);
+	if (offset - walker->off >= node->ext) return;
+
+	walker->adj = new_ext - node->ext;
+	node->ext = new_ext;
+
+	walker_surface(walker);
+}
+
 void *
 ext_walk(struct ext_walker *walker, size_t offset)
 {

@@ -32,6 +32,7 @@ void ext_offset(struct ext *ext, size_t offset, ptrdiff_t adjust);
 void *ext_remove(struct ext *ext, size_t offset);
 void *ext_stab(struct ext *ext, size_t offset);
 size_t ext_tell(struct ext *ext, size_t offset);
+void ext_truncat(struct ext *ext, size_t offset, size_t new_ext);
 void *ext_walk(struct ext_walker *walker, size_t offset);
 
 
