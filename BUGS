@@ -1,0 +1,7 @@
+text functions use a linked list. they should use some structure with
+ logarithmic worst case traversal instead
+
+most of the test suites could be better
+- ext_adjust and ext_truncat aren't tested
+
+probably shouldn't do all the testing in test-edna
