@@ -78,8 +78,10 @@ report_error(int sig)
 		break;
 	}
 
-	dprintf(2, "error\n    %s executing: %s (line %d)\n",
-	        why, current_expr, line_number);
+	dprintf(2, "error\n    %s executing: %s ", why, current_expr);
+	if (line_number > 0) dprintf(2, "(line %d)", line_number);
+	else dprintf(2, "(line >%d)", -line_number);
+	dprintf(2, "\n");
 	exit(-1);
 }
 
@@ -130,7 +132,7 @@ void
 unit_unset_expr(void)
 {
 	strcpy(current_expr, "(unknown expression)");
-	line_number = -1;
+	line_number = -line_number;
 }
 
 void
