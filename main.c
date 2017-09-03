@@ -116,12 +116,14 @@ run(struct edna *edna)
 }
 
 int
-main()
+main(int argc, char **argv)
 {
 	struct edna edna[1];
 	int err = 0;
 
 	init(edna);
+
+	if (argc > 1) err = edna_file_open(edna, 0, argv[1]);
 	
 	while (!err) err = run(edna);
 
