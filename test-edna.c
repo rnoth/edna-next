@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -18,6 +19,7 @@
 
 #define argv(...) ((char *[]){__VA_ARGS__})
 
+//static void create_test_file();
 static void kill_edna();
 static void expect_error();
 static void expect_prompt();
@@ -33,6 +35,8 @@ static void test_delete_end();
 
 static void test_empty_line();
 static void test_ends();
+
+//static void test_file_arg();
 
 static void test_forth();
 static void test_forth_traverse();
@@ -60,6 +64,8 @@ extern char **environ;
 
 static pid_t edna_pid;
 static int   edna_pty;
+static int  temp_fd;
+static char temp_file[] = "edna_temp_file";
 
 #define edna_list(...) unit_list(spawn_edna, __VA_ARGS__, quit_edna)
 struct unit_test tests[] = {
@@ -121,7 +127,40 @@ struct unit_test tests[] = {
 
 	{.msg = "should expand the edit buffer as necessary",
 	 .fun = edna_list(test_insert_large),},
+
+	/* {.msg = "should read file arguments", */
+	/*  .fun = unit_list(create_test_file, */
+	/*                   spawn_edna, test_file_arg, quit_edna), */
+	/*  .ctx = argv("edna", temp_file),}, */
 };
+
+void
+create_test_file(void)
+{
+	int nlines;
+	int nchars;
+	int i;
+	int j;
+	char c;
+
+	temp_fd = open(temp_file, O_RDWR | O_TRUNC | O_CREAT);
+
+	nlines = rand() % 20;
+	for (i=0; i<nlines; ++i) {
+		nchars = rand() % 80;
+		for (j=0; i<nchars; ++j) {
+			c = rand() % 'z' - 'A';
+			c += 'A';
+			if (write(temp_fd, &c, 1) != 1) {
+				unit_perror("write failed");
+			}
+		}
+
+		if (write(temp_fd, "\n", 1) != 1) {
+			unit_perror("write failed");
+		}
+	}
+}
 
 void
 rwritef(char *fmt, ...)
@@ -397,6 +436,28 @@ test_ends()
 }
 
 void
+test_file_arg()
+{
+	size_t offset=0;
+	size_t extent=0;
+	off_t len;
+	char *map;
+
+	len = lseek(temp_fd, SEEK_END, 0);
+	if (len == -1) unit_perror("lseek failed");
+
+	map = mmap(0, len, PROT_READ, MAP_PRIVATE, temp_fd, 0);
+	if (!map) unit_perror("mmap failed");
+
+	expect_prompt();
+	while ((offset+=extent)<(size_t)len) {
+		try(extent = next_line(map+offset, len-offset));
+		send_line("p");
+		readf("%*s\n" ":", extent, map+offset);
+	}
+}
+
+void
 test_forth()
 {
 	expect_prompt();
@@ -627,6 +688,8 @@ wait_edna()
 int
 main(int argc, char **argv)
 {
+	srand(time(0x0));
+
 	edna_pty = mk_pty();
 	if (edna_pty == -1) unit_perror("couldn't alloc pty");
 
