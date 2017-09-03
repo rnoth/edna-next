@@ -43,6 +43,7 @@ edit_ctor(struct map *edit)
 	edit->fd = memfd_create("edna-edit");
 	if (edit->fd == -1) return errno;
 
+	edit->offset = 0;
 	edit->length = sysconf(_SC_PAGESIZE);
 	ftruncate(edit->fd, edit->length);
 	edit->map = mmap(0, edit->length, PROT_READ | PROT_WRITE,
