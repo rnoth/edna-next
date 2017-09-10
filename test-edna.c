@@ -148,7 +148,7 @@ create_test_file(void)
 	nlines = rand() % 20;
 	for (i=0; i<nlines; ++i) {
 		nchars = rand() % 80;
-		for (j=0; i<nchars; ++j) {
+		for (j=0; j<nchars; ++j) {
 			c = rand() % 'z' - 'A';
 			c += 'A';
 			if (write(temp_fd, &c, 1) != 1) {
