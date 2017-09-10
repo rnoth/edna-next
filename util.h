@@ -3,6 +3,7 @@
 
 #include <limits.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
 
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
@@ -14,6 +15,13 @@
 
 typedef unsigned long ulong;
 typedef unsigned int uint;
+
+static inline
+bool
+in_range(size_t beg, size_t ext, size_t arg)
+{
+	return beg <= arg && beg + ext > arg;
+}
 
 static inline
 void
