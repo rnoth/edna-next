@@ -9,6 +9,9 @@
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 #define write_str(fd, str) write(fd, str, strlen(str))
 
+#define repeat(NTIMES) for (size_t _i=0; _i<NTIMES; ++i)
+#define iterate(VAR, NITER) for (size_t VAR=0; VAR<NITER; ++VAR)
+
 #ifndef LONG_BIT
 # define LONG_BIT sizeof (long) * 8
 #endif
@@ -31,6 +34,14 @@ lrotate(ulong *lef, ulong *mid, ulong *rit)
 	*lef = *mid;
 	*mid = *rit;
 	*rit = tmp;
+}
+
+static inline
+void
+lshift(ulong *lef, ulong *mid, ulong rit)
+{
+	*lef = *mid;
+	*mid = rit;
 }
 
 static inline
