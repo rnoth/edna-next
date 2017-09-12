@@ -30,6 +30,7 @@ ifndef NDEBUG
 CFLAGS	+= -O0 -ggdb3 -Werror
 CFLAGS	+= -Wunreachable-code \
 	   -Wno-missing-field-initializers -Wno-unused-parameter \
+	   -Wno-sign-compare \
 	   -Warray-bounds -Wno-missing-braces -Wno-parentheses
 else
 LDFLAGS += -Wl,--gc-section
