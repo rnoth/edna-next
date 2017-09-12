@@ -21,9 +21,9 @@ typedef unsigned int uint;
 
 static inline
 bool
-in_range(size_t beg, size_t ext, size_t arg)
+in_range(ulong beg, ulong ext, ulong arg)
 {
-	return beg <= arg && beg + ext > arg;
+	return arg - beg < ext;
 }
 
 static inline
