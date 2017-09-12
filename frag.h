@@ -10,12 +10,15 @@ struct frag;
 struct frag_node;
 
 void frag_delete(struct frag *fg, size_t pos);
+void frag_flush(struct frag *fg);
 int frag_insert(struct frag *fg, struct frag_node *node);
-void *frag_search(struct frag *fg, size_t pos);
+void *frag_stab(struct frag *fg, size_t pos);
 
 struct frag {
 	uintptr_t prnt;
 	uintptr_t chld;
+
+	size_t dsp;
 };
 
 struct frag_node {
