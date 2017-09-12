@@ -243,6 +243,6 @@ test_stab_root(void)
 int
 main(int argc, char **argv)
 {
-	unit_parse_argv(argv);
+	unit_parse_argv(argc, argv);
 	return unit_run_tests(tests, arr_len(tests));
 }

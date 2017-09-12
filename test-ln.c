@@ -2,14 +2,14 @@
 #include <util.h>
 #include <ln.c>
 
-static void test_adjust(void);
+//static void test_adjust(void);
 static void test_convert(void);
 
 struct unit_test tests[] = {
 	{.msg = "should convert lines to buffers",
 	 .fun = unit_list(test_convert),},
-	{.msg = "should adjust lines",
-	 .fun = unit_list(test_adjust),},
+	//{.msg = "should adjust lines",
+	//.fun = unit_list(test_adjust),},
 };
 
 void
@@ -54,6 +54,6 @@ test_convert(void)
 int
 main(int argc, char **argv)
 {
-	unit_parse_argv(argv);
+	unit_parse_argv(argc, argv);
 	return unit_run_tests(tests, arr_len(tests));
 }

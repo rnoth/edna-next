@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <util.h>
 #include <unit.h>
 
 static int  trap_failures(void);
@@ -143,23 +144,30 @@ unit_fail(char *msg)
 }
 
 void
-unit_parse_argv(char **argv)
+unit_parse_argv(size_t argc, char **argv)
 {
-	while (*++argv) {
-		if (argv[0][0] != '-') break;
-		switch (argv[0][1]) {
+	if (argc < 2) return;
+
+	iterate(i, argc) {
+		if (argv[i][0] != '-') break;
+
+		switch (argv[i][1]) {
 		case 'a':
 			unit_opt_timeout = 0;
 			break;
+
 		case 'f':
 			unit_opt_flakiness = strtoul(*++argv, 0, 10);
 			break;
+
 		case 'n':
 			unit_opt_test_num = strtoul(*++argv, 0, 10);
 			break;
+
 		case 't':
 			unit_opt_timeout = strtoul(*++argv, 0, 10);
 			break;
+
 		default:
 			dprintf(2, "unknown option: %s (ignoring)", *argv);
 		}

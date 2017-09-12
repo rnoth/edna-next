@@ -694,7 +694,7 @@ main(int argc, char **argv)
 	if (edna_pty == -1) unit_perror("couldn't alloc pty");
 
 	unit_opt_flakiness = 5;
-	unit_parse_argv(argv);
+	unit_parse_argv(argc, argv);
 	unit_run_tests(tests, arr_len(tests));
 	system("pkill -x edna");
 
