@@ -63,8 +63,6 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_bottom),},
 };
 
-#define UNIT_TESTS tests
-
 #include <unit.t>
 
 void

@@ -40,7 +40,6 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_next),}
 };
 
-#define UNIT_TESTS tests
 #include <unit.t>
 
 void

@@ -50,7 +50,6 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_merge),},
 };
 
-#define UNIT_TESTS tests
 #include <unit.t>
 
 int

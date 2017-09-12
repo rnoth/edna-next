@@ -1,11 +1,11 @@
 #ifdef _unit_main_
-#error "multiple inclusion of template (this is probably an error)"
+# error "multiple inclusion of template (this is probably an error)"
 #else
 
-#define _unit_main_
+# define _unit_main_
 
 #ifndef UNIT_TESTS
-#error "UNIT_TESTS is undefined (where are your tests?)"
+#define UNIT_TESTS tests
 #endif
 
 #include <sysexits.h>

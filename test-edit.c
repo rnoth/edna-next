@@ -17,8 +17,6 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_resize),},
 };
 
-#define UNIT_TESTS tests
-
 #include <unit.t>
 
 void

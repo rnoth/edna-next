@@ -35,7 +35,6 @@ struct unit_test tests[] = {
 	#endif
 };
 
-#define UNIT_TESTS tests
 #include <unit.t>
 
 void
