@@ -143,35 +143,77 @@ unit_fail(char *msg)
 	raise(SIGTRAP);
 }
 
-void
+int
+parse_arg(char **argv)
+{
+	char *rem;
+	int nused=1;
+
+	switch (argv[0][1]) {
+	case 'a':
+		unit_opt_timeout = 0;
+		break;
+
+	case 'f':
+		++argv, rem = *argv;
+		if (!*argv) goto badnum;
+
+		unit_opt_flakiness = strtoul(*argv, &rem, 10);
+		if (*rem) goto badnum;
+
+		++nused;
+		break;
+
+	case 'n':
+		++argv, rem = *argv;
+		if (!*argv) goto badnum;
+
+		unit_opt_test_num = strtoul(*argv, &rem, 10);
+		if (*rem) goto badnum;
+
+		++nused;
+		break;
+
+	case 't':
+		++argv, rem = *argv;
+		if (!*argv) goto badnum;
+
+		unit_opt_timeout = strtoul(*argv, &rem, 10);
+		if (*rem) goto badnum;
+
+		++nused;
+		break;
+
+	default:
+		write_str(1, "unknown option: ");
+		write_str(1, *argv);
+		return -1;
+
+	badnum:
+		write_str(1, "error: invalid number: ");
+		write_str(1, *argv);
+		return -1;
+	}
+
+	return 0;
+}
+
+int
 unit_parse_argv(size_t argc, char **argv)
 {
-	if (argc < 2) return;
+	int res;
+
+	if (argc < 2) return 0;
 
 	iterate(i, argc) {
 		if (argv[i][0] != '-') break;
 
-		switch (argv[i][1]) {
-		case 'a':
-			unit_opt_timeout = 0;
-			break;
-
-		case 'f':
-			unit_opt_flakiness = strtoul(*++argv, 0, 10);
-			break;
-
-		case 'n':
-			unit_opt_test_num = strtoul(*++argv, 0, 10);
-			break;
-
-		case 't':
-			unit_opt_timeout = strtoul(*++argv, 0, 10);
-			break;
-
-		default:
-			dprintf(2, "unknown option: %s (ignoring)", *argv);
-		}
+		res = parse_arg(argv + i);
+		if (res == -1) return res;
+		else argv += res;
 	}
+
+	return 0;
 }
 
 int

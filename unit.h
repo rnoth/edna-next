@@ -76,8 +76,8 @@ void unit_unset_expr(void);
 void unit_perror(char *) __attribute__((noreturn));
 void unit_error(char *) __attribute__((noreturn));
 void unit_fail(char *);
-void unit_parse_argv(size_t argc, char **argv);
-int  unit_run_tests(struct unit_test *, size_t);
+int unit_parse_argv(size_t argc, char **argv);
+int unit_run_tests(struct unit_test *, size_t);
 void unit_yield(void) __attribute__((noreturn));
 
 #endif
