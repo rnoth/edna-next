@@ -12,6 +12,9 @@ struct unit_test tests[] = {
 	//.fun = unit_list(test_adjust),},
 };
 
+#define UNIT_TESTS tests
+#include <unit.t>
+
 void
 test_adjust(void)
 {
@@ -49,11 +52,4 @@ test_convert(void)
 	}
 
 	foreach_node(node, list) free(node);
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }

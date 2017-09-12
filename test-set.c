@@ -35,6 +35,9 @@ struct unit_test tests[] = {
 	#endif
 };
 
+#define UNIT_TESTS tests
+#include <unit.t>
+
 void
 test_compare()
 {
@@ -205,11 +208,4 @@ test_n_strings(char **strings)
 	}
 
 	free(node_array);
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }

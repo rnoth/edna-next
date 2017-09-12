@@ -50,6 +50,9 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_merge),},
 };
 
+#define UNIT_TESTS tests
+#include <unit.t>
+
 int
 edit_concat(struct map *edit, char *str)
 {
@@ -412,11 +415,4 @@ test_traverse()
 	try(text_walk(ctx, 10));
 	ok(ctx[0] == end);
 	ok(ctx[1] == baz);
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }

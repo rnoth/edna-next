@@ -17,6 +17,10 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_resize),},
 };
 
+#define UNIT_TESTS tests
+
+#include <unit.t>
+
 void
 test_append()
 {
@@ -60,11 +64,4 @@ test_resize()
 	expect(0, edit_append(edit, buffer, length));
 	expect(length, edit->offset);
 	ok(!memcmp(edit->map, buffer, length));
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }

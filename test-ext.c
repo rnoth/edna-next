@@ -40,6 +40,9 @@ static struct unit_test tests[] = {
 	 .fun = unit_list(test_next),}
 };
 
+#define UNIT_TESTS tests
+#include <unit.t>
+
 void
 test_append_left(void)
 {
@@ -307,11 +310,4 @@ test_walker_begin(void)
 
 	ok(w->prev == tag_root(x));
 	ok(w->tag == 0xcafebabe);
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }

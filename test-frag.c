@@ -63,6 +63,10 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_bottom),},
 };
 
+#define UNIT_TESTS tests
+
+#include <unit.t>
+
 void
 test_delete_absent(void)
 {
@@ -238,11 +242,4 @@ test_stab_root(void)
 	ok(frag_stab(fg, 4));
 	ok(frag_stab(fg, 0) == root);
 	ok(frag_stab(fg, 4) == root);
-}
-
-int
-main(int argc, char **argv)
-{
-	unit_parse_argv(argc, argv);
-	return unit_run_tests(tests, arr_len(tests));
 }
