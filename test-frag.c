@@ -73,7 +73,7 @@ test_delete_absent(void)
 
 	ok(!frag_insert(fg, one));
 	try(frag_delete(fg, 9));
-	ok(fg->chld);
+	ok(fg->cur);
 	ok(frag_stab(fg, 2) == one);
 }
 
@@ -94,7 +94,7 @@ test_delete_root(void)
 	ok(!frag_insert(fg, root));
 	try(frag_delete(fg, 1));
 	ok(!frag_stab(fg, 1));
-	ok(!fg->chld);
+	ok(!fg->cur);
 }
 
 void
@@ -118,8 +118,8 @@ test_finger(void)
 	try(frag_insert(fg, one));
 	try(frag_insert(fg, two));
 
-	ok(untag(fg->prnt) == one);
-	ok(untag(fg->chld) == two);
+	ok(untag(fg->cur) == two);
+	ok(untag(two->link[up]) == one);
 }
 
 void
@@ -133,6 +133,8 @@ test_finger_flush(void)
 	try(frag_insert(fg, two));
 
 	try(frag_flush(fg));
+
+	try(__builtin_trap());
 }
 
 void
@@ -146,14 +148,12 @@ test_insert_bottom(void)
 	};
 	struct frag fg[1] = {{0}};
 
-	__builtin_trap();
+	try(__builtin_trap());
  
 	ok(!frag_insert(fg, d + 0));
 	ok(!frag_insert(fg, d + 1));
 	ok(!frag_insert(fg, d + 2));
 	ok(!frag_insert(fg, d + 3));
-
-	
 }
 
 void
@@ -164,7 +164,7 @@ test_insert_empty(void)
 
 	try(frag_insert(fg, node));
 
-	ok(untag(fg->chld) == node);
+	ok(untag(fg->cur) == node);
 	expect(0, node->off);
 	expect(4, node->len);
 	expect(0, node->wid);
@@ -190,7 +190,7 @@ test_insert_head(void)
 	expect(0, two->wid);
 	expect(0, two->dsp);
 
-	ok(untag(one->link[0]) == two);
+	ok(untag(one->link[left]) == two);
 }
 
 void
@@ -208,7 +208,7 @@ test_insert_tail(void)
 	expect(6, one->wid);
 	expect(10, one->dsp);
 
-	ok(untag(one->link[1]) == two);
+	ok(untag(one->link[right]) == two);
 }
 
 void
