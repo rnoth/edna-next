@@ -15,9 +15,21 @@ static struct frag_node *frag_find(struct frag *, size_t pos);
 static enum link frag_cmp(struct frag_node *node, ptrdiff_t pos); 
 
 void
-add_link(struct frag_node *node, uintptr_t chld, enum link k)
+add_chld(uintptr_t d, uintptr_t c, enum link k)
 {
-	node->link[k] = chld;
+	struct frag_node *dd;
+	struct frag_node *cc;
+
+	dd = untag(d);
+	cc = untag(c);
+	dd->link[ k] = c;
+	cc->link[!k] = d;
+}
+
+void
+add_link(struct frag_node *node, uintptr_t tag, enum link k)
+{
+	node->link[k] = tag;
 }
 
 uintptr_t
@@ -105,9 +117,9 @@ frag_insert(struct frag *fg, struct frag_node *node)
 
 	match = frag_find(fg, node->off);
 
-	k = node->off >= match->dsp;
+	k = node->off - fg->dsp >= match->off;
 
-	add_link(match, k, (uintptr_t)node);
+	add_chld(fg->cur, (uintptr_t)node, k);
 
 	if (k) match->wid += node->len;
 	else match->off += node->len, match->dsp += node->len;
