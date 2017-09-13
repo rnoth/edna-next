@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
 #include <util.h>
@@ -13,15 +14,19 @@ static int  trap_failures(void);
 static void report_error(int);
 static void run_test(struct unit_test *);
 
+bool unit_has_init;
+bool unit_failed;
 unsigned unit_opt_timeout = 1;
 unsigned unit_opt_test_num = 0;
 unsigned unit_opt_flakiness = 0;
+static jmp_buf client_checkpoint;
 
 static int line_number;
 static char current_expr[256];
 static char error_message[256];
-static jmp_buf escape_hatch;
-static jmp_buf checkpoint;
+static jmp_buf *escape_hatch;
+static jmp_buf failure_hatch;
+static jmp_buf exit_hatch;
 
 #define throw(BLAME) do { int _ = errno; perror(BLAME); return _; } while (0)
 
@@ -93,7 +98,7 @@ run_test(struct unit_test *te)
 
 	dprintf(2, "%s...", te->msg);
 
-	if (setjmp(checkpoint)) longjmp(escape_hatch, 0);
+	if (setjmp(failure_hatch)) longjmp(exit_hatch, 0);
 
 	for (i=0; te->fun[i]; ++i) {
 		alarm(unit_opt_timeout);
@@ -105,11 +110,22 @@ run_test(struct unit_test *te)
 	return;
 }
 
+bool
+unit_checkpoint(void)
+{
+	escape_hatch = &client_checkpoint;
+	return !!setjmp(client_checkpoint);
+}
+
 void
 unit_error(char *error)
 {
 	dprintf(2, "error\n    %s\n", error);
-	longjmp(escape_hatch, 0);
+	if (!escape_hatch) {
+		fprintf(stderr, "fatal: occured outside of unit_run_test() or unit_catch {}");
+		exit(EX_SOFTWARE);
+	}
+	longjmp(*escape_hatch, 0);
 }
 
 void
@@ -120,6 +136,19 @@ unit_perror(char *blame)
 	snprintf(buffer, 256, "%s: %s", blame, strerror(errno));
 
 	unit_error(buffer);
+}
+
+int
+unit_init()
+{
+	int err;
+
+	err = trap_failures();
+	if (err) return err;
+
+	unit_has_init = true;
+
+	return 0;
 }
 
 void
@@ -146,7 +175,7 @@ unit_fail(char *msg)
 int
 parse_arg(char **argv)
 {
-	char *rem;
+	char *rem=*argv;
 	int nused=1;
 
 	switch (argv[0][1]) {
@@ -186,16 +215,18 @@ parse_arg(char **argv)
 
 	default:
 		write_str(1, "unknown option: ");
-		write_str(1, *argv);
+		if (rem) write_str(1, rem);
+		else write_str(1, "(null)");
 		return -1;
 
 	badnum:
 		write_str(1, "error: invalid number: ");
-		write_str(1, *argv);
+		if (rem) write_str(1, rem);
+		else write_str(1, "(null)\n");
 		return -1;
 	}
 
-	return 0;
+	return nused;
 }
 
 int
@@ -205,12 +236,13 @@ unit_parse_argv(size_t argc, char **argv)
 
 	if (argc < 2) return 0;
 
-	iterate(i, argc) {
-		if (argv[i][0] != '-') break;
+	++argv, --argc;
+	while (argc > 0) {
+		if (argv[0][0] != '-') break;
 
-		res = parse_arg(argv + i);
+		res = parse_arg(argv);
 		if (res == -1) return res;
-		else argv += res;
+		argv += res, argc -= res;
 	}
 
 	return 0;
@@ -230,7 +262,8 @@ unit_run_tests(struct unit_test *tl, size_t len)
 
 	i = 0;
 
-	while (setjmp(escape_hatch)) {
+	escape_hatch = &exit_hatch;
+	while (setjmp(exit_hatch)) {
 		if (!f) {
 			dprintf(2, "failed\n    %s\n", error_message);
 			return -1;
@@ -259,5 +292,5 @@ unit_run_tests(struct unit_test *tl, size_t len)
 void
 unit_yield(void)
 {
-	longjmp(checkpoint, 0);
+	longjmp(failure_hatch, 0);
 }

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+#define unit_catch if (unit_checkpoint())
+
 #define unit_error_fmt(...) do {         \
 	char buf[256];                   \
 	snprintf(buf, 256, __VA_ARGS__); \
@@ -38,9 +40,8 @@
 	unit_set_expr(#EXPR, __LINE__); \
 	unit_res = !!(EXPR);     \
 	if (!unit_res) {         \
-		raise(SIGTRAP);  \
 		unit_fail(MSG);  \
-		unit_yield();    \
+		/* unit_yield(); */ \
 	}                        \
 	unit_unset_expr();       \
 } while (0)
@@ -55,7 +56,7 @@
 		              " (expr \"%s\", line %d)", \
 			      #VAL, unit_res,        \
 		              #EXPR, __LINE__);      \
-		unit_yield();                        \
+		/* unit_yield(); */                        \
 	}                                            \
 	unit_unset_expr();                           \
 } while (0)
@@ -69,7 +70,11 @@ struct unit_test {
 extern unsigned unit_opt_timeout;
 extern unsigned unit_opt_flakiness;
 extern unsigned unit_opt_test_num;
+extern bool unit_failed;
+extern bool unit_has_init;
 
+bool unit_checkpoint(void);
+int unit_init();
 void unit_set_expr(char *, int);
 void unit_unset_expr(void);
 
