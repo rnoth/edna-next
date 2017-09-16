@@ -3,7 +3,7 @@
 
 #include <frag.c>
 
-static void test_balance(void);
+//static void test_balance(void);
 
 static void test_delete_absent(void);
 static void test_delete_empty(void);
@@ -65,12 +65,14 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_delete_root),},
 	{.msg = "should do nothing when deleting absent pieces",
 	 .fun = unit_list(test_delete_absent),},
-	{.msg = "should rotate the tree when unbalanced",
-	 .fun = unit_list(test_balance),},
+
+	//{.msg = "should rotate the tree when unbalanced",
+	//.fun = unit_list(test_balance),},
 };
 
 #include <unit.t>
 
+#if 0
 void
 test_balance(void)
 {
@@ -98,6 +100,7 @@ test_balance(void)
 	ok(thr->link[right] == 0);
 	ok(thr->link[up] == (uintptr_t)two);
 }
+#endif
 
 void
 test_delete_absent(void)
