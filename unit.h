@@ -58,7 +58,7 @@
 		              " (expr \"%s\", line %d)", \
 			      #VAL, unit_res,            \
 		              #EXPR, __LINE__);          \
-		/* unit_yield(); */                      \
+		unit_yield();                            \
 	}                                                \
 	unit_unset_expr();                               \
 } while (0)
