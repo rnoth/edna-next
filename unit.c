@@ -247,8 +247,7 @@ int
 unit_run_tests(struct unit_test *tl, size_t len)
 {
 	size_t f=unit_opt_flakiness;
-	volatile int i_saved;
-	size_t i;
+	volatile size_t i;
 	int width;
 	int err;
 	
@@ -265,7 +264,6 @@ unit_run_tests(struct unit_test *tl, size_t len)
 		}
 		dprintf(unit_opt_error_fd, "\r");
 		--f;
-		i = i_saved;
 	}
 
 	width = snprintf(0, 0, "%zu", len);
@@ -276,7 +274,6 @@ unit_run_tests(struct unit_test *tl, size_t len)
 	}
 
 	for (; i<len; ++i) {
-		i_saved = i;
 		dprintf(unit_opt_error_fd, "%*zd| ", width, i+1);
 		run_test(tl + i);
 	}
