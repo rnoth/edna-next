@@ -7,6 +7,7 @@
 #include <tag.h>
 
 enum link {
+	stop=-1,
 	left,
 	right,
 	up,
@@ -14,9 +15,7 @@ enum link {
 
 static int bal(uintptr_t tag);
 static void frag_balance(struct frag *fg);
-static enum link frag_cmp(struct frag_node *node, ptrdiff_t pos); 
-static struct frag_node *frag_find(struct frag *, size_t pos);
-static struct frag_node frag_node(size_t offset, size_t length);
+static enum link frag_cmp(struct frag_node *node, size_t pos); 
 
 void
 add_chld(uintptr_t p, uintptr_t c, enum link k)
@@ -43,10 +42,12 @@ bal(uintptr_t tag)
 	return tag & 3 ? (tag & 3) * -2 + 3 : 0;
 }
 
-uintptr_t
-get_link(struct frag_node *node, enum link k)
+void
+init_node(struct frag_node *node, size_t pos)
 {
-	return node->link[k];
+	*node = (struct frag_node){.len = node->len};
+	node->wid = 0;
+	node->dsp = pos;
 }
 
 void
@@ -56,9 +57,12 @@ frag_balance(struct frag *fg)
 	struct frag_node *prnt;
 	enum link k=-1;
 	uintptr_t next;
+	size_t adj;
 	int m=0;
 
 	prnt = untag(fg->cur);
+	adj = prnt->len;
+
 	while (prnt->link[up]) {
 
 		node = prnt;
@@ -68,7 +72,11 @@ frag_balance(struct frag *fg)
 		k = node == untag(prnt->link[right]);
 		prnt->link[k] ^= m;
 
+		if (k) prnt->wid += adj;
+		else prnt->dsp += adj;
+
 		switch (bal(next)) {
+
 		case -1:
 			if (!k) __builtin_trap();
 			node->link[up] ^= 2;
@@ -85,6 +93,7 @@ frag_balance(struct frag *fg)
 			node->link[up] |= k ? 1 : 2;
 			m = k ? 1 : 2;
 			break;
+
 		}
 
 	}
@@ -97,13 +106,20 @@ frag_balance(struct frag *fg)
 }
 
 enum link
-frag_cmp(struct frag_node *node, ptrdiff_t pos)
+frag_cmp(struct frag_node *node, size_t pos)
 {
-	if (pos < node->dsp) return up;
 
-	if (pos > node->off) return left;
-	if (pos < node->wid) return right;
-	else return up;
+	if (pos <= node->dsp) {
+		return left;
+	}
+
+	pos -= node->dsp;
+	if (pos < node->len + node->wid) {
+		return right;
+	}
+
+	return node->link[up] ? up : right;
+
 }
 
 void
@@ -115,36 +131,6 @@ frag_delete(struct frag *fg, size_t pos)
 	if (!match) return;
 
 	fg->cur = 0;
-}
-
-struct frag_node *
-frag_find(struct frag *fg, size_t pos)
-{
-	struct frag_node *node;
-	uintptr_t next;
-	enum link k;
-
-	node = untag(fg->cur);
-
-	while (!in_range(node->off, node->len, pos - fg->dsp)) {
-
-		k = frag_cmp(node, pos - fg->dsp);
-
-		next = get_link(node, k);
-		if (!next) return 0;
-
-		if (k == right) fg->dsp += node->dsp;
-
-		node = untag(next);
-
-		if (k == up && node->link[right] == fg->cur) {
-			fg->dsp -= node->dsp;
-		}
-
-		fg->cur = next;
-	}
-
-	return node;
 }
 
 void
@@ -172,56 +158,68 @@ frag_flush(struct frag *fg)
 }
 
 int
-frag_insert(struct frag *fg, struct frag_node *node)
+frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 {
 	struct frag_node *prnt;
+	struct frag_node *chld;
+	size_t off;
 	enum link k;
 
 	if (!fg->cur) {
-		*node = frag_node(node->off, node->len);
-		fg->cur = (uintptr_t)node;
-
+		init_node(new, where);
+		fg->cur = (uintptr_t)new;
 		return 0;
 	}
 
-	if (frag_find(fg, node->off) && node->off - fg->dsp) {
-		return EEXIST;
+	chld = untag(fg->cur);
+	off = where;
+
+	while (chld) {
+
+		k = frag_cmp(chld, where - fg->dsp);
+		lshift_ptr(&prnt, &chld, untag(chld->link[k]));
+
 	}
 
-	prnt = untag(fg->cur);
-	k = node->off - fg->dsp > prnt->off;
+	if (k) fg->dsp += prnt->dsp;
 
-	add_chld(fg->cur, (uintptr_t)node, k);
+	add_chld(fg->cur, (uintptr_t)new, k);
 
-	if (k == left) {
-		prnt->off += node->len;
-		prnt->dsp += node->len;
-	} else {
-		prnt->wid += node->len;
-		fg->dsp += prnt->dsp;
-	}
-
-	node->off = node->off - fg->dsp;
-	fg->cur = (uintptr_t)node;
+	fg->cur = (uintptr_t)new;
 
 	frag_balance(fg);
 
 	return 0;
 }
 
-struct frag_node
-frag_node(size_t offset, size_t length)
-{
-	return (struct frag_node) {
-		.off=offset,
-		.len=length,
-		.dsp=length,
-	};
-}
-
 void *
 frag_stab(struct frag *fg, size_t pos)
 {
+	struct frag_node *node;
+	uintptr_t next;
+	enum link k;
+
 	if (!fg->cur) return 0;
-	return frag_find(fg, pos);
+
+	node = untag(fg->cur);
+
+	while (!in_range(node->dsp, node->len, pos - fg->dsp)) {
+
+		k = frag_cmp(node, pos - fg->dsp);
+
+		next = node->link[k];
+		if (!next) return 0;
+
+		if (k == right) fg->dsp += node->dsp;
+
+		node = untag(next);
+
+		if (k == up && node->link[right] == fg->cur) {
+			fg->dsp -= node->dsp;
+		}
+
+		fg->cur = next;
+	}
+
+	return node;
 }

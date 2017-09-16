@@ -76,14 +76,14 @@ struct unit_test tests[] = {
 void
 test_balance(void)
 {
-	struct frag_node one[1]={{.off=0, .len=1}};
-	struct frag_node two[1]={{.off=1, .len=2}};
-	struct frag_node thr[1]={{.off=3, .len=3}};
+	struct frag_node one[1]={{.len=1}};
+	struct frag_node two[1]={{.len=2}};
+	struct frag_node thr[1]={{.len=3}};
 	struct frag fg[1] = {{0}};
 
-	expect(0, frag_insert(fg, one));
-	expect(0, frag_insert(fg, two));
-	expect(0, frag_insert(fg, thr));
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 1, two));
+	expect(0, frag_insert(fg, 2, thr));
 
 	try(frag_flush(fg));
 
@@ -108,7 +108,7 @@ test_delete_absent(void)
 	struct frag_node one[1]={{.len=5}};
 	struct frag fg[1] = {{0}};
 
-	ok(!frag_insert(fg, one));
+	expect(0, frag_insert(fg, 1, one));
 	try(frag_delete(fg, 9));
 	ok(fg->cur);
 	ok(frag_stab(fg, 2) == one);
@@ -128,7 +128,7 @@ test_delete_root(void)
 	struct frag_node root[1] = {{.len = 4}};
 	struct frag fg[1] = {{0}};
 
-	ok(!frag_insert(fg, root));
+	expect(0, frag_insert(fg, 1,  root));
 	try(frag_delete(fg, 1));
 	ok(!frag_stab(fg, 1));
 	ok(!fg->cur);
@@ -140,22 +140,23 @@ test_find_nearest(void)
 	struct frag_node root[1] = {{.len = 4}};
 	struct frag fg[1] = {{0}};
 
-	ok(!frag_insert(fg, root));
-	ok(!frag_find(fg, 4));
+	expect(0, frag_insert(fg, 0, root));
+
+	ok(!frag_stab(fg, 4));
 	ok(untag(fg->cur) == root);
-	ok(!frag_find(fg, 5));
+	ok(!frag_stab(fg, 5));
 	ok(untag(fg->cur) == root);
 }
 
 void
 test_finger(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 4}};
-	struct frag_node two[1] = {{.off = 0, .len = 6}};
+	struct frag_node one[1] = {{.len = 4}};
+	struct frag_node two[1] = {{.len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 0, two));
 
 	ok(untag(fg->cur) == two);
 	ok(untag(two->link[up]) == one);
@@ -175,12 +176,12 @@ test_flush_empty(void)
 void
 test_flush_idempotent(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 10}};
-	struct frag_node two[1] = {{.off = 0, .len = 5}};
+	struct frag_node one[1] = {{.len = 10}};
+	struct frag_node two[1] = {{.len = 5}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 10, two));
 
 	try(frag_flush(fg));
 
@@ -196,10 +197,10 @@ test_flush_idempotent(void)
 void
 test_flush_one(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 2}};
+	struct frag_node one[1] = {{.len = 2}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
+	expect(0, frag_insert(fg, 0, one));
 
 	try(frag_flush(fg));
 
@@ -210,12 +211,12 @@ test_flush_one(void)
 void
 test_flush_two(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 4}};
-	struct frag_node two[1] = {{.off = 0, .len = 6}};
+	struct frag_node one[1] = {{.len = 4}};
+	struct frag_node two[1] = {{.len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	try(frag_insert(fg, 0, one));
+	try(frag_insert(fg, 0, two));
 
 	try(frag_flush(fg));
 
@@ -226,12 +227,12 @@ test_flush_two(void)
 void
 test_flush_offset(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 4}};
-	struct frag_node two[1] = {{.off = 4, .len = 6}};
+	struct frag_node one[1] = {{.len = 4}};
+	struct frag_node two[1] = {{.len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	try(frag_insert(fg, 0, one));
+	try(frag_insert(fg, 4, two));
 
 	try(frag_flush(fg));
 
@@ -242,37 +243,32 @@ test_flush_offset(void)
 void
 test_insert_empty(void)
 {
-	struct frag_node node[1] = {{.off = 0, .len = 4,}};
+	struct frag_node node[1] = {{.len = 4,}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, node));
+	expect(0, frag_insert(fg, 0, node));
 
 	ok(untag(fg->cur) == node);
-	expect(0, node->off);
-	expect(4, node->len);
 	expect(0, node->wid);
-	expect(4, node->dsp);
+	expect(0, node->dsp);
 	ok(!bal(fg->cur));
 }
 
 void
 test_insert_head(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 4}};
-	struct frag_node two[1] = {{.off = 0, .len = 6}};
+	struct frag_node one[1] = {{.len = 4}};
+	struct frag_node two[1] = {{.len = 6}};
 	struct frag fg[1] = {{0}};
 
-	expect(0, frag_insert(fg, one));
-	expect(0, frag_insert(fg, two));
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 0, two));
 
-	expect(6, one->off);
-	expect(4, one->len);
+	expect(6, one->dsp);
 	expect(0, one->wid);
-	expect(10, one->dsp);
-	expect(0, two->off);
-	expect(6, two->len);
-	expect(0, two->wid);
+
 	expect(0, two->dsp);
+	expect(0, two->wid);
 
 	ok(!one->link[up]);
 	ok(untag(one->link[left]) == two);
@@ -287,20 +283,16 @@ test_insert_head(void)
 void
 test_insert_tail(void)
 {
-	struct frag_node one[1] = {{.off = 0, .len = 4}};
-	struct frag_node two[1] = {{.off = 4, .len = 6}};
+	struct frag_node one[1] = {{.len = 4}};
+	struct frag_node two[1] = {{.len = 6}};
 	struct frag fg[1] = {{0}};
 
-	expect(0, frag_insert(fg, one));
-	expect(0, frag_insert(fg, two));
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 4, two));
 
-	expect(0, one->off);
-	expect(4, one->len);
 	expect(6, one->wid);
-	expect(4, one->dsp);
+	expect(0, one->dsp);
 
-	expect(0, two->off);
-	expect(6, two->len);
 	expect(0, two->wid);
 	expect(0, two->dsp);
 
@@ -317,10 +309,10 @@ test_insert_tail(void)
 void
 test_stab_absent(void)
 {
-	struct frag_node root[1]={{.off = 0, .len = 10}};
+	struct frag_node root[1]={{.len = 10}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, root));
+	try(frag_insert(fg, 0, root));
 	ok(!frag_stab(fg, 11));
 }
 
@@ -335,10 +327,10 @@ test_stab_empty(void)
 void
 test_stab_root(void)
 {
-	struct frag_node root[1]={{.off = 0, .len = 10}};
+	struct frag_node root[1]={{.len = 10}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, root));
+	try(frag_insert(fg, 0, root));
 	ok(frag_stab(fg, 0));
 	ok(frag_stab(fg, 4));
 	ok(frag_stab(fg, 0) == root);
