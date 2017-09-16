@@ -223,6 +223,7 @@ test_insert_empty(void)
 	expect(4, node->len);
 	expect(0, node->wid);
 	expect(4, node->dsp);
+	ok(!bal(fg->cur));
 }
 
 void
@@ -250,6 +251,8 @@ test_insert_head(void)
 
 	ok(untag(two->link[up]) == one);
 	ok(!two->link[left]);
+
+	expect(1, bal(two->link[up]));
 }
 
 void
@@ -278,6 +281,8 @@ test_insert_tail(void)
 
 	ok(untag(two->link[up]) == one);
 	ok(!two->link[right]);
+
+	expect(-1, bal(two->link[up]));
 }
 
 void
