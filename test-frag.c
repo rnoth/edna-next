@@ -3,14 +3,6 @@
 
 #include <frag.c>
 
-/*
- * TODO:
- * - create a function to create fragment graphs on the fly
- * - test_find_nearest and test_insert_tail are failing because
- *   struct frag maintains state. to fix, we must allow frag_find
- *   to walk up the graph in search of pieces
- */
-
 static void test_delete_absent(void);
 static void test_delete_empty(void);
 static void test_delete_root(void);
