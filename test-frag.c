@@ -7,6 +7,7 @@
 
 static void test_delete_absent(void);
 static void test_delete_empty(void);
+static void test_delete_leaf(void);
 static void test_delete_root(void);
 
 static void test_find_nearest(void);
@@ -66,6 +67,9 @@ struct unit_test tests[] = {
 	{.msg = "should do nothing when deleting absent pieces",
 	 .fun = unit_list(test_delete_absent),},
 
+	{.msg = "should delete leaf nodes",
+	 .fun = unit_list(test_delete_leaf),},
+
 	//{.msg = "should rotate the tree when unbalanced",
 	//.fun = unit_list(test_balance),},
 };
@@ -123,12 +127,35 @@ test_delete_empty(void)
 }
 
 void
+test_delete_leaf(void)
+{
+	struct frag_node one[1] = {{.len=3}};
+	struct frag_node two[1] = {{.len=7}};
+	struct frag fg[1] = {{0}};
+
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 3, two));
+
+	try(frag_delete(fg, 6));
+
+	ok(untag(fg->cur) == one);
+	ok(fg->cur == (uintptr_t)one);
+
+	ok(!one->link[left]);
+	ok(!one->link[right]);
+	ok(!one->link[up]);
+
+	ok(!one->wid);
+	ok(!one->dsp);
+}
+
+void
 test_delete_root(void)
 {
 	struct frag_node root[1] = {{.len = 4}};
 	struct frag fg[1] = {{0}};
 
-	expect(0, frag_insert(fg, 1,  root));
+	expect(0, frag_insert(fg, 0,  root));
 	try(frag_delete(fg, 1));
 	ok(!frag_stab(fg, 1));
 	ok(!fg->cur);

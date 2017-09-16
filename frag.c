@@ -14,7 +14,8 @@ enum link {
 };
 
 static int bal(uintptr_t tag);
-static void frag_balance(struct frag *fg);
+static void frag_insert_balance(struct frag *fg);
+static void frag_delete_balance(struct frag *fg);
 static enum link frag_cmp(struct frag_node *node, size_t pos); 
 
 void
@@ -51,7 +52,63 @@ init_node(struct frag_node *node, size_t pos)
 }
 
 void
-frag_balance(struct frag *fg)
+frag_delete_balance(struct frag *fg)
+{
+	struct frag_node *node;
+	struct frag_node *prnt;
+	enum link k=-1;
+	uintptr_t next;
+	size_t adj;
+	int m=0;
+
+	prnt = untag(fg->cur);
+	adj = prnt->len;
+
+	while (prnt->link[up]) {
+
+		node = prnt;
+		next = node->link[up];
+		prnt = untag(next);
+
+		k = node == untag(prnt->link[right]);
+		prnt->link[k] ^= m;
+
+		if (k) prnt->wid -= adj;
+		else prnt->dsp -= adj;
+
+		switch (bal(next)) {
+
+		case -1:
+			if (k) __builtin_trap();
+			node->link[up] ^= 2;
+			m = 2;
+			goto done;
+
+		case  1:
+			if (!k) __builtin_trap();
+			node->link[up] ^= 1;
+			m = 1;
+			goto done;
+
+		case  0:
+			node->link[up] |= k ? 1 : 2;
+			m = k ? 1 : 2;
+			break;
+
+		}
+
+	}
+
+	return;
+ done:
+	node = untag(prnt->link[up]);
+	if (!node) return;
+	k = prnt == untag(node->link[right]);
+	node->link[k] ^= m;
+}
+
+void
+frag_insert_balance(struct frag *fg)
 {
 	struct frag_node *node;
 	struct frag_node *prnt;
@@ -101,6 +158,7 @@ frag_balance(struct frag *fg)
 	return;
  done:
 	node = untag(prnt->link[up]);
+	if (!node) return;
 	k = prnt == untag(node->link[right]);
 	node->link[k] ^= m;
 }
@@ -126,11 +184,20 @@ void
 frag_delete(struct frag *fg, size_t pos)
 {
 	struct frag_node *match;
+	struct frag_node *prnt;
+	enum link k;
 
 	match = frag_stab(fg, pos);
 	if (!match) return;
 
-	fg->cur = 0;
+	frag_delete_balance(fg);
+
+	fg->cur = match->link[up];
+	prnt = untag(match->link[up]);
+	if (!prnt) return;
+	k = untag(prnt->link[1]) == match;
+	prnt->link[k] = 0;
+
 }
 
 void
@@ -187,7 +254,7 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 
 	fg->cur = (uintptr_t)new;
 
-	frag_balance(fg);
+	frag_insert_balance(fg);
 
 	return 0;
 }
