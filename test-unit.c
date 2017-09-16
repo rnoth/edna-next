@@ -12,7 +12,9 @@ static volatile size_t test_num=1;
 static void print_test_error(char *err);
 static void print_test_failure(char *fail);
 static void print_test_message(char *msg);
+static void test_args(void);
 static void test_signals(void);
+static void test_print(void);
 
 void
 print_test_error(char *err)
@@ -33,12 +35,28 @@ print_test_message(char *msg)
 }
 
 void
+test_args(void)
+{
+	print_test_message("should parse arguments into configurations");
+
+	try(unit_parse_argv(3, argv("", "-n", "3")));
+	if (unit_opt_test_num != 3) {
+		print_test_failure(asprintf("expected 3 (instead of %d)"
+		                            "from unit_opt_test_num",
+		                            unit_opt_test_num));
+		exit(EX_SOFTWARE);
+	}
+
+	printf("ok\n");
+}
+
+void
 test_print(void)
 {
 	struct read result[1];
 	int err;
 
-	print_test_message("should print error messages");
+    	print_test_message("should print error messages");
 
 	unit_opt_error_fd = pipefd[1];
 
@@ -139,4 +157,5 @@ main(int argc, char **argv)
 
 	test_print();
 	test_signals();
+	test_args();
 }
