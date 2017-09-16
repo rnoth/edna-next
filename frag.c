@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -15,15 +16,16 @@ static struct frag_node *frag_find(struct frag *, size_t pos);
 static enum link frag_cmp(struct frag_node *node, ptrdiff_t pos); 
 
 void
-add_chld(uintptr_t d, uintptr_t c, enum link k)
+add_chld(uintptr_t p, uintptr_t c, enum link k)
 {
-	struct frag_node *dd;
+	struct frag_node *pp;
 	struct frag_node *cc;
 
-	dd = untag(d);
+	pp = untag(p);
 	cc = untag(c);
-	dd->link[ k] = c;
-	cc->link[!k] = d;
+	pp->link[ k] = c;
+	cc->link[!k] = p;
+	cc->link[up] = p;
 }
 
 void
@@ -93,7 +95,25 @@ frag_find(struct frag *fg, size_t pos)
 void
 frag_flush(struct frag *fg)
 {
-	__builtin_trap();
+	struct frag_node *node = untag(fg->cur);
+	uintptr_t tag = fg->cur;
+	uintptr_t prev;
+
+	if (!node) return;
+
+	while (node->link[up]) {
+
+		prev = tag;
+		tag = node->link[up];
+		node = untag(node->link[up]);
+
+		if (node->link[right] == prev) {
+			fg->dsp -= node->dsp;
+		}
+
+	}
+
+	fg->cur = tag;
 }
 
 int
@@ -117,15 +137,23 @@ frag_insert(struct frag *fg, struct frag_node *node)
 
 	match = frag_find(fg, node->off);
 
-	k = node->off - fg->dsp >= match->off;
+	if (in_range(match->off + 1, match->len - 1, node->off - fg->dsp)) {
+		return EEXIST;
+	}
+
+	k = node->off - fg->dsp > match->off;
 
 	add_chld(fg->cur, (uintptr_t)node, k);
 
-	if (k) match->wid += node->len;
-	else match->off += node->len, match->dsp += node->len;
+	if (k) {
+		match->wid += node->len;
+		fg->dsp += match->dsp;
+	} else {
+		match->off += node->len;
+		match->dsp += node->len;
+	}
 
 	node->off = 0;
-
 	fg->cur = (uintptr_t)node;
 
 	return 0;

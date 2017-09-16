@@ -18,9 +18,12 @@ static void test_delete_root(void);
 static void test_find_nearest(void);
 
 static void test_finger(void);
-static void test_finger_flush(void);
+static void test_flush_empty();
+static void test_flush_idempotent();
+static void test_flush_one();
+static void test_flush_two();
+static void test_flush_offset();
 
-static void test_insert_bottom(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_tail(void);
@@ -52,15 +55,22 @@ struct unit_test tests[] = {
 
 	{.msg = "should maintain last query location",
 	 .fun = unit_list(test_finger),},
-	{.msg = "should flush stab finger",
-	 .fun = unit_list(test_finger_flush),},
+
+	{.msg = "should do nothing when flushing an empty graph",
+	 .fun = unit_list(test_flush_empty),},
+	{.msg = "should do nothing when flushing a one-element graph",
+	 .fun = unit_list(test_flush_one),},
+	{.msg = "should point at the root after flushing a two-element graph",
+	 .fun = unit_list(test_flush_two),},
+	{.msg = "should do nothing when flushing with the finger at the root",
+	 .fun = unit_list(test_flush_idempotent),},
+	{.msg = "should reset the displacement after flushing a graph",
+	 .fun = unit_list(test_flush_offset),},
 
 	{.msg = "should delete root pieces",
 	 .fun = unit_list(test_delete_root),},
 	{.msg = "should do nothing when deleting absent pieces",
 	 .fun = unit_list(test_delete_absent),},
-	{.msg = "should insert pieces at the bottom of the graph",
-	 .fun = unit_list(test_insert_bottom),},
 };
 
 #include <unit.t>
@@ -123,7 +133,53 @@ test_finger(void)
 }
 
 void
-test_finger_flush(void)
+test_flush_empty(void)
+{
+	struct frag fg[1] = {{0}};
+
+	try(frag_flush(fg));
+
+	ok(!fg->cur);
+	ok(!fg->dsp);
+}
+
+void
+test_flush_idempotent(void)
+{
+	struct frag_node one[1] = {{.off = 0, .len = 10}};
+	struct frag_node two[1] = {{.off = 0, .len = 5}};
+	struct frag fg[1] = {{0}};
+
+	try(frag_insert(fg, one));
+	try(frag_insert(fg, two));
+
+	try(frag_flush(fg));
+
+	ok(untag(fg->cur) == one);
+	ok(!fg->dsp);
+
+	try(frag_flush(fg));
+
+	ok(untag(fg->cur) == one);
+	ok(!fg->dsp);
+}
+
+void
+test_flush_one(void)
+{
+	struct frag_node one[1] = {{.off = 0, .len = 2}};
+	struct frag fg[1] = {{0}};
+
+	try(frag_insert(fg, one));
+
+	try(frag_flush(fg));
+
+	ok(untag(fg->cur) == one);
+	ok(!fg->dsp);
+}
+
+void
+test_flush_two(void)
 {
 	struct frag_node one[1] = {{.off = 0, .len = 4}};
 	struct frag_node two[1] = {{.off = 0, .len = 6}};
@@ -134,26 +190,24 @@ test_finger_flush(void)
 
 	try(frag_flush(fg));
 
-	try(__builtin_trap());
+	ok(untag(fg->cur) == one);
+	ok(!fg->dsp);
 }
 
 void
-test_insert_bottom(void)
+test_flush_offset(void)
 {
-	struct frag_node d[4] = {
-		{.off = 0, .len = 3,},
-		{.off = 0, .len = 2,},
-		{.off = 3, .len = 4,},
-		{.off = 9, .len = 5,},
-	};
+	struct frag_node one[1] = {{.off = 0, .len = 4}};
+	struct frag_node two[1] = {{.off = 4, .len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(__builtin_trap());
- 
-	ok(!frag_insert(fg, d + 0));
-	ok(!frag_insert(fg, d + 1));
-	ok(!frag_insert(fg, d + 2));
-	ok(!frag_insert(fg, d + 3));
+	try(frag_insert(fg, one));
+	try(frag_insert(fg, two));
+
+	try(frag_flush(fg));
+
+	ok(untag(fg->cur) == one);
+	ok(!fg->dsp);
 }
 
 void
@@ -178,8 +232,8 @@ test_insert_head(void)
 	struct frag_node two[1] = {{.off = 0, .len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	expect(0, frag_insert(fg, one));
+	expect(0, frag_insert(fg, two));
 
 	expect(6, one->off);
 	expect(4, one->len);
@@ -190,7 +244,12 @@ test_insert_head(void)
 	expect(0, two->wid);
 	expect(0, two->dsp);
 
+	ok(!one->link[up]);
 	ok(untag(one->link[left]) == two);
+	ok(!one->link[right]);
+
+	ok(untag(two->link[up]) == one);
+	ok(!two->link[left]);
 }
 
 void
@@ -200,15 +259,25 @@ test_insert_tail(void)
 	struct frag_node two[1] = {{.off = 4, .len = 6}};
 	struct frag fg[1] = {{0}};
 
-	try(frag_insert(fg, one));
-	try(frag_insert(fg, two));
+	expect(0, frag_insert(fg, one));
+	expect(0, frag_insert(fg, two));
 
 	expect(0, one->off);
 	expect(4, one->len);
 	expect(6, one->wid);
-	expect(10, one->dsp);
+	expect(4, one->dsp);
 
+	expect(0, two->off);
+	expect(6, two->len);
+	expect(0, two->wid);
+	expect(0, two->dsp);
+
+	ok(!one->link[up]);
 	ok(untag(one->link[right]) == two);
+	ok(!one->link[left]);
+
+	ok(untag(two->link[up]) == one);
+	ok(!two->link[right]);
 }
 
 void
