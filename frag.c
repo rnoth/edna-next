@@ -13,9 +13,9 @@ enum link {
 };
 
 static int bal(uintptr_t tag);
-static struct frag_node *frag_find(struct frag *, size_t pos);
+static void frag_balance(struct frag *fg);
 static enum link frag_cmp(struct frag_node *node, ptrdiff_t pos); 
-static void frag_balance(struct frag *fg, enum link k);
+static struct frag_node *frag_find(struct frag *, size_t pos);
 
 void
 add_chld(uintptr_t p, uintptr_t c, enum link k)
@@ -163,7 +163,7 @@ frag_insert(struct frag *fg, struct frag_node *node)
 	node->off = 0;
 	fg->cur = (uintptr_t)node;
 
-	frag_balance(fg, k);
+	frag_balance(fg);
 
 	return 0;
 }
@@ -184,31 +184,48 @@ frag_stab(struct frag *fg, size_t pos)
 }
 
 void
-frag_balance(struct frag *fg, enum link k)
+frag_balance(struct frag *fg)
 {
 	struct frag_node *node;
+	struct frag_node *prnt;
+	enum link k=-1;
 	uintptr_t next;
+	int m=0;
 
-	for (node = untag(fg->cur);
-	     node->link[up];
-	     node = untag(next)) {
+	prnt = untag(fg->cur);
+	while (prnt->link[up]) {
 
+		node = prnt;
 		next = node->link[up];
+		prnt = untag(next);
+
+		k = node == untag(prnt->link[right]);
+		prnt->link[k] ^= m;
 
 		switch (bal(next)) {
 		case -1:
-			if (k) __builtin_trap();
+			if (!k) __builtin_trap();
 			node->link[up] ^= 2;
-			break;
+			m = 2;
+			goto done;
 
 		case  1:
-			if (!k) __builtin_trap();
+			if (k) __builtin_trap();
 			node->link[up] ^= 1;
-			break;
+			m = 1;
+			goto done;
 
 		case  0:
 			node->link[up] |= k ? 1 : 2;
+			m = k ? 1 : 2;
 			break;
 		}
+
 	}
+
+	return;
+ done:
+	node = untag(prnt->link[up]);
+	k = prnt == untag(node->link[right]);
+	node->link[k] ^= m;
 }
