@@ -103,7 +103,7 @@ umin(ulong a, ulong b)
 	return a < b ? a : b;
 }
 
-char *asprintf(char *fmt, ...);
+char *asprintf(char *fmt, ...) __attribute__((format (printf, 1, 2)));
 char *vasprintf(char *fmt, va_list args);
 int msleep(size_t);
 int mk_pty(void);
