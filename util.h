@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define argv(...) ((char *[]){__VA_ARGS__})
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
 #define write_str(fd, str) write(fd, str, strlen(str))
 
