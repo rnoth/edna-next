@@ -39,7 +39,7 @@ add_link(struct frag_node *node, uintptr_t tag, enum link k)
 int
 bal(uintptr_t tag)
 {
-	return tag & 3 ? (tag & 3) * 2 + -3 : 0;
+	return tag & 3 ? (tag & 3) * -2 + 3 : 0;
 }
 
 uintptr_t
@@ -198,12 +198,12 @@ frag_balance(struct frag *fg, enum link k)
 		switch (bal(next)) {
 		case -1:
 			if (k) __builtin_trap();
-			node->link[up] ^= 1;
+			node->link[up] ^= 2;
 			break;
 
 		case  1:
 			if (!k) __builtin_trap();
-			node->link[up] ^= 2;
+			node->link[up] ^= 1;
 			break;
 
 		case  0:
