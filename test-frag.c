@@ -141,8 +141,10 @@ test_find_nearest(void)
 	struct frag fg[1] = {{0}};
 
 	ok(!frag_insert(fg, root));
-	ok(frag_find(fg, 4) == root);
-	ok(frag_find(fg, 5) == root);
+	ok(!frag_find(fg, 4));
+	ok(untag(fg->cur) == root);
+	ok(!frag_find(fg, 5));
+	ok(untag(fg->cur) == root);
 }
 
 void
