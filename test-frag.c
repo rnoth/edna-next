@@ -28,7 +28,7 @@ static void test_stab_empty(void);
 static void test_stab_root(void);
 
 struct unit_test tests[] = {
-	{.msg = "should fail on stab an empty graphs",
+	{.msg = "should fail on stabbing an empty graphs",
 	 .fun = unit_list(test_stab_empty),},
 	{.msg = "should insert a fragment to an empty graph",
 	 .fun = unit_list(test_insert_empty),},
