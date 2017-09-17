@@ -2,6 +2,7 @@
 #define _edna_tag_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 static inline uintptr_t flip_tag(uintptr_t);
 
