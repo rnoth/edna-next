@@ -16,7 +16,9 @@ enum link {
 static void add_chld(uintptr_t p, uintptr_t c, enum link k);
 static int bal(uintptr_t tag);
 static void init_node(struct frag_node *node, size_t pos);
-static void rebalance(struct frag *fg, enum link n148);
+static void rebalance(struct frag *fg, enum link n);
+static uintptr_t rotate(uintptr_t, enum link k);
+//static uintptr_t rotate2(uintptr_t, enum link k);
 static enum link frag_cmp(struct frag_node *node, size_t pos); 
 
 void
@@ -38,8 +40,16 @@ int
 adjust_balance(uintptr_t tag, enum link k)
 {
 	struct frag_node *node = untag(tag);
+	//uintptr_t chld = node->link[k];
+	int b = bal(node->link[2]);
 
-	switch (bal(node->link[2])) {
+	if (!b) {
+		if (!node->link[2]) return 0;
+		node->link[2] |= k ? 1 : 2;
+		return k ? 1 : 2;
+	}
+
+	switch (b) {
 
 	case -1:
 		if (!k) __builtin_trap();
@@ -51,16 +61,9 @@ adjust_balance(uintptr_t tag, enum link k)
 		node->link[2] ^= 1;
 		return 1;
 
-	case  0:
-		if (!node->link[2]) return 0;
-		node->link[2] |= k ? 1 : 2;
-		return k ? 1 : 2;
-
-	default:
-		__builtin_unreachable();
-
 	}
 
+	__builtin_unreachable();
 }
 
 int
@@ -112,6 +115,34 @@ rebalance(struct frag *fg, enum link n)
 
 	k = tag == prnt->link[1];
 	prnt->link[k] ^= m;
+}
+
+uintptr_t
+rotate(uintptr_t prnt_tag, enum link k)
+{
+	struct frag_node *prnt;
+	struct frag_node *heir;
+	uintptr_t heir_tag;
+
+	prnt = untag(prnt_tag);
+	heir_tag = prnt->link[!k];
+	heir = untag(heir_tag);
+
+	prnt->link[!k] = heir->link[k];
+	heir->link[k] = prnt_tag;
+
+	return heir_tag;
+
+}
+
+uintptr_t
+rotate2(uintptr_t tag, enum link k)
+{
+	struct frag_node *prnt;
+
+	prnt = untag(tag);
+	prnt->link[!k] = rotate(prnt->link[!k], !k);
+	return rotate(tag, k);
 }
 
 enum link
@@ -195,11 +226,12 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 	while (chld) {
 
 		k = frag_cmp(chld, where - fg->dsp);
+		if (k == 2) break;
 		lshift_ptr(&prnt, &chld, untag(chld->link[k]));
 
-	}
+		if (k) fg->dsp += prnt->dsp;
 
-	if (k) fg->dsp += prnt->dsp;
+	}
 
 	add_chld(fg->cur, (uintptr_t)new, k);
 	fg->cur = (uintptr_t)new;
