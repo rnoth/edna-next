@@ -45,8 +45,8 @@ adjust_balance(uintptr_t tag, enum link k)
 
 	if (!b) {
 		if (!node->link[2]) return 0;
-		node->link[2] |= k ? 1 : 2;
-		return k ? 1 : 2;
+		node->link[2] |= k + 2;
+		return k + 2;
 	}
 
 	switch (b) {
@@ -58,8 +58,8 @@ adjust_balance(uintptr_t tag, enum link k)
 
 	case  1:
 		if (k) __builtin_trap();
-		node->link[2] ^= 1;
-		return 1;
+		node->link[2] ^= 3;
+		return 3;
 
 	}
 
@@ -69,7 +69,14 @@ adjust_balance(uintptr_t tag, enum link k)
 int
 bal(uintptr_t tag)
 {
-	return tag & 3 ? (tag & 3) * -2 + 3 : 0;
+	switch (tag & 3) {
+	case 0: return 0;
+	case 1: __builtin_trap();
+	case 2: return -1;
+	case 3: return 1;
+	}
+
+	__builtin_unreachable();
 }
 
 void
