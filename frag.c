@@ -13,9 +13,10 @@ enum link {
 	up,
 };
 
+static void add_chld(uintptr_t p, uintptr_t c, enum link k);
 static int bal(uintptr_t tag);
-static void frag_insert_balance(struct frag *fg);
-static void frag_delete_balance(struct frag *fg);
+static void init_node(struct frag_node *node, size_t pos);
+static void rebalance(struct frag *fg, enum link n148);
 static enum link frag_cmp(struct frag_node *node, size_t pos); 
 
 void
@@ -26,15 +27,40 @@ add_chld(uintptr_t p, uintptr_t c, enum link k)
 
 	pp = untag(p);
 	cc = untag(c);
+
 	pp->link[ k] = c;
 	cc->link[!k] = p;
 	cc->link[up] = p;
+
 }
 
-void
-add_link(struct frag_node *node, uintptr_t tag, enum link k)
+int
+adjust_balance(uintptr_t tag, enum link k)
 {
-	node->link[k] = tag;
+	struct frag_node *node = untag(tag);
+
+	switch (bal(node->link[2])) {
+
+	case -1:
+		if (!k) __builtin_trap();
+		node->link[2] ^= 2;
+		return 2;
+
+	case  1:
+		if (k) __builtin_trap();
+		node->link[2] ^= 1;
+		return 1;
+
+	case  0:
+		if (!node->link[2]) return 0;
+		node->link[2] |= k ? 1 : 2;
+		return k ? 1 : 2;
+
+	default:
+		__builtin_unreachable();
+
+	}
+
 }
 
 int
@@ -52,115 +78,40 @@ init_node(struct frag_node *node, size_t pos)
 }
 
 void
-frag_delete_balance(struct frag *fg)
+rebalance(struct frag *fg, enum link n)
 {
-	struct frag_node *node;
 	struct frag_node *prnt;
+	struct frag_node *chld;
+	uintptr_t tag;
 	enum link k=-1;
-	uintptr_t next;
 	size_t adj;
 	int m=0;
 
-	prnt = untag(fg->cur);
-	adj = prnt->len;
+	tag = fg->cur;
+	chld = untag(tag);
+	prnt = untag(chld->link[2]);
+	adj = n ? chld->len : -chld->len;
 
-	while (prnt->link[up]) {
+	while (prnt) {
 
-		node = prnt;
-		next = node->link[up];
-		prnt = untag(next);
-
-		k = node == untag(prnt->link[right]);
-		prnt->link[k] ^= m;
-
-		if (k) prnt->wid -= adj;
-		else prnt->dsp -= adj;
-
-		switch (bal(next)) {
-
-		case -1:
-			if (k) __builtin_trap();
-			node->link[up] ^= 2;
-			m = 2;
-			goto done;
-
-		case  1:
-			if (!k) __builtin_trap();
-			node->link[up] ^= 1;
-			m = 1;
-			goto done;
-
-		case  0:
-			node->link[up] |= k ? 1 : 2;
-			m = k ? 1 : 2;
-			break;
-
-		}
-
-	}
-
-	return;
- done:
-	node = untag(prnt->link[up]);
-	if (!node) return;
-	k = prnt == untag(node->link[right]);
-	node->link[k] ^= m;
-}
-
-void
-frag_insert_balance(struct frag *fg)
-{
-	struct frag_node *node;
-	struct frag_node *prnt;
-	enum link k=-1;
-	uintptr_t next;
-	size_t adj;
-	int m=0;
-
-	prnt = untag(fg->cur);
-	adj = prnt->len;
-
-	while (prnt->link[up]) {
-
-		node = prnt;
-		next = node->link[up];
-		prnt = untag(next);
-
-		k = node == untag(prnt->link[right]);
+		k = tag == prnt->link[1];
 		prnt->link[k] ^= m;
 
 		if (k) prnt->wid += adj;
 		else prnt->dsp += adj;
 
-		switch (bal(next)) {
+		m = adjust_balance(tag, k == n);
 
-		case -1:
-			if (!k) __builtin_trap();
-			node->link[up] ^= 2;
-			m = 2;
-			goto done;
-
-		case  1:
-			if (k) __builtin_trap();
-			node->link[up] ^= 1;
-			m = 1;
-			goto done;
-
-		case  0:
-			node->link[up] |= k ? 1 : 2;
-			m = k ? 1 : 2;
-			break;
-
-		}
+		tag = chld->link[2];
+		chld = untag(chld->link[2]);
+		prnt = untag(prnt->link[2]);
 
 	}
 
-	return;
- done:
-	node = untag(prnt->link[up]);
-	if (!node) return;
-	k = prnt == untag(node->link[right]);
-	node->link[k] ^= m;
+	if (!prnt) return;
+
+	k = tag == prnt->link[1];
+	prnt->link[k] ^= m;
 }
 
 enum link
@@ -190,7 +141,7 @@ frag_delete(struct frag *fg, size_t pos)
 	match = frag_stab(fg, pos);
 	if (!match) return;
 
-	frag_delete_balance(fg);
+	rebalance(fg, 0);
 
 	fg->cur = match->link[up];
 	prnt = untag(match->link[up]);
@@ -251,10 +202,9 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 	if (k) fg->dsp += prnt->dsp;
 
 	add_chld(fg->cur, (uintptr_t)new, k);
-
 	fg->cur = (uintptr_t)new;
 
-	frag_insert_balance(fg);
+	rebalance(fg, 1);
 
 	return 0;
 }
