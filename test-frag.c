@@ -3,7 +3,7 @@
 
 #include <frag.c>
 
-//static void test_balance(void);
+/* static void test_balance(void); */
 
 static void test_delete_absent(void);
 static void test_delete_empty(void);
@@ -70,41 +70,39 @@ struct unit_test tests[] = {
 	{.msg = "should delete leaf nodes",
 	 .fun = unit_list(test_delete_leaf),},
 
-	//{.msg = "should rotate the tree when unbalanced",
-	//.fun = unit_list(test_balance),},
+	/* {.msg = "should rotate the tree when unbalanced", */
+	/* .fun = unit_list(test_balance),}, */
 };
 
 #include <unit.t>
 
-#if 0
-void
-test_balance(void)
-{
-	struct frag_node one[1]={{.len=1}};
-	struct frag_node two[1]={{.len=2}};
-	struct frag_node thr[1]={{.len=3}};
-	struct frag fg[1] = {{0}};
+/* void */
+/* test_balance(void) */
+/* { */
+/* 	struct frag_node one[1]={{.len=1}}; */
+/* 	struct frag_node two[1]={{.len=2}}; */
+/* 	struct frag_node thr[1]={{.len=3}}; */
+/* 	struct frag fg[1] = {{0}}; */
 
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 1, two));
-	expect(0, frag_insert(fg, 2, thr));
+/* 	expect(0, frag_insert(fg, 0, one)); */
+/* 	expect(0, frag_insert(fg, 1, two)); */
+/* 	expect(0, frag_insert(fg, 2, thr)); */
 
-	try(frag_flush(fg));
+/* 	try(frag_flush(fg)); */
 
-	ok(fg->cur == (uintptr_t)two);
-	ok(two->link[up] == 0);
-	ok(two->link[left] == (uintptr_t)one);
-	ok(two->link[right] == (uintptr_t)thr);
+/* 	ok(fg->cur == (uintptr_t)two); */
+/* 	ok(two->link[up] == 0); */
+/* 	ok(two->link[left] == (uintptr_t)one); */
+/* 	ok(two->link[right] == (uintptr_t)thr); */
 
-	ok(one->link[left] == 0);
-	ok(one->link[right] == (uintptr_t)two);
-	ok(one->link[up] == (uintptr_t)two);
+/* 	ok(one->link[left] == 0); */
+/* 	ok(one->link[right] == (uintptr_t)two); */
+/* 	ok(one->link[up] == (uintptr_t)two); */
 
-	ok(thr->link[left] == (uintptr_t)two);
-	ok(thr->link[right] == 0);
-	ok(thr->link[up] == (uintptr_t)two);
-}
-#endif
+/* 	ok(thr->link[left] == (uintptr_t)two); */
+/* 	ok(thr->link[right] == 0); */
+/* 	ok(thr->link[up] == (uintptr_t)two); */
+/* } */
 
 void
 test_delete_absent(void)
