@@ -1,6 +1,7 @@
 #include <unit.h>
 #include <util.h>
 
+#include <tag.h>
 #include <frag.c>
 
 /* static void test_balance(void); */
@@ -276,7 +277,7 @@ test_insert_empty(void)
 	ok(untag(fg->cur) == node);
 	expect(0, node->wid);
 	expect(0, node->dsp);
-	ok(!bal(fg->cur));
+	ok(!tag_of(fg->cur));
 }
 
 void
@@ -302,7 +303,7 @@ test_insert_head(void)
 	ok(untag(two->link[up]) == one);
 	ok(!two->link[left]);
 
-	expect(-1, bal(two->link[up]));
+	expect(2, tag_of(two->link[up]));
 }
 
 void
@@ -328,7 +329,7 @@ test_insert_tail(void)
 	ok(untag(two->link[up]) == one);
 	ok(!two->link[right]);
 
-	expect(1, bal(two->link[up]));
+	expect(3, tag_of(two->link[up]));
 }
 
 void

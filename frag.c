@@ -14,7 +14,6 @@ enum link {
 };
 
 static void add_chld(uintptr_t p, uintptr_t c, enum link k);
-static int bal(uintptr_t tag);
 static void init_node(struct frag_node *node, size_t pos);
 static void rebalance(struct frag *fg, enum link n);
 static uintptr_t rotate(uintptr_t, enum link k);
@@ -41,42 +40,19 @@ adjust_balance(uintptr_t tag, enum link k)
 {
 	struct frag_node *node = untag(tag);
 	//uintptr_t chld = node->link[k];
-	int b = bal(node->link[2]);
+	int b = node->link[2] & 3;
 
 	if (!b) {
 		if (!node->link[2]) return 0;
-		node->link[2] |= k + 2;
-		return k + 2;
+		node->link[2] |= 2|k;
+		return 2|k;
 	}
 
-	switch (b) {
+	if (b-2 == k) __builtin_trap();
 
-	case -1:
-		if (!k) __builtin_trap();
-		node->link[2] ^= 2;
-		return 2;
+	node->link[2] ^= b;
+	return b;
 
-	case  1:
-		if (k) __builtin_trap();
-		node->link[2] ^= 3;
-		return 3;
-
-	}
-
-	__builtin_unreachable();
-}
-
-int
-bal(uintptr_t tag)
-{
-	switch (tag & 3) {
-	case 0: return 0;
-	case 1: __builtin_trap();
-	case 2: return -1;
-	case 3: return 1;
-	}
-
-	__builtin_unreachable();
 }
 
 void
@@ -104,7 +80,7 @@ rebalance(struct frag *fg, enum link n)
 
 	while (prnt) {
 
-		k = tag == prnt->link[1];
+		k = tag == prnt->link[1] ^ m;
 		prnt->link[k] ^= m;
 
 		if (k) prnt->wid += adj;
