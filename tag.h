@@ -18,6 +18,7 @@ static inline uintptr_t tag_root(void *);
 static inline uintptr_t tag0(void *);
 static inline uintptr_t tag1(void *);
 
+static inline int tag_of(uintptr_t);
 static inline void *untag(uintptr_t);
 
 uintptr_t flip_tag(uintptr_t tag) { return tag ^ 2; }
@@ -27,6 +28,7 @@ bool is_leaf(uintptr_t tag) { return tag & 1; }
 bool is_node(uintptr_t tag) { return !(tag & 1); }
 bool is_root(uintptr_t tag) { return tag & 1; }
 
+int tag_of(uintptr_t tag) { return tag & 3; }
 void *untag(uintptr_t tag) { return (void *)(tag & ~3); }
 
 uintptr_t tag_leaf(void *leaf) { return (uintptr_t)leaf | 1; }
