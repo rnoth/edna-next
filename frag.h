@@ -16,7 +16,8 @@ void *frag_stab(struct frag *fg, size_t pos);
 
 struct frag {
 	uintptr_t cur;
-	size_t dsp;
+	size_t off;
+	size_t rem;
 };
 
 struct frag_node {

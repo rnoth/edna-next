@@ -4,8 +4,6 @@
 #include <tag.h>
 #include <frag.c>
 
-static void test_balance(void);
-
 static void test_delete_absent(void);
 static void test_delete_empty(void);
 static void test_delete_leaf(void);
@@ -20,6 +18,7 @@ static void test_flush_one();
 static void test_flush_two();
 static void test_flush_offset();
 
+static void test_insert_balance(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_tail(void);
@@ -72,38 +71,10 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_delete_leaf),},
 
 	{.msg = "should rotate the tree when unbalanced",
-	.fun = unit_list(test_balance),},
+	.fun = unit_list(test_insert_balance),},
 };
 
 #include <unit.t>
-
-void
-test_balance(void)
-{
-	struct frag_node one[1]={{.len=1}};
-	struct frag_node two[1]={{.len=2}};
-	struct frag_node thr[1]={{.len=3}};
-	struct frag fg[1] = {{0}};
-
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 1, two));
-	expect(0, frag_insert(fg, 2, thr));
-
-	try(frag_flush(fg));
-
-	ok(fg->cur == (uintptr_t)two);
-	ok(two->link[up] == 0);
-	ok(two->link[left] == (uintptr_t)one);
-	ok(two->link[right] == (uintptr_t)thr);
-
-	ok(one->link[left] == 0);
-	ok(one->link[right] == (uintptr_t)two);
-	ok(one->link[up] == (uintptr_t)two);
-
-	ok(thr->link[left] == (uintptr_t)two);
-	ok(thr->link[right] == 0);
-	ok(thr->link[up] == (uintptr_t)two);
-}
 
 void
 test_delete_absent(void)
@@ -196,7 +167,7 @@ test_flush_empty(void)
 	try(frag_flush(fg));
 
 	ok(!fg->cur);
-	ok(!fg->dsp);
+	ok(!fg->off);
 }
 
 void
@@ -212,12 +183,12 @@ test_flush_idempotent(void)
 	try(frag_flush(fg));
 
 	ok(untag(fg->cur) == one);
-	ok(!fg->dsp);
+	ok(!fg->off);
 
 	try(frag_flush(fg));
 
 	ok(untag(fg->cur) == one);
-	ok(!fg->dsp);
+	ok(!fg->off);
 }
 
 void
@@ -231,7 +202,7 @@ test_flush_one(void)
 	try(frag_flush(fg));
 
 	ok(untag(fg->cur) == one);
-	ok(!fg->dsp);
+	ok(!fg->off);
 }
 
 void
@@ -247,7 +218,7 @@ test_flush_two(void)
 	try(frag_flush(fg));
 
 	ok(untag(fg->cur) == one);
-	ok(!fg->dsp);
+	ok(!fg->off);
 }
 
 void
@@ -263,7 +234,7 @@ test_flush_offset(void)
 	try(frag_flush(fg));
 
 	ok(untag(fg->cur) == one);
-	ok(!fg->dsp);
+	ok(!fg->off);
 }
 
 void
@@ -278,6 +249,35 @@ test_insert_empty(void)
 	expect(0, node->wid);
 	expect(0, node->dsp);
 	ok(!tag_of(fg->cur));
+}
+
+void
+test_insert_balance(void)
+{
+	struct frag_node one[1]={{.len=1}};
+	struct frag_node two[1]={{.len=2}};
+	struct frag_node thr[1]={{.len=3}};
+	struct frag fg[1] = {{0}};
+
+	expect(0, frag_insert(fg, 0, one));
+	expect(0, frag_insert(fg, 1, two));
+	expect(0, frag_insert(fg, 2, thr));
+
+	try(frag_flush(fg));
+
+	ok(untag(fg->cur) == two);
+	ok(fg->cur == (uintptr_t)two);
+	ok(two->link[up] == 0);
+	ok(two->link[left] == (uintptr_t)one);
+	ok(two->link[right] == (uintptr_t)thr);
+
+	ok(one->link[left] == 0);
+	ok(one->link[right] == (uintptr_t)two);
+	ok(one->link[up] == (uintptr_t)two);
+
+	ok(thr->link[left] == (uintptr_t)two);
+	ok(thr->link[right] == 0);
+	ok(thr->link[up] == (uintptr_t)two);
 }
 
 void
@@ -301,7 +301,7 @@ test_insert_head(void)
 	ok(!one->link[right]);
 
 	ok(untag(two->link[up]) == one);
-	ok(!two->link[left]);
+	ok(two->link[right] == (uintptr_t)one + 2);
 
 	expect(2, tag_of(two->link[up]));
 }
@@ -327,7 +327,7 @@ test_insert_tail(void)
 	ok(!one->link[left]);
 
 	ok(untag(two->link[up]) == one);
-	ok(!two->link[right]);
+	ok(two->link[left] == (uintptr_t)one + 3);
 
 	expect(3, tag_of(two->link[up]));
 }
