@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -27,6 +28,10 @@ add_chld(uintptr_t p, uintptr_t c, enum link k)
 	struct frag_node *pp;
 	struct frag_node *cc;
 
+	assert(k == 0 || k == 1);
+	assert(p != 0x0);
+	assert(k != 0x0);
+
 	pp = untag(p);
 	cc = untag(c);
 
@@ -43,6 +48,9 @@ adjust(struct frag_node *node, int d)
 	struct frag_node *chld;
 	enum link k;
 	int b;
+
+	assert(node != 0x0);
+	assert(d == 0 || d == 1);
 
 	if (node->link[2]) {
 
@@ -100,6 +108,10 @@ adjust_balance(uintptr_t cur, enum link k)
 	uintptr_t chld = node->link[k];
 	int b = tag_of(cur);
 
+	assert(cur != 0x0);
+	assert(k == 0 || k == 1);
+	assert(b == 0 || b == 2 || b == 3);
+
 	if (!b || (b&1) != k) {
 		adjust(node, k);
 		return 0;
@@ -118,6 +130,8 @@ adjust_balance(uintptr_t cur, enum link k)
 void
 init_node(struct frag_node *node, size_t pos)
 {
+	assert(node != 0x0);
+
 	*node = (struct frag_node){.len = node->len};
 	node->wid = 0;
 	node->dsp = pos;
@@ -126,6 +140,9 @@ init_node(struct frag_node *node, size_t pos)
 uintptr_t
 get_chld(struct frag_node *n, enum link k)
 {
+	assert(k == 0 || k == 1);
+	assert(n != 0x0);
+
 	return untag(n->link[k]) != untag(n->link[2]) ? n->link[k] : 0;
 }
 
