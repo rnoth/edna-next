@@ -7,7 +7,7 @@
 #include <util.h>
 #include <tag.h>
 
-static void add_chld(uintptr_t p, uintptr_t c, int k);
+static void add_chld(uintptr_t p, int k, uintptr_t c);
 static void adjust_balance(uintptr_t u, int d);
 static void adjust_by_chld(uintptr_t u, int k, int d);
 static void adjust_by_prnt(uintptr_t u, int d);
@@ -26,7 +26,7 @@ static uintptr_t rotate(uintptr_t, int k);
 static void set_link(uintptr_t cur, int, uintptr_t tag);
 
 void
-add_chld(uintptr_t p, uintptr_t c, int k)
+add_chld(uintptr_t p, int k, uintptr_t c)
 {
 	struct frag_node *pp;
 	struct frag_node *cc;
@@ -252,7 +252,7 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 
 	k = find_nearest_leaf(fg, where);
 	
-	add_chld(fg->cur, tag0(new), k);
+	add_chld(fg->cur, k, tag0(new));
 	fg->cur = tag0(new);
 
 	rebalance(fg->cur, 1);
