@@ -23,7 +23,8 @@ static void frag_step(struct frag *fg, int k);
 static void rebalance(uintptr_t cur, int r);
 static uintptr_t rotate(uintptr_t, int k);
 //static uintptr_t rotate2(uintptr_t, int k);
-static void set_link(uintptr_t cur, int, uintptr_t tag);
+static void set_link(uintptr_t u, int k, uintptr_t t);
+static void set_off(uintptr_t u, int b, size_t n);
 
 void
 add_chld(uintptr_t p, int k, uintptr_t c)
@@ -38,10 +39,10 @@ add_chld(uintptr_t p, int k, uintptr_t c)
 	pp = untag(p);
 	cc = untag(c);
 
-	pp->link[k] = c;
 	cc->link[!k] = p;
+	cc->link[k] = pp->link[k];
+	pp->link[k] = c;
 	cc->link[2] = p;
-
 }
 
 void
@@ -112,27 +113,29 @@ init_node(struct frag_node *node, size_t pos)
 	assert(node != 0x0);
 
 	*node = (struct frag_node){.len = node->len};
-	node->wid = 0;
-	node->dsp = pos;
+	node->off[1] = 0;
+	node->off[0] = pos;
 }
 
 uintptr_t
-get_chld(uintptr_t n, int k)
+get_chld(uintptr_t u, int k)
 {
-	struct frag_node *nn = untag(n);
+	struct frag_node *n = untag(u);
+	if (untag(n->link[k]) == untag(n->link[2])) return 0;
+	return n->link[k];
+}
 
-	assert(k == 0 || k == 1);
-	assert(n != 0x0);
-
-	return untag(nn->link[k]) != untag(nn->link[2]) ? nn->link[k] : 0;
+size_t
+get_off(uintptr_t u, int b)
+{
+	struct frag_node *d = untag(u);
+	return d->off[b];
 }
 
 uintptr_t
 get_prnt(uintptr_t t)
 {
 	struct frag_node *c;
-
-	assert(t > 0x3);
 	c = untag(t);
 	return c->link[2];
 }
@@ -170,7 +173,7 @@ find_nearest_leaf(struct frag *fg, size_t where)
 		}
 
 		if (node->link[k] == pred || node->link[k] == succ) {
-			return where - fg->off > node->dsp;
+			return where - fg->off > node->off[0];
 		}
 
 		if (k == 0) succ = fg->cur;
@@ -194,13 +197,12 @@ frag_cmp(struct frag *fg, size_t pos)
 	struct frag_node *node = untag(fg->cur);
 
 	pos -= fg->off;
-
-	if (pos <= node->dsp) {
+	if (pos <= node->off[0]) {
 		return 0;
 	}
 
-	pos -= node->dsp;
-	if (pos < node->len + node->wid) {
+	pos -= node->off[0];
+	if (pos < node->off[1]) {
 		return 1;
 	}
 
@@ -251,7 +253,7 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 	}
 
 	k = find_nearest_leaf(fg, where);
-	
+
 	add_chld(fg->cur, k, tag0(new));
 	fg->cur = tag0(new);
 
@@ -271,7 +273,7 @@ frag_stab(struct frag *fg, size_t pos)
 
 	node = untag(fg->cur);
 
-	while (!in_range(node->dsp, node->len, pos - fg->off)) {
+	while (!in_range(node->off[0], node->len, pos - fg->off)) {
 
 		k = frag_cmp(fg, pos);
 		if (!node->link[k]) return 0;
@@ -295,18 +297,18 @@ frag_step(struct frag *fg, int k)
 	fg->cur = prev->link[k];
 	
 	if (k == 0) {
-		fg->rem += prev->wid;
+		fg->rem += prev->off[1];
 		return;
 	} else if (k == 1) {
-		fg->off += prev->dsp;
+		fg->off += prev->off[0];
 		return;
 	}
 
 	if (untag(next->link[0]) == prev) {
-		fg->rem -= next->wid;
+		fg->rem -= next->off[1];
 		return;
 	} else {
-		fg->off -= next->dsp;
+		fg->off -= next->off[0];
 		return;
 	}
 }
@@ -325,8 +327,8 @@ rebalance(uintptr_t u, int r)
 
 		k = u == n->link[1];
 
-		if (k) n->wid += a;
-		else n->dsp += a;
+		if (k) n->off[1] += a;
+		else n->off[0] += a;
 
 		increment_chld(get_prnt(u), k == r);
 
@@ -351,6 +353,9 @@ rotate(uintptr_t p, int k)
 	set_link(h, 2, get_prnt(p));
 	set_link(p, 2, h);
 
+	set_off(p, !k, get_off(h, k));
+	set_off(h,  k, get_off(p, k) + get_off(p, !k));
+
 	return h;
 }
 
@@ -365,8 +370,15 @@ rotate2(uintptr_t tag, int k)
 }
 
 void
-set_link(uintptr_t n, int k, uintptr_t t)
+set_link(uintptr_t u, int k, uintptr_t t)
 {
-	struct frag_node *nn = untag(n);
-	nn->link[k] = t;
+	struct frag_node *n = untag(u);
+	n->link[k] = t;
+}
+
+void
+set_off(uintptr_t u, int b, size_t n)
+{
+	struct frag_node *d = untag(u);
+	d->off[b] = n;
 }

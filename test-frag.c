@@ -4,6 +4,10 @@
 #include <tag.h>
 #include <frag.c>
 
+/* static void test_adjust_branches(void); */
+static void test_adjust_leaves(void);
+static void test_adjust_single(void);
+
 static void test_delete_absent(void);
 static void test_delete_empty(void);
 static void test_delete_leaf(void);
@@ -22,6 +26,9 @@ static void test_insert_balance(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_tail(void);
+
+static void test_rotate_left(void);
+static void test_rotate_right(void);
 
 static void test_stab_absent(void);
 static void test_stab_empty(void);
@@ -70,11 +77,86 @@ struct unit_test tests[] = {
 	{.msg = "should delete leaf nodes",
 	 .fun = unit_list(test_delete_leaf),},
 
+	{.msg = "should do nothing when adjust a node with no links",
+	 .fun = unit_list(test_adjust_single),},
+	{.msg = "should adjust the balance of nodes with leaf children",
+	 .fun = unit_list(test_adjust_leaves),},
+	/* {.msg = "should adjust the balance of nodes with branch children", */
+	/*  .fun = unit_list(test_adjust_branches),}, */
+
+	{.msg = "should rotate nodes to the left",
+	 .fun = unit_list(test_rotate_left),},
+	{.msg = "should rotate nodes to the right",
+	 .fun = unit_list(test_rotate_right),},
+
 	{.msg = "should rotate the tree when unbalanced",
 	.fun = unit_list(test_insert_balance),},
 };
 
 #include <unit.t>
+
+void
+test_adjust_branches(void)
+{
+	struct frag_node a[1]={{.len=1}};
+	struct frag_node b[1]={{.len=2}};
+	struct frag_node c[1]={{.len=3}};
+	struct frag_node d[1]={{.len=4}};
+	struct frag_node e[1]={{.len=5}};
+	struct frag fg[1] = {{0}};
+
+	try(frag_insert(fg, 0, c));
+
+	try(frag_insert(fg, 0, a));
+	try(frag_insert(fg, 7, e));
+
+	try(frag_insert(fg, 1, b));
+	try(frag_insert(fg, 6, d));
+
+	try(frag_flush(fg));
+	try(adjust_balance(fg->cur, 3));
+
+	expect(3, tag_of(a->link[2]));
+	ok(untag(a->link[1]) == b);
+
+	expect(3, tag_of(e->link[2]));
+	ok(untag(e->link[1]) == d);
+
+}
+
+void
+test_adjust_leaves(void)
+{
+	struct frag_node a[1]={{.len=1}};
+	struct frag_node b[1]={{.len=2}};
+	struct frag_node c[1]={{.len=3}};
+	struct frag fg[1] = {{0}};
+
+	try(frag_insert(fg, 0, b));
+	try(frag_insert(fg, 0, a));
+	try(frag_insert(fg, 3, c));
+
+	try(frag_flush(fg));
+	try(adjust_balance(fg->cur, 0));
+
+	expect(0, tag_of(b->link[2]));
+	expect(0, tag_of(b->link[0]));
+
+	expect(0, tag_of(c->link[2]));
+	expect(0, tag_of(c->link[1]));
+
+}
+
+void
+test_adjust_single(void)
+{
+	struct frag_node a[1]={{.len=4}};
+	struct frag fg[1] = {{0}};
+
+	try(frag_insert(fg, 0, a));
+
+	try(adjust_balance(fg->cur, 0));
+}
 
 void
 test_delete_absent(void)
@@ -86,12 +168,6 @@ test_delete_absent(void)
 	try(frag_delete(fg, 9));
 	ok(fg->cur);
 	ok(frag_stab(fg, 2) == one);
-}
-
-void
-test_adjust(void)
-{
-	
 }
 
 void
@@ -121,8 +197,8 @@ test_delete_leaf(void)
 	ok(!one->link[1]);
 	ok(!one->link[2]);
 
-	ok(!one->wid);
-	ok(!one->dsp);
+	ok(!one->off[1]);
+	ok(!one->off[0]);
 }
 
 void
@@ -252,8 +328,8 @@ test_insert_empty(void)
 	expect(0, frag_insert(fg, 0, node));
 
 	ok(untag(fg->cur) == node);
-	expect(0, node->wid);
-	expect(0, node->dsp);
+	expect(0, node->off[1]);
+	expect(0, node->off[0]);
 	ok(!tag_of(fg->cur));
 }
 
@@ -296,11 +372,11 @@ test_insert_head(void)
 	expect(0, frag_insert(fg, 0, one));
 	expect(0, frag_insert(fg, 0, two));
 
-	expect(6, one->dsp);
-	expect(0, one->wid);
+	expect(6, one->off[0]);
+	expect(0, one->off[1]);
 
-	expect(0, two->dsp);
-	expect(0, two->wid);
+	expect(0, two->off[0]);
+	expect(0, two->off[1]);
 
 	ok(!one->link[2]);
 	ok(untag(one->link[0]) == two);
@@ -322,11 +398,11 @@ test_insert_tail(void)
 	expect(0, frag_insert(fg, 0, one));
 	expect(0, frag_insert(fg, 4, two));
 
-	expect(6, one->wid);
-	expect(0, one->dsp);
+	expect(6, one->off[1]);
+	expect(0, one->off[0]);
 
-	expect(0, two->wid);
-	expect(0, two->dsp);
+	expect(0, two->off[1]);
+	expect(0, two->off[0]);
 
 	ok(!one->link[2]);
 	ok(untag(one->link[1]) == two);
@@ -336,6 +412,68 @@ test_insert_tail(void)
 	ok(two->link[0] == (uintptr_t)one + 3);
 
 	expect(3, tag_of(two->link[2]));
+}
+
+void
+test_rotate_left(void)
+{
+	struct frag_node a[1];
+	struct frag_node b[1];
+	struct frag_node f[1];
+	struct frag_node g[1];
+	struct frag_node h[1];
+
+	*a = (struct frag_node){
+		.off = {10, 11},
+		.len=5,
+		.link={tag0(f), tag0(b), 0}};
+	*b = (struct frag_node){
+		.off = {15, 4},
+		.len=7,
+		.link={tag0(g), tag0(h), tag0(a),},
+	};
+
+	ok(rotate(tag0(a), 0) == tag0(b));
+
+	ok(a->link[1] == tag0(g));
+	ok(a->link[2] == tag0(b));
+
+	ok(b->link[0] == tag0(a));
+	ok(b->link[2] == 0);
+
+	expect(15, a->off[1]);
+	expect(25, b->off[0]);
+}
+
+void
+test_rotate_right(void)
+{
+	struct frag_node a[1];
+	struct frag_node b[1];
+	struct frag_node f[1];
+	struct frag_node g[1];
+	struct frag_node h[1];
+
+	*a = (struct frag_node){
+		.off={19, 11},
+		.len=5,
+		.link={tag0(b), tag0(h), 0}};
+	*b = (struct frag_node){
+		.off={15, 7},
+		.len=7,
+		.link={tag0(f), tag0(g), tag0(a),},
+	};
+
+	ok(rotate(tag0(a), 1) == tag0(b));
+
+	ok(a->link[0] == tag0(g));
+	ok(a->link[2] == tag0(b));
+
+	ok(b->link[1] == tag0(a));
+	ok(b->link[2] == 0);
+
+	expect(7, a->off[0]);
+	expect(18, b->off[1]);
 }
 
 void

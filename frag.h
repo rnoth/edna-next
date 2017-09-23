@@ -1,10 +1,7 @@
-
 #ifndef _edna_frag_
 #define _edna_frag_
 #include <stddef.h>
 #include <stdint.h>
-
-typedef size_t edna_pos;
 
 struct frag;
 struct frag_node;
@@ -22,8 +19,7 @@ struct frag {
 
 struct frag_node {
 	uintptr_t link[3];
-	size_t dsp;
-	size_t wid;
+	size_t off[2];
 	size_t len;
 };
 
