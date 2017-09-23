@@ -89,6 +89,12 @@ test_delete_absent(void)
 }
 
 void
+test_adjust(void)
+{
+	
+}
+
+void
 test_delete_empty(void)
 {
 	struct frag fg[1] = {{0}};
@@ -111,9 +117,9 @@ test_delete_leaf(void)
 	ok(untag(fg->cur) == one);
 	ok(fg->cur == (uintptr_t)one);
 
-	ok(!one->link[left]);
-	ok(!one->link[right]);
-	ok(!one->link[up]);
+	ok(!one->link[0]);
+	ok(!one->link[1]);
+	ok(!one->link[2]);
 
 	ok(!one->wid);
 	ok(!one->dsp);
@@ -156,7 +162,7 @@ test_finger(void)
 	expect(0, frag_insert(fg, 0, two));
 
 	ok(untag(fg->cur) == two);
-	ok(untag(two->link[up]) == one);
+	ok(untag(two->link[2]) == one);
 }
 
 void
@@ -267,17 +273,17 @@ test_insert_balance(void)
 
 	ok(untag(fg->cur) == two);
 	ok(fg->cur == (uintptr_t)two);
-	ok(two->link[up] == 0);
-	ok(two->link[left] == (uintptr_t)one);
-	ok(two->link[right] == (uintptr_t)thr);
+	ok(two->link[2] == 0);
+	ok(two->link[0] == (uintptr_t)one);
+	ok(two->link[1] == (uintptr_t)thr);
 
-	ok(one->link[left] == 0);
-	ok(one->link[right] == (uintptr_t)two);
-	ok(one->link[up] == (uintptr_t)two);
+	ok(one->link[0] == 0);
+	ok(one->link[1] == (uintptr_t)two);
+	ok(one->link[2] == (uintptr_t)two);
 
-	ok(thr->link[left] == (uintptr_t)two);
-	ok(thr->link[right] == 0);
-	ok(thr->link[up] == (uintptr_t)two);
+	ok(thr->link[0] == (uintptr_t)two);
+	ok(thr->link[1] == 0);
+	ok(thr->link[2] == (uintptr_t)two);
 }
 
 void
@@ -296,14 +302,14 @@ test_insert_head(void)
 	expect(0, two->dsp);
 	expect(0, two->wid);
 
-	ok(!one->link[up]);
-	ok(untag(one->link[left]) == two);
-	ok(!one->link[right]);
+	ok(!one->link[2]);
+	ok(untag(one->link[0]) == two);
+	ok(!one->link[1]);
 
-	ok(untag(two->link[up]) == one);
-	ok(two->link[right] == (uintptr_t)one + 2);
+	ok(untag(two->link[2]) == one);
+	ok(two->link[1] == (uintptr_t)one + 2);
 
-	expect(2, tag_of(two->link[up]));
+	expect(2, tag_of(two->link[2]));
 }
 
 void
@@ -322,14 +328,14 @@ test_insert_tail(void)
 	expect(0, two->wid);
 	expect(0, two->dsp);
 
-	ok(!one->link[up]);
-	ok(untag(one->link[right]) == two);
-	ok(!one->link[left]);
+	ok(!one->link[2]);
+	ok(untag(one->link[1]) == two);
+	ok(!one->link[0]);
 
-	ok(untag(two->link[up]) == one);
-	ok(two->link[left] == (uintptr_t)one + 3);
+	ok(untag(two->link[2]) == one);
+	ok(two->link[0] == (uintptr_t)one + 3);
 
-	expect(3, tag_of(two->link[up]));
+	expect(3, tag_of(two->link[2]));
 }
 
 void

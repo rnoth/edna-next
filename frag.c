@@ -7,32 +7,26 @@
 #include <util.h>
 #include <tag.h>
 
-enum link {
-	left,
-	right,
-	up,
-};
-
-static void add_chld(uintptr_t p, uintptr_t c, enum link k);
+static void add_chld(uintptr_t p, uintptr_t c, int k);
 static void adjust_balance(uintptr_t u, int d);
 static void adjust_by_chld(uintptr_t u, int k, int d);
 static void adjust_by_prnt(uintptr_t u, int d);
 static void increment_chld(uintptr_t u, int k);
 static void init_node(struct frag_node *node, size_t pos);
-static uintptr_t get_chld(uintptr_t n, enum link k);
+static uintptr_t get_chld(uintptr_t n, int k);
 static uintptr_t get_prnt(uintptr_t prnt);
-static int find_leftmost_leaf(struct frag *fg);
+static int find_0most_leaf(struct frag *fg);
 static int find_nearest_leaf(struct frag *fg, size_t where);
 static void init_node(struct frag_node *node, size_t pos);
 static void rebalance(uintptr_t cur, int r);
-static uintptr_t rotate(uintptr_t, enum link k);
-//static uintptr_t rotate2(uintptr_t, enum link k);
-static enum link frag_cmp(struct frag *fg, size_t pos);
-static void frag_step(struct frag *fg, enum link k);
+static uintptr_t rotate(uintptr_t, int k);
+//static uintptr_t rotate2(uintptr_t, int k);
+static int frag_cmp(struct frag *fg, size_t pos);
+static void frag_step(struct frag *fg, int k);
 static void set_link(uintptr_t cur, int, uintptr_t tag);
 
 void
-add_chld(uintptr_t p, uintptr_t c, enum link k)
+add_chld(uintptr_t p, uintptr_t c, int k)
 {
 	struct frag_node *pp;
 	struct frag_node *cc;
@@ -123,7 +117,7 @@ init_node(struct frag_node *node, size_t pos)
 }
 
 uintptr_t
-get_chld(uintptr_t n, enum link k)
+get_chld(uintptr_t n, int k)
 {
 	struct frag_node *nn = untag(n);
 
@@ -169,7 +163,7 @@ rebalance(uintptr_t u, int r)
 }
 
 uintptr_t
-rotate(uintptr_t p, enum link k)
+rotate(uintptr_t p, int k)
 {
 	uintptr_t h;
 	uintptr_t v;
@@ -187,7 +181,7 @@ rotate(uintptr_t p, enum link k)
 }
 
 uintptr_t
-rotate2(uintptr_t tag, enum link k)
+rotate2(uintptr_t tag, int k)
 {
 	struct frag_node *prnt;
 
@@ -197,7 +191,7 @@ rotate2(uintptr_t tag, enum link k)
 }
 
 int
-find_leftmost_leaf(struct frag *fg)
+find_0most_leaf(struct frag *fg)
 {
 	struct frag_node *node;
 
@@ -240,14 +234,14 @@ find_nearest_leaf(struct frag *fg, size_t where)
 	}
 
 	if (k == 2) {
-		find_leftmost_leaf(fg);
+		find_0most_leaf(fg);
 		return 1;
 	}
 
 	return k;
 }
 
-enum link
+int
 frag_cmp(struct frag *fg, size_t pos)
 {
 	struct frag_node *node = untag(fg->cur);
@@ -272,15 +266,15 @@ frag_delete(struct frag *fg, size_t pos)
 {
 	struct frag_node *match;
 	struct frag_node *prnt;
-	enum link k;
+	int k;
 
 	match = frag_stab(fg, pos);
 	if (!match) return;
 
 	rebalance(fg->cur, 0);
 
-	fg->cur = match->link[up];
-	prnt = untag(match->link[up]);
+	fg->cur = match->link[2];
+	prnt = untag(match->link[2]);
 	if (!prnt) return;
 	k = untag(prnt->link[1]) == match;
 	prnt->link[k] = 0;
@@ -323,7 +317,7 @@ void *
 frag_stab(struct frag *fg, size_t pos)
 {
 	struct frag_node *node;
-	enum link k;
+	int k;
 
 	if (!fg) return 0;
 	if (!fg->cur) return 0;
@@ -343,7 +337,7 @@ frag_stab(struct frag *fg, size_t pos)
 }
 
 void
-frag_step(struct frag *fg, enum link k)
+frag_step(struct frag *fg, int k)
 {
 	struct frag_node *prev = untag(fg->cur);
 	struct frag_node *next = untag(prev->link[k]);
