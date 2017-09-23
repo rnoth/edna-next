@@ -15,7 +15,7 @@ static void increment_chld(uintptr_t u, int k);
 static void init_node(struct frag_node *node, size_t pos);
 static uintptr_t get_chld(uintptr_t n, int k);
 static uintptr_t get_prnt(uintptr_t prnt);
-static int find_0most_leaf(struct frag *fg);
+static int find_leftmost_leaf(struct frag *fg);
 static int find_nearest_leaf(struct frag *fg, size_t where);
 static void init_node(struct frag_node *node, size_t pos);
 static void rebalance(uintptr_t cur, int r);
@@ -191,7 +191,7 @@ rotate2(uintptr_t tag, int k)
 }
 
 int
-find_0most_leaf(struct frag *fg)
+find_leftmost_leaf(struct frag *fg)
 {
 	struct frag_node *node;
 
@@ -234,7 +234,7 @@ find_nearest_leaf(struct frag *fg, size_t where)
 	}
 
 	if (k == 2) {
-		find_0most_leaf(fg);
+		find_leftmost_leaf(fg);
 		return 1;
 	}
 
