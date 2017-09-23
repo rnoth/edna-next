@@ -17,6 +17,8 @@ static inline uintptr_t tag_root(void *);
 
 static inline uintptr_t tag0(void *);
 static inline uintptr_t tag1(void *);
+static inline uintptr_t tag2(void *);
+static inline uintptr_t tag3(void *);
 
 static inline int tag_of(uintptr_t);
 static inline void *untag(uintptr_t);
@@ -37,5 +39,7 @@ uintptr_t tag_root(void *root) { return (uintptr_t)root | 1; }
 
 uintptr_t tag0(void *ptr) { return (uintptr_t)ptr; }
 uintptr_t tag1(void *ptr) { return (uintptr_t)ptr | 1; }
+uintptr_t tag2(void *ptr) { return (uintptr_t)ptr | 2; }
+uintptr_t tag3(void *ptr) { return (uintptr_t)ptr | 3; }
 
 #endif
