@@ -18,11 +18,11 @@ static uintptr_t get_prnt(uintptr_t prnt);
 static int find_leftmost_leaf(struct frag *fg);
 static int find_nearest_leaf(struct frag *fg, size_t where);
 static void init_node(struct frag_node *node, size_t pos);
+static int frag_cmp(struct frag *fg, size_t pos);
+static void frag_step(struct frag *fg, int k);
 static void rebalance(uintptr_t cur, int r);
 static uintptr_t rotate(uintptr_t, int k);
 //static uintptr_t rotate2(uintptr_t, int k);
-static int frag_cmp(struct frag *fg, size_t pos);
-static void frag_step(struct frag *fg, int k);
 static void set_link(uintptr_t cur, int, uintptr_t tag);
 
 void
@@ -135,59 +135,6 @@ get_prnt(uintptr_t t)
 	assert(t > 0x3);
 	c = untag(t);
 	return c->link[2];
-}
-
-void
-rebalance(uintptr_t u, int r)
-{
-	struct frag_node *n;
-	size_t a;
-	int k;
-
-	n = untag(u);
-	a = r ? n->len : -n->len;
-
-	while (n = untag(n->link[2])) {
-
-		k = u == n->link[1];
-
-		if (k) n->wid += a;
-		else n->dsp += a;
-
-		increment_chld(get_prnt(u), k == r);
-
-		u = get_prnt(u);
-		if (!tag_of(u)) return;
-
-	}
-}
-
-uintptr_t
-rotate(uintptr_t p, int k)
-{
-	uintptr_t h;
-	uintptr_t v;
-
-	h = get_chld(p, !k);
-	v = get_chld(h, k);
-
-	set_link(p, !k, v ? v : h);
-	set_link(h, k, p);
-
-	set_link(h, 2, get_prnt(p));
-	set_link(p, 2, h);
-
-	return h;
-}
-
-uintptr_t
-rotate2(uintptr_t tag, int k)
-{
-	struct frag_node *prnt;
-
-	prnt = untag(tag);
-	prnt->link[!k] = rotate(prnt->link[!k], !k);
-	return rotate(tag, k);
 }
 
 int
@@ -365,9 +312,61 @@ frag_step(struct frag *fg, int k)
 }
 
 void
+rebalance(uintptr_t u, int r)
+{
+	struct frag_node *n;
+	size_t a;
+	int k;
+
+	n = untag(u);
+	a = r ? n->len : -n->len;
+
+	while (n = untag(n->link[2])) {
+
+		k = u == n->link[1];
+
+		if (k) n->wid += a;
+		else n->dsp += a;
+
+		increment_chld(get_prnt(u), k == r);
+
+		u = get_prnt(u);
+		if (!tag_of(u)) return;
+
+	}
+}
+
+uintptr_t
+rotate(uintptr_t p, int k)
+{
+	uintptr_t h;
+	uintptr_t v;
+
+	h = get_chld(p, !k);
+	v = get_chld(h, k);
+
+	set_link(p, !k, v ? v : h);
+	set_link(h, k, p);
+
+	set_link(h, 2, get_prnt(p));
+	set_link(p, 2, h);
+
+	return h;
+}
+
+uintptr_t
+rotate2(uintptr_t tag, int k)
+{
+	struct frag_node *prnt;
+
+	prnt = untag(tag);
+	prnt->link[!k] = rotate(prnt->link[!k], !k);
+	return rotate(tag, k);
+}
+
+void
 set_link(uintptr_t n, int k, uintptr_t t)
 {
 	struct frag_node *nn = untag(n);
-
 	nn->link[k] = t;
 }
