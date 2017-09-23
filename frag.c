@@ -22,7 +22,7 @@ static int frag_cmp(struct frag *fg, size_t pos);
 static void frag_step(struct frag *fg, int k);
 static void rebalance(uintptr_t cur, int r);
 static uintptr_t rotate(uintptr_t, int k);
-//static uintptr_t rotate2(uintptr_t, int k);
+static uintptr_t rotate2(uintptr_t, int k);
 static void set_link(uintptr_t u, int k, uintptr_t t);
 static void set_off(uintptr_t u, int b, size_t n);
 
@@ -39,8 +39,8 @@ add_chld(uintptr_t p, int k, uintptr_t c)
 	pp = untag(p);
 	cc = untag(c);
 
-	cc->link[!k] = p;
-	cc->link[k] = pp->link[k];
+	if (!cc->link[!k]) cc->link[!k] = p;
+	//cc->link[k] = pp->link[k];
 	pp->link[k] = c;
 	cc->link[2] = p;
 }
@@ -64,8 +64,8 @@ adjust_by_chld(uintptr_t u, int k, int g)
 	uintptr_t t = u & ~3 | g;
 
 	if (c) {
-		set_link(c, 2, t);
 		if (!get_chld(c, !k)) set_link(c, !k, t);
+		set_link(c, 2, t);
 	}
 }
 
@@ -83,35 +83,33 @@ adjust_by_prnt(uintptr_t u, int g)
 }
 
 void
-increment_chld(uintptr_t cur, int k)
+increment_chld(uintptr_t u, int k)
 {
-	uintptr_t chld = get_chld(cur, k);
-	int b = tag_of(cur);
-
-	assert(cur != 0x0);
-	assert(k == 0 || k == 1);
-	assert(b == 0 || b == 2 || b == 3);
+	uintptr_t c = get_chld(u, k);
+	uintptr_t g = c ? get_chld(c, !k) : 0;
+	int w = tag_of(g);
+	int b = tag_of(u);
 
 	if (!b || b-2 != k) {
-		adjust_balance(cur, b ? 0 : 2|k);
+		adjust_balance(u, b ? 0 : 2|k);
 		return;
 	}
 
-	if (b == tag_of(chld)) {
-		adjust_balance(cur, 0);
-		adjust_balance(chld, 0);
-		rotate(cur & ~3, !k);
+	if (b == tag_of(c)) {
+		adjust_balance(u, w ? w ^ 1 : 0);
+		adjust_balance(c, 0);
+		rotate(u & ~3, !k);
 		return;
 	}
 
-	__builtin_trap();
+	adjust_balance(u, 0);
+	adjust_balance(c, w);
+	rotate2(u, !k);
 }
 
 void
 init_node(struct frag_node *node, size_t pos)
 {
-	assert(node != 0x0);
-
 	*node = (struct frag_node){.len = node->len};
 	node->off[1] = 0;
 	node->off[0] = pos;
@@ -121,7 +119,7 @@ uintptr_t
 get_chld(uintptr_t u, int k)
 {
 	struct frag_node *n = untag(u);
-	if (untag(n->link[k]) == untag(n->link[2])) return 0;
+	if (n->link[k] == n->link[2]) return 0x0;
 	return n->link[k];
 }
 
