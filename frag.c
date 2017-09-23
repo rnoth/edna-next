@@ -51,22 +51,22 @@ add_chld(uintptr_t p, uintptr_t c, enum link k)
 }
 
 void
-adjust_balance(uintptr_t u, int d)
+adjust_balance(uintptr_t u, int g)
 {
 	assert(u > 0x3);
-	assert(d == 0 || d == 2 || d == 3);
+	assert(g == 0 || g == 2 || g == 3);
 
-	adjust_by_prnt(u, d);
-	adjust_by_chld(u, 0, d);
-	adjust_by_chld(u, 1, d);
+	adjust_by_prnt(u, g);
+	adjust_by_chld(u, 0, g);
+	adjust_by_chld(u, 1, g);
 
 }
 
 void
-adjust_by_chld(uintptr_t u, int k, int d)
+adjust_by_chld(uintptr_t u, int k, int g)
 {
 	uintptr_t c = get_chld(u, k);
-	uintptr_t t = u & ~3 | d;
+	uintptr_t t = u & ~3 | g;
 
 	if (c) {
 		set_link(c, 2, t);
@@ -75,10 +75,10 @@ adjust_by_chld(uintptr_t u, int k, int d)
 }
 
 void
-adjust_by_prnt(uintptr_t u, int d)
+adjust_by_prnt(uintptr_t u, int g)
 {
 	uintptr_t p = get_prnt(u);
-	uintptr_t t = u & ~3 | d;
+	uintptr_t t = u & ~3 | g;
 	int k;
 
 	if (p) {
