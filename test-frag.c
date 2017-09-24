@@ -15,11 +15,11 @@ static void test_delete_leaf(void);
 static void test_delete_root(void);
 
 static void test_finger(void);
-static void test_flush_empty();
-static void test_flush_idempotent();
-static void test_flush_one();
-static void test_flush_two();
-static void test_flush_offset();
+static void test_flush_empty(void);
+static void test_flush_idempotent(void);
+static void test_flush_one(void);
+static void test_flush_two(void);
+static void test_flush_offset(void);
 
 static void test_increment_adjust(void);
 static void test_increment_rotate(void);
@@ -31,18 +31,21 @@ static void test_insert_balance_soft(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_tail(void);
-//static void test_insert_tall(void);
 
 static void test_rotate_left(void);
+static void test_rotate_null(void);
 static void test_rotate_right(void);
 
 static void test_rotate2_left(void);
+static void test_rotate2_null(void);
 static void test_rotate2_right(void);
 
 static void test_stab_absent(void);
 static void test_stab_empty(void);
 static void test_stab_nearest(void);
 static void test_stab_root(void);
+
+static void test_step(void);
 
 struct unit_test tests[] = {
 	{.msg = "should fail on stabbing an empty graphs",
@@ -55,6 +58,9 @@ struct unit_test tests[] = {
 	{.msg = "should stay at nearest piece in the graph after stabbing",
 	 .fun = unit_list(test_stab_nearest),},
 
+	{.msg = "should compare indexes",
+	 .fun = unit_list(test_step),},
+
 	{.msg = "should stab the root piece",
 	 .fun = unit_list(test_stab_root),},
 	{.msg = "should not stab pieces not in the graph",
@@ -66,8 +72,6 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_tail),},
 	{.msg = "should update balance information on insert",
 	 .fun = unit_list(test_insert_balance_soft),},
-	//{.msg = "should make taller trees",
-	//.fun = unit_list(test_insert_tall),},
 
 	{.msg = "should maintain last query location",
 	 .fun = unit_list(test_finger),},
@@ -104,11 +108,15 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_rotate_left),},
 	{.msg = "should rotate to the right",
 	 .fun = unit_list(test_rotate_right),},
+        {.msg = "should rotate two nodes",
+         .fun = unit_list(test_rotate_null),},
 
 	{.msg = "should double-rotate to the left",
 	 .fun = unit_list(test_rotate2_left),},
 	{.msg = "should double-rotate to the right",
 	 .fun = unit_list(test_rotate2_right),},
+	{.msg = "should double-rotate three nodes",
+	 .fun = unit_list(test_rotate2_null),},
 
 	{.msg = "should increment all pointers to a node",
 	 .fun = unit_list(test_increment_adjust),},
@@ -137,9 +145,6 @@ make_tree(size_t n, uintptr_t l, uintptr_t r, int w)
 
 	if (l) add_chld(u, 0, l);
 	if (r) add_chld(u, 1, r);
-
-	d->off[0] = l ? get_off(l, 0) + get_off(l, 1) : 0;
-	d->off[1] = r ? get_off(r, 0) + get_off(r, 1) : 0;
 
 	return u;
 }
@@ -391,21 +396,34 @@ test_increment_rotate(void)
 
 	try(increment_chld(a, 0));
 
-	ok(get_prnt(a) == b ^ 2);
-	ok(get_prnt(c) == b ^ 2);
-	ok(get_chld(b, 0) == a ^ 2);
-	ok(get_chld(b, 1) == a ^ 2);
+	ok(!get_chld(a, 0));
+	ok(!get_chld(a, 1));
+	ok(get_prnt(a) == (b ^ 2));
 
-	expect(0, tag_of(get_prnt(a)));
-	expect(0, tag_of(get_prnt(c)));
-	expect(0, tag_of(get_chld(b, 0)));
-	expect(0, tag_of(get_chld(b, 1)));
+	ok(!get_chld(c, 0));
+	ok(!get_chld(c, 1));
+	ok(get_prnt(c) == (b ^ 2));
+
+	ok(get_chld(b, 0) == c);
+	ok(get_chld(b, 1) == (a ^ 2));
+	ok(!get_prnt(b))
 }
 
 void
 test_increment_rotate2(void)
 {
-	__builtin_trap();
+	uintptr_t a, b, c;
+
+	a = make_tree(1, 0, c = make_tree(3, b = make_tree(2,0,0,0),0,-1),1);
+
+	try(increment_chld(a, 1));
+
+	ok(get_prnt(a) == b);
+	ok(get_prnt(c) == b);
+	ok(get_chld(b, 0) == (a ^ 3));
+	ok(get_chld(b, 1) == (c ^ 2));
+	ok(get_prnt(b) == 0);
+
 }
 
 void
@@ -425,40 +443,27 @@ test_insert_empty(void)
 void
 test_insert_balance_double(void)
 {
-	struct frag_node a[1];
-	struct frag_node b[1];
-	struct frag_node c[1];
+	uintptr_t a, b, c;
 	struct frag fg[1]={{0}};
 
-	*a = (struct frag_node){
-		.len=1,
-		.off={0, 2},
-		.link={0, tag0(c), 0},
-	};
+	a = make_tree(1, 0, c = make_tree(3,0,0,0),1);
+	b = make_tree(2, 0,0,0);
 
-	*c = (struct frag_node){
-		.len=3,
-		.off={0, 0},
-		.link={0, 0, tag3(a)},
-	};
+	fg->cur = a;
 
-	*b = (struct frag_node){.len=2,};
+	expect(0, frag_insert(fg, 1, untag(b)));
 
-	fg->cur = tag3(a);
+	ok(get_chld(b, 0) == (a ^ 3));
+	ok(get_chld(b, 1) == c);
+	ok(get_prnt(b) == 0);
 
-	expect(0, frag_insert(fg, 1, b));
+	ok(get_chld(a, 0) == 0);
+	ok(get_chld(a, 1) == 0);
+	ok(get_prnt(a) == b);
 
-	ok(b->link[0] = tag0(a));
-	ok(b->link[1] = tag0(c));
-	ok(b->link[2] = 0);
-
-	ok(a->link[0] = 0);
-	ok(a->link[1] = tag0(b));
-	ok(a->link[2] = tag0(b));
-
-	ok(c->link[0] = tag0(b));
-	ok(c->link[1] = 0);
-	ok(c->link[2] = tag0(b));
+	ok(get_chld(c, 0) == 0);
+	ok(get_chld(c, 1) == 0);
+	ok(get_prnt(c) == b);
 }
 
 void
@@ -560,166 +565,151 @@ test_insert_tail(void)
 void
 test_rotate_left(void)
 {
-	struct frag_node a[1];
-	struct frag_node b[1];
-	struct frag_node f[1];
-	struct frag_node g[1];
-	struct frag_node h[1];
+	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}}, h[1]={{.len=30}};
+	uintptr_t a, b;
 
-	*a = (struct frag_node){
-		.off = {10, 11},
-		.len=5,
-		.link={tag0(f), tag0(b), 0}};
-	*b = (struct frag_node){
-		.off = {15, 4},
-		.len=7,
-		.link={tag0(g), tag0(h), tag0(a),},
-	};
+	a = make_tree(1, tag0(f), b = make_tree(2, tag0(g), tag0(h), 0), 1);
 
-	ok(rotate(tag0(a), 0) == tag0(b));
+	ok(rotate(a, 0) == b);
 
-	ok(a->link[1] == tag0(g));
-	ok(a->link[2] == tag0(b));
+	ok(get_chld(a, 0) == tag0(f));
+	ok(get_chld(a, 1) == tag0(g));
 
-	ok(b->link[0] == tag0(a));
-	ok(b->link[2] == 0);
+	ok(get_chld(b, 0) == a);
+	ok(get_chld(b, 1) == tag0(h));
+	ok(get_prnt(b) == 0);
 
-	expect(15, a->off[1]);
-	expect(25, b->off[0]);
+	expect(10, get_off(a, 0));
+	expect(20, get_off(a, 1));
+	expect(31, get_off(b, 0));
+	expect(30, get_off(b, 1));
+}
+
+void
+test_rotate_null(void)
+{
+	uintptr_t a, b;
+
+	a = make_tree(1, 0, b = make_tree(2, 0, 0, 0), 1);
+	ok(rotate(a, 0) == b);
+
+	ok(get_prnt(a) == b);
+	ok(get_prnt(b) == 0);
+	ok(get_chld(a, 0) == 0);
+	ok(get_chld(a, 1) == 0);
+	ok(get_chld(b, 0) == a);
+	ok(get_chld(b, 1) == 0);
 }
 
 void
 test_rotate_right(void)
 {
-	struct frag_node a[1];
-	struct frag_node b[1];
-	struct frag_node f[1];
-	struct frag_node g[1];
-	struct frag_node h[1];
+	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}}, h[1]={{.len=30}};
+	uintptr_t a, b;
 
-	*a = (struct frag_node){
-		.off={19, 11},
-		.len=5,
-		.link={tag0(b), tag0(h), 0}};
-	*b = (struct frag_node){
-		.off={15, 7},
-		.len=7,
-		.link={tag0(f), tag0(g), tag0(a),},
-	};
+	a = make_tree(1, b = make_tree(2, tag0(f), tag0(g), 0), tag0(h), -1);
 
-	ok(rotate(tag0(a), 1) == tag0(b));
+	ok(rotate(a, 1) == b);
 
-	ok(a->link[0] == tag0(g));
-	ok(a->link[2] == tag0(b));
+	ok(get_chld(a, 0) == tag0(g));
+	ok(get_chld(a, 1) == tag0(h));
 
-	ok(b->link[1] == tag0(a));
-	ok(b->link[2] == 0);
+	ok(get_chld(b, 0) == tag0(f));
+	ok(get_chld(b, 1) == a);
+	ok(get_prnt(b) == 0);
 
-	expect(7, a->off[0]);
-	expect(18, b->off[1]);
+	expect(20, get_off(a, 0));
+	expect(30, get_off(a, 1));
+	expect(10, get_off(b, 0));
+	expect(51, get_off(b, 1));
 }
 
 void
 test_rotate2_left(void)
 {
-	struct frag_node a[1];
-	struct frag_node b[1];
-	struct frag_node c[1];
-	struct frag_node e[1];
-	struct frag_node f[1];
-	struct frag_node g[1];
-	struct frag_node h[1];
+	uintptr_t a, b, c;
+	uintptr_t e, f, g, h;
 
-	*a = (struct frag_node){
-		.off={3, 7},
-		.len=0,
-		.link={tag0(e), tag0(c), 0, }};
+	a = make_tree(1, e = make_tree(5,0,0,0),
+	                 b = make_tree(2, c=make_tree(3, f=make_tree(10,0,0,0),
+	                                                 g=make_tree(15,0,0,0),0),
+	                                  h=make_tree(20,0,0,0),-1),1);
 
-	*c = (struct frag_node){
-		.off={3, 4},
-		.len=0,
-		.link={tag0(b), tag0(h), tag0(a), },
-	};
+	ok(rotate2(a, 0) == c);
 
-	*b = (struct frag_node){
-		.off={1, 2},
-		.len=0,
-		.link={tag0(f), tag0(g), tag0(a),},
-	};
+	ok(get_chld(a, 0) == e);
+	ok(get_chld(a, 1) == f);
+	ok(get_prnt(a) == c);
 
-	ok(rotate2(tag0(a), 0) == tag0(b));
+	ok(get_chld(b, 0) == g);
+	ok(get_chld(b, 1) == h);
+	ok(get_prnt(b) == c);
 
-	ok(a->link[0] == tag0(e));
-	ok(a->link[1] == tag0(f));
-	ok(a->link[2] == tag0(b));
+	ok(get_chld(c, 0) == a);
+	ok(get_chld(c, 1) == b);
+	ok(get_prnt(c) == 0);
 
-	ok(b->link[0] == tag0(a));
-	ok(b->link[1] == tag0(c));
-	ok(b->link[2] == 0);
+	expect(5, get_off(a, 0));
+	expect(10, get_off(a, 1));
 
-	ok(c->link[0] == tag0(g));
-	ok(c->link[1] == tag0(h));
-	ok(c->link[2] == tag0(b));
+	expect(15, get_off(b, 0));
+	expect(20, get_off(b, 1));
 
-	expect(4, c->off[1]);
-	expect(3, a->off[0]);
+	expect(16, get_off(c, 0));
+	expect(37, get_off(c, 1));
 
-	expect(2, c->off[0]);
-	expect(6, b->off[1]);
+	kill_tree(b);
+}
 
-	expect(1, a->off[1]);
-	expect(4, b->off[0]);
+void
+test_rotate2_null(void)
+{
+	uintptr_t a, b, c;
+
+	a = make_tree(1, 0, c = make_tree(3, b = make_tree(2, 0, 0, 0), 0,-1), 1);
+
+	ok(rotate2(a, 0) == b);
+
+	ok(get_prnt(a) == b);
+	ok(get_prnt(c) == b);
+	ok(get_prnt(b) == 0);
 }
 
 void
 test_rotate2_right(void)
 {
-	struct frag_node a[1];
-	struct frag_node b[1];
-	struct frag_node c[1];
-	struct frag_node e[1];
-	struct frag_node f[1];
-	struct frag_node g[1];
-	struct frag_node h[1];
+	uintptr_t a, b, c;
+	uintptr_t e, f, g, h;
 
+	b=make_tree(1, a=make_tree(2, e=make_tree(5,0,0,0),
+	                              c=make_tree(3, f=make_tree(10,0,0,0),
+	                                             g=make_tree(15,0,0,0),0),1),
+	               h=make_tree(20,0,0,0),-1);
 
-	*c = (struct frag_node){
-		.off={3, 4},
-		.len=0,
-		.link={tag0(a), tag0(h), 0},
-	};
+	ok(rotate2(b, 1) == c);
 
-	*a = (struct frag_node){
-		.off={3, 7},
-		.len=0,
-		.link={tag0(e), tag0(b), tag0(c)}
-	};
+	ok(get_chld(a, 0) == e);
+	ok(get_chld(a, 1) == f);
+	ok(get_prnt(a) == c);
 
-	*b = (struct frag_node){
-		.off={1, 2},
-		.len=0,
-		.link={tag0(f), tag0(g), tag0(a),},
-	};
+	ok(get_chld(b, 0) == g);
+	ok(get_chld(b, 1) == h);
+	ok(get_prnt(b) == c);
 
-	ok(rotate2(tag0(c), 1) == tag0(b));
+	ok(get_chld(c, 0) == a);
+	ok(get_chld(c, 1) == b);
+	ok(get_prnt(c) == 0);
 
-	ok(a->link[0] == tag0(e));
-	ok(a->link[1] == tag0(f));
+	expect(5, get_off(a, 0));
+	expect(10, get_off(a, 1));
 
-	ok(b->link[0] == tag0(a));
-	ok(b->link[1] == tag0(c));
+	expect(15, get_off(b, 0));
+	expect(20, get_off(b, 1));
 
-	ok(c->link[0] == tag0(g));
-	ok(c->link[1] == tag0(h));
+	expect(17, get_off(c, 0));
+	expect(36, get_off(c, 1));
 
-	expect(4, c->off[1]);
-	expect(3, a->off[0]);
-
-	expect(2, c->off[0]);
-	expect(6, b->off[1]);
-
-	expect(1, a->off[1]);
-	expect(4, b->off[0]);
+	kill_tree(b);
 }
 
 void

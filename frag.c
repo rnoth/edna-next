@@ -40,9 +40,11 @@ add_chld(uintptr_t p, int k, uintptr_t c)
 	cc = untag(c);
 
 	if (!cc->link[!k]) cc->link[!k] = p;
-	//cc->link[k] = pp->link[k];
+
 	pp->link[k] = c;
 	cc->link[2] = p;
+
+	pp->off[k] = cc->off[0] + cc->off[1] + cc->len;
 }
 
 void
@@ -82,6 +84,25 @@ adjust_by_prnt(uintptr_t u, int g)
 	}
 }
 
+uintptr_t
+detatch_chld(uintptr_t u, int k)
+{
+	struct frag_node *g = untag(u);
+	struct frag_node *h = untag(g->link[k]);
+	uintptr_t r = g->link[k];
+
+	if (!h) return 0;
+
+	if (h->link[!k] == h->link[2]) h->link[!k] = 0;
+	h->link[2] = 0;
+
+	r = g->link[k];
+	g->link[k] = 0;
+
+	set_off(u, k, 0);
+	return r;
+}
+
 void
 increment_chld(uintptr_t u, int k)
 {
@@ -104,7 +125,7 @@ increment_chld(uintptr_t u, int k)
 
 	adjust_balance(u, 0);
 	adjust_balance(c, w);
-	rotate2(u, !k);
+	rotate2(u ^ b, !k);
 }
 
 void
@@ -252,7 +273,9 @@ frag_insert(struct frag *fg, size_t where, struct frag_node *new)
 
 	k = find_nearest_leaf(fg, where);
 
-	add_chld(fg->cur, k, tag0(new));
+	set_link(fg->cur, k, tag0(new));
+	new->link[2] = fg->cur;
+	new->link[!k] = fg->cur;
 	fg->cur = tag0(new);
 
 	rebalance(fg->cur, 1);
@@ -295,10 +318,10 @@ frag_step(struct frag *fg, int k)
 	fg->cur = prev->link[k];
 	
 	if (k == 0) {
-		fg->rem += prev->off[1];
+		fg->rem += prev->off[1] + prev->len;
 		return;
 	} else if (k == 1) {
-		fg->off += prev->off[0];
+		fg->off += prev->off[0] + prev->len;
 		return;
 	}
 
@@ -342,29 +365,28 @@ rotate(uintptr_t p, int k)
 	uintptr_t h;
 	uintptr_t v;
 
-	h = get_chld(p, !k);
-	v = get_chld(h, k);
+	h = detatch_chld(p, !k);
+	v = detatch_chld(h, k);
 
-	set_link(p, !k, v ? v : h);
-	set_link(h, k, p);
-
-	set_link(h, 2, get_prnt(p));
-	set_link(p, 2, h);
-
-	set_off(p, !k, get_off(h, k));
-	set_off(h,  k, get_off(p, k) + get_off(p, !k));
+	if (v) add_chld(p, !k, v);
+	else set_link(p, !k, h);
+	add_chld(h, k, p);
 
 	return h;
 }
 
 uintptr_t
-rotate2(uintptr_t tag, int k)
+rotate2(uintptr_t t, int k)
 {
-	struct frag_node *prnt;
+	uintptr_t c;
 
-	prnt = untag(tag);
-	prnt->link[!k] = rotate(prnt->link[!k], !k);
-	return rotate(tag, k);
+	c = detatch_chld(t, !k);
+	c = rotate(c, !k);
+	add_chld(t, !k, c);
+
+	t = rotate(t, k);
+
+	return t;
 }
 
 void
