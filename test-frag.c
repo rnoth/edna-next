@@ -10,6 +10,7 @@ static void test_adjust_parent(void);
 static void test_adjust_single(void);
 
 static void test_delete_absent(void);
+static void test_delete_branch(void);
 static void test_delete_empty(void);
 static void test_delete_leaf(void);
 static void test_delete_root(void);
@@ -45,8 +46,6 @@ static void test_stab_empty(void);
 static void test_stab_nearest(void);
 static void test_stab_root(void);
 
-static void test_step(void);
-
 struct unit_test tests[] = {
 	{.msg = "should fail on stabbing an empty graphs",
 	 .fun = unit_list(test_stab_empty),},
@@ -57,9 +56,6 @@ struct unit_test tests[] = {
 
 	{.msg = "should stay at nearest piece in the graph after stabbing",
 	 .fun = unit_list(test_stab_nearest),},
-
-	{.msg = "should compare indexes",
-	 .fun = unit_list(test_step),},
 
 	{.msg = "should stab the root piece",
 	 .fun = unit_list(test_stab_root),},
@@ -129,12 +125,15 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_balance_single),},
 	{.msg = "should rebalance the tree with double rotations on insertion",
 	 .fun = unit_list(test_insert_balance_double),},
+
+	{.msg = "should delete branch nodes",
+	 .fun = unit_list(test_delete_branch),},
 };
 
 #include <unit.t>
 
 uintptr_t
-make_tree(size_t n, uintptr_t l, uintptr_t r, int w)
+make_tree(size_t n, int w, uintptr_t l, uintptr_t r)
 {
 	struct frag_node *d;
 	uintptr_t u;
@@ -166,10 +165,10 @@ test_adjust_branches(void)
 	b = make_tree(2, 0, 0, 0);
 	d = make_tree(4, 0, 0, 0);
 
-	a = make_tree(1, 0, b, 1);
-	e = make_tree(5, d, 0, -1);
+	a = make_tree(1, 1, 0, b);
+	e = make_tree(5, -1, d, 0);
 
-	c = make_tree(3, a, e, 0);
+	c = make_tree(3, 0, a, e);
 
 	try(adjust_balance(c, 3));
 
@@ -185,8 +184,8 @@ test_adjust_leaves(void)
 	struct frag_node *g;
 	uintptr_t a, b, c;
 
-	b = make_tree(2, a = make_tree(1, 0, 0, 0),
-	                 c = make_tree(3, 0, 0, 0), 0);
+	b = make_tree(2, 0, a = make_tree(1, 0, 0, 0),
+	                    c = make_tree(3, 0, 0, 0));
 
 	try(adjust_balance(b, 3));
 
@@ -206,8 +205,7 @@ test_adjust_parent(void)
 {
 	uintptr_t a, b;
 
-	b = make_tree(2, a = make_tree(1, 0, 0, 0),
-	                 0, 0);
+	b = make_tree(2, 0, a = make_tree(1, 0, 0, 0), 0);
 
 	try(adjust_balance(a, 3));
 	expect(3, tag_of(get_chld(b, 0)));
@@ -236,6 +234,21 @@ test_delete_absent(void)
 	try(frag_delete(fg, 9));
 	ok(fg->cur);
 	ok(frag_stab(fg, 2) == one);
+}
+
+void
+test_delete_branch(void)
+{
+	struct frag fg[1] = {{0}};
+	uintptr_t a, b, c;
+
+	a = make_tree(1, 0,0,0);
+	c = make_tree(3, 0,0,0);
+	b = make_tree(2, a,c,0);
+
+	fg->cur = b;
+
+	try(frag_delete(fg, 2));
 }
 
 void
@@ -378,8 +391,8 @@ test_increment_adjust(void)
 {
 	uintptr_t a, b, c;
 
-	b = make_tree(2, a = make_tree(1, 0, 0, 0),
-	                 c = make_tree(3, 0, 0, 0), -1);
+	b = make_tree(2, -1, a = make_tree(1, 0, 0, 0),
+	                     c = make_tree(3, 0, 0, 0));
 
 	try(increment_chld(b, 1));
 
@@ -392,7 +405,7 @@ test_increment_rotate(void)
 {
 	uintptr_t a, b, c;
 
-	a = make_tree(1, b = make_tree(2, c = make_tree(3,0,0,0),0,-1),0,-1);
+	a = make_tree(1, -1, b = make_tree(2, -1, c = make_tree(3,0,0,0),0),0);
 
 	try(increment_chld(a, 0));
 
@@ -414,7 +427,7 @@ test_increment_rotate2(void)
 {
 	uintptr_t a, b, c;
 
-	a = make_tree(1, 0, c = make_tree(3, b = make_tree(2,0,0,0),0,-1),1);
+	a = make_tree(1, 1, 0, c = make_tree(3, -1, b = make_tree(2,0,0,0),0));
 
 	try(increment_chld(a, 1));
 
@@ -446,7 +459,7 @@ test_insert_balance_double(void)
 	uintptr_t a, b, c;
 	struct frag fg[1]={{0}};
 
-	a = make_tree(1, 0, c = make_tree(3,0,0,0),1);
+	a = make_tree(1, 1, 0, c = make_tree(3,0,0,0));
 	b = make_tree(2, 0,0,0);
 
 	fg->cur = a;
@@ -568,7 +581,7 @@ test_rotate_left(void)
 	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}}, h[1]={{.len=30}};
 	uintptr_t a, b;
 
-	a = make_tree(1, tag0(f), b = make_tree(2, tag0(g), tag0(h), 0), 1);
+	a = make_tree(1, 1, tag0(f), b = make_tree(2, 0, tag0(g), tag0(h)));
 
 	ok(rotate(a, 0) == b);
 
@@ -590,7 +603,7 @@ test_rotate_null(void)
 {
 	uintptr_t a, b;
 
-	a = make_tree(1, 0, b = make_tree(2, 0, 0, 0), 1);
+	a = make_tree(1, 1, 0, b = make_tree(2, 0, 0, 0));
 	ok(rotate(a, 0) == b);
 
 	ok(get_prnt(a) == b);
@@ -607,7 +620,7 @@ test_rotate_right(void)
 	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}}, h[1]={{.len=30}};
 	uintptr_t a, b;
 
-	a = make_tree(1, b = make_tree(2, tag0(f), tag0(g), 0), tag0(h), -1);
+	a = make_tree(1, -1, b = make_tree(2, 0, tag0(f), tag0(g)), tag0(h));
 
 	ok(rotate(a, 1) == b);
 
@@ -630,10 +643,13 @@ test_rotate2_left(void)
 	uintptr_t a, b, c;
 	uintptr_t e, f, g, h;
 
-	a = make_tree(1, e = make_tree(5,0,0,0),
-	                 b = make_tree(2, c=make_tree(3, f=make_tree(10,0,0,0),
-	                                                 g=make_tree(15,0,0,0),0),
-	                                  h=make_tree(20,0,0,0),-1),1);
+	a = make_tree(1, 1,
+	              e = make_tree(5,0,0,0),
+	              b = make_tree(2, -1,
+	                            c = make_tree(3, 0,
+	                                        f = make_tree(10,0,0,0),
+	                                        g = make_tree(15,0,0,0)),
+	                            h = make_tree(20,0,0,0)));
 
 	ok(rotate2(a, 0) == c);
 
@@ -666,7 +682,11 @@ test_rotate2_null(void)
 {
 	uintptr_t a, b, c;
 
-	a = make_tree(1, 0, c = make_tree(3, b = make_tree(2, 0, 0, 0), 0,-1), 1);
+	a = make_tree(1, 1,
+	              0,
+	              c = make_tree(3, -1,
+	                            b = make_tree(2, 0, 0, 0),
+	                            0));
 
 	ok(rotate2(a, 0) == b);
 
@@ -681,10 +701,13 @@ test_rotate2_right(void)
 	uintptr_t a, b, c;
 	uintptr_t e, f, g, h;
 
-	b=make_tree(1, a=make_tree(2, e=make_tree(5,0,0,0),
-	                              c=make_tree(3, f=make_tree(10,0,0,0),
-	                                             g=make_tree(15,0,0,0),0),1),
-	               h=make_tree(20,0,0,0),-1);
+	b=make_tree(1, -1,
+	            a = make_tree(2, 1,
+	                          e = make_tree(5,0,0,0),
+	                          c = make_tree(3, 0,
+	                                    f = make_tree(10,0,0,0),
+	                                    g = make_tree(15,0,0,0))),
+	            h = make_tree(20,0,0,0));
 
 	ok(rotate2(b, 1) == c);
 
