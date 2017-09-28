@@ -29,10 +29,11 @@ all:: clean-test-edna
 ifndef NDEBUG
 CFLAGS	+= -O0 -ggdb3 -Werror
 CFLAGS	+= -Wunreachable-code \
-	   -Wno-missing-field-initializers -Wno-unused-parameter \
+	   -Wno-missing-field-initializers \
 	   -Wno-sign-compare \
 	   -Warray-bounds -Wno-missing-braces -Wno-parentheses \
-	   -Wno-error=unused-function -Wno-error=unused-variable
+	   -Wno-error=unused-function -Wno-error=unused-variable \
+	   -Wno-error=unused-parameter
 else
 LDFLAGS += -Wl,--gc-section
 CFLAGS += -O3
