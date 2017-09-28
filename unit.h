@@ -28,13 +28,13 @@
 	unit_unset_expr();             \
 } while (0)
 
-#define ok(EXPR) okf(EXPR, "assertion false: \"%s\" " \
-                     "(line %d)", #EXPR, __LINE__); 
+#define ok(EXPR) okf(EXPR, "assertion false: \"%s\" ", #EXPR); 
 
-#define okf(EXPR, ...) do {              \
-	char msg[256];                   \
-	snprintf(msg, 256, __VA_ARGS__); \
-	_unit_ok(EXPR, msg);             \
+#define okm(EXPR, MSG) okf(EXPR, MSG "%s", "")
+#define okf(EXPR, FMT, ...) do {	  \
+	char *unit_msg = asprintf(FMT " (line %d)", \
+	                          __VA_ARGS__, __LINE__); \
+	_unit_ok(EXPR, unit_msg);          \
 } while (0)
 
 #define _unit_ok(EXPR, MSG) do {        \
