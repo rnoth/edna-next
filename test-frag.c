@@ -10,7 +10,6 @@ static void test_adjust_parent(void);
 static void test_adjust_single(void);
 
 static void test_delete_branch(void);
-static void test_delete_empty(void);
 static void test_delete_leaf(void);
 static void test_delete_root(void);
 
@@ -51,24 +50,22 @@ static void test_stab_root(void);
 static void test_swap_succ(void);
 
 struct unit_test tests[] = {
-	{.msg = "should fail on stabbing an empty graphs",
+	{.msg = "should fail on stabbing an empty tree",
 	 .fun = unit_list(test_stab_empty),},
-	{.msg = "should insert a fragment to an empty graph",
+	{.msg = "should insert a fragment to an empty tree",
 	 .fun = unit_list(test_insert_empty),},
-	{.msg = "should do nothing when deleting from an empty graph",
-	 .fun = unit_list(test_delete_empty),},
 
-	{.msg = "should stay at nearest node in the graph after stabbing",
+	{.msg = "should stay at nearest node in the tree after stabbing",
 	 .fun = unit_list(test_stab_nearest),},
 
 	{.msg = "should stab the root piece",
 	 .fun = unit_list(test_stab_root),},
-	{.msg = "should not stab node not in the graph",
+	{.msg = "should not stab node not in the tree",
 	 .fun = unit_list(test_stab_absent),},
 
-	{.msg = "should prepend a fragment into a graph",
+	{.msg = "should prepend a fragment into a tree",
 	 .fun = unit_list(test_insert_head),},
-	{.msg = "should append a fragment into a graph",
+	{.msg = "should append a fragment into a tree",
 	 .fun = unit_list(test_insert_tail),},
 	{.msg = "should update balance information on insert",
 	 .fun = unit_list(test_insert_balance_soft),},
@@ -76,15 +73,15 @@ struct unit_test tests[] = {
 	{.msg = "should maintain last query location",
 	 .fun = unit_list(test_finger),},
 
-	{.msg = "should do nothing when flushing an empty graph",
+	{.msg = "should do nothing when flushing an empty tree",
 	 .fun = unit_list(test_flush_empty),},
-	{.msg = "should do nothing when flushing a one-element graph",
+	{.msg = "should do nothing when flushing a one-element tree",
 	 .fun = unit_list(test_flush_one),},
-	{.msg = "should point at the root after flushing a two-element graph",
+	{.msg = "should point at the root after flushing a two-element tree",
 	 .fun = unit_list(test_flush_two),},
 	{.msg = "should do nothing when flushing with the finger at the root",
 	 .fun = unit_list(test_flush_idempotent),},
-	{.msg = "should reset the displacement after flushing a graph",
+	{.msg = "should reset the displacement after flushing a tree",
 	 .fun = unit_list(test_flush_offset),},
 
 	{.msg = "should delete root nodes",
@@ -141,6 +138,44 @@ struct unit_test tests[] = {
 
 #include <unit.t>
 
+#define expect_is_root(R) \
+	okf(get_prnt(R) == 0, \
+	    "expected %s to be a root node, instead has parent", \
+	    #R); \
+
+#define expect_is_leaf(L) \
+	do { \
+		okf(get_chld(L, 0) == 0, \
+		    "expected %s to be a leaf node, instead has left child", \
+		    #L); \
+		okf(get_chld(L, 1) == 0, \
+		    "expected %s to be a leaf node, instead has right child", \
+		    #L); \
+		okf(get_off(L, 0) == 0, \
+		    "expect leaf %s to have no offset, but has offset %zu", \
+		    #L, get_off(L, 0)); \
+		okf(get_off(L, 1) == 0, \
+		    "expected leaf %s to have no extent, but has extent %zu", \
+		    #L, get_off(L, 1)); \
+	} while (0)
+
+#define expect_has_chld(T, K, C) \
+	do { \
+		char *dir = K ? "right" : "left"; \
+		okf(untag(get_chld(T, K)) == untag(C), \
+		    "expected %s to have %s child %s", \
+		    #T, dir, #C); \
+		okf(untag(get_prnt(C)) == untag(T), \
+		   "expected %s to have parent %s", \
+		   #C, #T); \
+		okf(get_chld(T, K) == C, \
+		   "expected %s to have %s chld with tag %d, instead of %d", \
+		   #T, dir, tag_of(C), tag_of(get_chld(T, K))); \
+		okf(get_prnt(C) == T, \
+		   "expected %s to have parent with tag %d, instead of %d", \
+		   #C, tag_of(T), tag_of(get_prnt(C))); \
+	} while (0)
+
 uintptr_t
 make_tree(size_t n, int w, uintptr_t l, uintptr_t r)
 {
@@ -181,8 +216,8 @@ test_adjust_branches(void)
 
 	try(adjust_balance(c, 3));
 
-	expect(3, tag_of(get_prnt(a)));
-	expect(3, tag_of(get_prnt(e)));
+	expect_has_chld(c + 3, 0, a);
+	expect_has_chld(c + 3, 1, e);
 
 	try(kill_tree(c));
 }
@@ -190,7 +225,6 @@ test_adjust_branches(void)
 void
 test_adjust_leaves(void)
 {
-	struct frag_node *g;
 	uintptr_t a, b, c;
 
 	b = make_tree(2, 0, a = make_tree(1, 0, 0, 0),
@@ -198,15 +232,10 @@ test_adjust_leaves(void)
 
 	try(adjust_balance(b, 3));
 
-	g = untag(a);
-	expect(3, tag_of(g->link[2]));
-	expect(3, tag_of(g->link[1]));
+	expect_has_chld(b + 3, 0, a);
+	expect_has_chld(b + 3, 1, c);
 
-	g = untag(c);
-	expect(3, tag_of(g->link[2]));
-	expect(3, tag_of(g->link[0]));
-
-	try(kill_tree(c));
+	kill_tree(c);
 }
 
 void
@@ -217,7 +246,7 @@ test_adjust_parent(void)
 	b = make_tree(2, 0, a = make_tree(1, 0, 0, 0), 0);
 
 	try(adjust_balance(a, 3));
-	expect(3, tag_of(get_chld(b, 0)));
+	expect_has_chld(b, 0, a + 3);
 
 	kill_tree(b);
 }
@@ -236,50 +265,35 @@ test_adjust_single(void)
 void
 test_delete_branch(void)
 {
-	struct frag fg[1] = {{0}};
+	struct frag t[1] = {{0}};
 	uintptr_t a, b, c;
 
 	a = make_tree(1, 0,0,0);
 	c = make_tree(3, 0,0,0);
 	b = make_tree(2, 0,a,c);
 
-	fg->cur = b;
+	t->cur = b;
 
-	try(frag_delete(fg, untag(b)));
+	try(frag_delete(t, untag(b)));
 
-	ok(untag(fg->cur) == untag(c));
-	ok(fg->cur == c + 2);
-}
-
-void
-test_delete_empty(void)
-{
-	struct frag fg[1] = {{0}};
-
-	try(frag_delete(fg, 0));
+	expect_is_root(a);
+	expect_is_leaf(c);
+	expect_has_chld(a, 1, c);
 }
 
 void
 test_delete_leaf(void)
 {
-	struct frag_node one[1] = {{.len=3}};
-	struct frag_node two[1] = {{.len=7}};
-	struct frag fg[1] = {{0}};
+	struct frag t[1]={{1}};
+	uintptr_t a, b;
 
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 3, two));
+	b = make_tree(7, 0, 0, 0);
+	a = make_tree(3, 1, 0, b);
 
-	try(frag_delete(fg, two));
+	try(frag_delete(t, untag(b)));
 
-	ok(untag(fg->cur) == one);
-	ok(fg->cur == (uintptr_t)one);
-
-	ok(!one->link[0]);
-	ok(!one->link[1]);
-	ok(!one->link[2]);
-
-	ok(!one->off[1]);
-	ok(!one->off[0]);
+	expect_is_leaf(a);
+	expect_is_root(a);
 }
 
 void
@@ -292,7 +306,6 @@ test_delete_root(void)
 
 	try(frag_delete(fg, root));
 	ok(!frag_stab(fg, 1));
-	ok(!fg->cur);
 }
 
 void
@@ -397,8 +410,8 @@ test_increment_adjust(void)
 
 	try(increment_chld(b, 1));
 
-	expect(0, tag_of(get_prnt(a)));
-	expect(0, tag_of(get_prnt(c)));
+	expect_has_chld(b ^ 2, 0, a);
+	expect_has_chld(b ^ 2, 1, c);
 }
 
 void
@@ -410,17 +423,12 @@ test_increment_rotate(void)
 
 	try(increment_chld(a, 0));
 
-	ok(!get_chld(a, 0));
-	ok(!get_chld(a, 1));
-	ok(get_prnt(a) == (b ^ 2));
+	expect_is_leaf(a);
 
-	ok(!get_chld(c, 0));
-	ok(!get_chld(c, 1));
-	ok(get_prnt(c) == (b ^ 2));
+	expect_is_leaf(c);
 
-	ok(get_chld(b, 0) == c);
-	ok(get_chld(b, 1) == (a ^ 2));
-	ok(!get_prnt(b))
+	expect_has_chld(b ^ 2, 0, c);
+	expect_is_root(b);
 }
 
 void
@@ -432,170 +440,153 @@ test_increment_rotate2(void)
 
 	try(increment_chld(a, 1));
 
-	ok(get_prnt(a) == b);
-	ok(get_prnt(c) == b);
-	ok(get_chld(b, 0) == (a ^ 3));
-	ok(get_chld(b, 1) == (c ^ 2));
-	ok(get_prnt(b) == 0);
-
+	expect_is_leaf(a);
+	expect_is_leaf(c);
+	expect_has_chld(b, 0, a ^ 3);
+	expect_has_chld(b, 1, c ^ 2);
+	expect_is_root(b);
 }
 
 void
 test_insert_empty(void)
 {
-	struct frag_node node[1] = {{.len = 4,}};
-	struct frag fg[1] = {{0}};
+	struct frag_node a[1]={{.len=14}};
+	struct frag t[1] = {{0}};
 
-	expect(0, frag_insert(fg, 0, node));
+	expect(0, frag_insert(t, 0, a));
 
-	ok(untag(fg->cur) == node);
-	expect(0, node->off[1]);
-	expect(0, node->off[0]);
-	ok(!tag_of(fg->cur));
+	ok(untag(t->cur) == a);
+	expect_is_leaf(tag0(a));
 }
 
 void
 test_insert_balance_double(void)
 {
+	struct frag t[1]={{0}};
 	uintptr_t a, b, c;
-	struct frag fg[1]={{0}};
 
 	a = make_tree(1, 1, 0, c = make_tree(3,0,0,0));
 	b = make_tree(2, 0,0,0);
 
-	fg->cur = a;
+	t->cur = a;
 
-	expect(0, frag_insert(fg, 1, untag(b)));
+	expect(0, frag_insert(t, 1, untag(b)));
 
-	ok(get_chld(b, 0) == (a ^ 3));
-	ok(get_chld(b, 1) == c);
-	ok(get_prnt(b) == 0);
+	expect_has_chld(b, 0, a ^ 3);
+	expect_has_chld(b, 1, c);
 
-	ok(get_chld(a, 0) == 0);
-	ok(get_chld(a, 1) == 0);
-	ok(get_prnt(a) == b);
+	expect_is_root(b);
 
-	ok(get_chld(c, 0) == 0);
-	ok(get_chld(c, 1) == 0);
-	ok(get_prnt(c) == b);
+	expect_is_leaf(a);
+	expect_is_leaf(c);
 }
 
 void
 test_insert_balance_single(void)
 {
-	struct frag_node one[1]={{.len=1}};
-	struct frag_node two[1]={{.len=2}};
-	struct frag_node thr[1]={{.len=3}};
-	struct frag fg[1] = {{0}};
+	uintptr_t a, b, c;
+	struct frag t[1] = {{0}};
 
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 1, two));
-	expect(0, frag_insert(fg, 2, thr));
+	c = make_tree(3, 0, 0, 0);
+	b = make_tree(2, 0, 0, 0);
+	a = make_tree(1, 1, 0, b);
 
-	try(frag_flush(fg));
+	t->cur = a;
 
-	ok(untag(fg->cur) == two);
-	ok(fg->cur == (uintptr_t)two);
-	ok(two->link[2] == 0);
-	ok(two->link[0] == (uintptr_t)one);
-	ok(two->link[1] == (uintptr_t)thr);
+	expect(0, frag_insert(t, 3, untag(c)));
 
-	ok(one->link[0] == 0);
-	ok(one->link[1] == (uintptr_t)two);
-	ok(one->link[2] == (uintptr_t)two);
+	try(frag_flush(t));
 
-	ok(thr->link[0] == (uintptr_t)two);
-	ok(thr->link[1] == 0);
-	ok(thr->link[2] == (uintptr_t)two);
+	ok(t->cur == b);
+
+	expect_is_root(b);
+	expect_has_chld(b, 0, a ^ 3);
+	expect_has_chld(b, 1, c);
+
+	expect_is_leaf(a);
+	expect_is_leaf(c);
 }
 
 void
 test_insert_balance_soft(void)
 {
-	struct frag_node a[1]={{.len=1}};
-	struct frag_node b[1]={{.len=2}};
-	struct frag_node c[1]={{.len=3}};
-	struct frag fg[1]={{0}};
+	struct frag t[1]={{0}};
+	uintptr_t a, b, c;
 
-	try(frag_insert(fg, 0, b));
-	try(frag_insert(fg, 0, a));
-	try(frag_insert(fg, 3, c));
+	a = make_tree(1,  0, 0, 0);
+	b = make_tree(2, -1, a, 0);
+	c = make_tree(3,  0, 0, 0);
 
-	ok(c->link[2] == (uintptr_t)b);
+	t->cur = b;
+
+	try(frag_insert(t, 3, untag(c)));
+
+	expect_has_chld(b ^ 2, 1, c);
 }
 
 void
 test_insert_head(void)
 {
-	struct frag_node one[1] = {{.len = 4}};
-	struct frag_node two[1] = {{.len = 6}};
-	struct frag fg[1] = {{0}};
+	struct frag t[1] = {{0}};
+	uintptr_t a, b;
 
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 0, two));
+	a = make_tree(4, 0, 0, 0);
+	b = make_tree(6, 0, 0, 0);
 
-	expect(6, one->off[0]);
-	expect(0, one->off[1]);
+	t->cur = a;
 
-	expect(0, two->off[0]);
-	expect(0, two->off[1]);
+	expect(0, frag_insert(t, 0, untag(b)));
 
-	ok(!one->link[2]);
-	ok(untag(one->link[0]) == two);
-	ok(!one->link[1]);
+	expect(6, get_off(a, 0));
+	expect(0, get_off(a, 1));
 
-	ok(untag(two->link[2]) == one);
-	ok(two->link[1] == (uintptr_t)one + 2);
+	expect_is_leaf(b);
+	expect_is_root(a);
+	expect_has_chld(a^2, 0, b);
 
-	expect(2, tag_of(two->link[2]));
+	kill_tree(a);
 }
 
 void
 test_insert_tail(void)
 {
-	struct frag_node one[1] = {{.len = 4}};
-	struct frag_node two[1] = {{.len = 6}};
-	struct frag fg[1] = {{0}};
+	struct frag t[1] = {{0}};
+	uintptr_t a, b;
 
-	expect(0, frag_insert(fg, 0, one));
-	expect(0, frag_insert(fg, 4, two));
+	a = make_tree(4, 0, 0, 0);
+	b = make_tree(6, 0, 0, 0);
 
-	expect(6, one->off[1]);
-	expect(0, one->off[0]);
+	t->cur = a;
 
-	expect(0, two->off[1]);
-	expect(0, two->off[0]);
+	expect(0, frag_insert(t, 4, untag(b)));
 
-	ok(!one->link[2]);
-	ok(untag(one->link[1]) == two);
-	ok(!one->link[0]);
+	expect(0, get_off(a, 0));
+	expect(6, get_off(a, 1));
 
-	ok(untag(two->link[2]) == one);
-	ok(two->link[0] == (uintptr_t)one + 3);
+	expect_is_leaf(b);
+	expect_is_root(a);
+	expect_has_chld(a^2, 1, b);
 
-	expect(3, tag_of(two->link[2]));
+	kill_tree(a);
 }
 
 void
 test_rebalance_expand_single(void)
 {
-	struct frag_node *g;
-	uintptr_t b, c;
-
-	make_tree(1, 1, 0, b = make_tree(2,0,0,0));
+	uintptr_t a, b, c;
 
 	c = make_tree(3,0,0,0);
+	b = make_tree(2,0,0,0);
+	a = make_tree(1,1,0,b);
 
-	set_link(b, 1, c), set_link(c, 2, b), set_link(c, 0, b);
+	set_link(b, 1, c), set_link(c, 2, b);
 
-	g = untag(c);
-	try(rebalance(g, 1));
+	try(rebalance(untag(c), 1));
 
-	ok(untag(g->link[2]) == untag(b));
-	expect(0, tag_of(g->link[2]));
+	expect_is_root(b);
+	expect_has_chld(b, 1, c);
+	expect_has_chld(b, 0, a ^ 3);
 	
-	expect(0,tag_of(g->link[2]));
-
 	expect(3, get_off(b, 1));
 }
 
@@ -631,12 +622,13 @@ test_rotate_left(void)
 
 	ok(rotate(a, 0) == b);
 
-	ok(get_chld(a, 0) == tag0(f));
-	ok(get_chld(a, 1) == tag0(g));
+	expect_has_chld(a, 0, tag0(f));
+	expect_has_chld(a, 1, tag0(g));
 
-	ok(get_chld(b, 0) == a);
-	ok(get_chld(b, 1) == tag0(h));
-	ok(get_prnt(b) == 0);
+	expect_has_chld(b, 0, a);
+	expect_has_chld(b, 1, tag0(h));
+
+	expect_is_root(b);
 
 	expect(10, get_off(a, 0));
 	expect(20, get_off(a, 1));
@@ -652,12 +644,9 @@ test_rotate_null(void)
 	a = make_tree(1, 1, 0, b = make_tree(2, 0, 0, 0));
 	ok(rotate(a, 0) == b);
 
-	ok(get_prnt(a) == b);
-	ok(get_prnt(b) == 0);
-	ok(get_chld(a, 0) == 0);
-	ok(get_chld(a, 1) == 0);
-	ok(get_chld(b, 0) == a);
-	ok(get_chld(b, 1) == 0);
+	expect_is_root(b);
+	expect_is_leaf(a);
+	expect_has_chld(b, 0, a);
 }
 
 void
@@ -670,12 +659,13 @@ test_rotate_right(void)
 
 	ok(rotate(a, 1) == b);
 
-	ok(get_chld(a, 0) == tag0(g));
-	ok(get_chld(a, 1) == tag0(h));
+	expect_has_chld(a, 0, tag0(g));
+	expect_has_chld(a, 1, tag0(h));
 
-	ok(get_chld(b, 0) == tag0(f));
-	ok(get_chld(b, 1) == a);
-	ok(get_prnt(b) == 0);
+	expect_has_chld(b, 0, tag0(f));
+	expect_has_chld(b, 1, a);
+
+	expect_is_root(b);
 
 	expect(20, get_off(a, 0));
 	expect(30, get_off(a, 1));
@@ -736,9 +726,11 @@ test_rotate2_null(void)
 
 	ok(rotate2(a, 0) == b);
 
-	ok(get_prnt(a) == b);
-	ok(get_prnt(c) == b);
-	ok(get_prnt(b) == 0);
+	expect_has_chld(b, 0, a);
+	expect_has_chld(b, 1, c);
+	expect_is_root(b);
+
+	kill_tree(b);
 }
 
 void
@@ -757,17 +749,16 @@ test_rotate2_right(void)
 
 	ok(rotate2(b, 1) == c);
 
-	ok(get_chld(a, 0) == e);
-	ok(get_chld(a, 1) == f);
-	ok(get_prnt(a) == c);
+	expect_has_chld(a, 0, e);
+	expect_has_chld(a, 1, f);
 
-	ok(get_chld(b, 0) == g);
-	ok(get_chld(b, 1) == h);
-	ok(get_prnt(b) == c);
+	expect_has_chld(b, 0, g);
+	expect_has_chld(b, 1, h);
 
-	ok(get_chld(c, 0) == a);
-	ok(get_chld(c, 1) == b);
-	ok(get_prnt(c) == 0);
+	expect_has_chld(c, 0, a);
+	expect_has_chld(c, 1, b);
+
+	expect_is_root(c);
 
 	expect(5, get_off(a, 0));
 	expect(10, get_off(a, 1));
