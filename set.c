@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <tag.h>
+#include <tree.h>
 #include <util.h>
 
 #include <set.h>
