@@ -54,6 +54,22 @@ lshift_ptr(void *lefp, void *midp, void *rit)
 }
 
 static inline
+void *
+memswp(void *A, void *B, size_t n)
+{
+	char *a=A, *b=B;
+	char m;
+
+	while (n --> 0) {
+		m = a[n];
+		a[n] = b[n];
+		b[n] = m;
+	}
+
+	return a;
+}
+
+static inline
 size_t
 next_line(char *buffer, size_t length)
 {
