@@ -31,7 +31,8 @@ CFLAGS	+= -O0 -ggdb3 -Werror
 CFLAGS	+= -Wunreachable-code \
 	   -Wno-missing-field-initializers -Wno-unused-parameter \
 	   -Wno-sign-compare \
-	   -Warray-bounds -Wno-missing-braces -Wno-parentheses
+	   -Warray-bounds -Wno-missing-braces -Wno-parentheses \
+	   -Wno-error=unused-function -Wno-error=unused-variable
 else
 LDFLAGS += -Wl,--gc-section
 CFLAGS += -O3
