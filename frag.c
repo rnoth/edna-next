@@ -146,9 +146,9 @@ is_leaf(uintptr_t t)
 uintptr_t
 get_chld(uintptr_t u, int k)
 {
-	struct frag_node *g = untag(u);
-	if (g->link[k] == g->link[2]) return 0x0;
-	return g->link[k];
+	struct frag_node *U = untag(u);
+	if (U->link[k] == U->link[2]) return 0x0;
+	return U->link[k];
 }
 
 size_t
@@ -173,9 +173,9 @@ get_next(uintptr_t u, int k)
 uintptr_t
 get_prnt(uintptr_t u)
 {
-	struct frag_node *g;
-	g = untag(u);
-	return g->link[2];
+	struct frag_node *U;
+	U = untag(u);
+	return U->link[2];
 }
 
 uintptr_t
@@ -274,14 +274,14 @@ frag_delete(struct frag *f, struct frag_node *T)
 
 	t = tag0(T) + get_tag(T);
 
-	if (!is_leaf(t)) f->cur = swap(t, 1);
+	if (!is_leaf(t)) swap(t, 1);
 
 	rebalance(T, 0);
 
 	if (f->cur == t) {
-		if (get_prnt(t)) frag_step(f, 2);
-		else if (get_chld(t, 1)) f->cur = get_chld(t, 1);
-		else f->cur = get_chld(t, 0);
+		if (get_chld(t, 1)) frag_step(f, 1);
+		else if (get_chld(t, 0)) frag_step(f, 0);
+		else frag_step(f, 2);
 	}
 
 	p = T->link[2];
