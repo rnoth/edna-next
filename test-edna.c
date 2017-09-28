@@ -538,7 +538,7 @@ test_insert_eof()
 	send_eof();
 	expect_prompt();
 
-	okf(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
+	okm(!waitpid(edna_pid, 0, WNOHANG), "edna died unexpectedly");
 }
 
 void
