@@ -348,7 +348,7 @@ spawn_edna(char **argv)
 
 	res = fork();
 	switch (res) {
-	case -1: unit_perror("fork failed");
+	case -1: unit_perror("fork failed"); unit_yield();
 	case 0:
 		open_pty(edna_pty); // FIXME: this could fail
 		close(fd[0]);
@@ -366,7 +366,7 @@ spawn_edna(char **argv)
 
 	res = read(fd[0], (char[]){0}, 1);
 	switch (res) {
-	case -1: unit_perror("internal read failed");
+	case -1: unit_perror("internal read failed"); unit_yield();
 	case  1: unit_fail("couldn't exec edna"); unit_yield();
 	case  0: break;
 	}
