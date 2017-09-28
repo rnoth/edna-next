@@ -11,20 +11,22 @@ static void add_chld(uintptr_t p, int k, uintptr_t c);
 static void adjust_balance(uintptr_t u, int d);
 static void adjust_by_chld(uintptr_t u, int k, int d);
 static void adjust_by_prnt(uintptr_t u, int d);
+static uintptr_t detatch(uintptr_t p, int k);
 static void increment_chld(uintptr_t u, int k);
-static void init_node(struct frag_node *node, size_t pos);
+static void init_node(struct frag_node *d, size_t x);
 static uintptr_t get_chld(uintptr_t n, int k);
 static uintptr_t get_prnt(uintptr_t prnt);
 static int find_leftmost_leaf(struct frag *fg);
-static int find_nearest_leaf(struct frag *fg, size_t where);
+static int find_empty_chld(struct frag *fg, size_t where);
 static void init_node(struct frag_node *node, size_t pos);
 static int frag_cmp(struct frag *fg, size_t pos);
 static void frag_step(struct frag *fg, int k);
-static void rebalance(uintptr_t cur, int r);
+static void rebalance(struct frag_node *g, int r);
 static uintptr_t rotate(uintptr_t, int k);
 static uintptr_t rotate2(uintptr_t, int k);
 static void set_link(uintptr_t u, int k, uintptr_t t);
 static void set_off(uintptr_t u, int b, size_t n);
+static uintptr_t swap(uintptr_t u, int k);
 
 void
 add_chld(uintptr_t p, int k, uintptr_t c)
@@ -56,7 +58,6 @@ adjust_balance(uintptr_t u, int g)
 	adjust_by_prnt(u, g);
 	adjust_by_chld(u, 0, g);
 	adjust_by_chld(u, 1, g);
-
 }
 
 void
@@ -85,19 +86,19 @@ adjust_by_prnt(uintptr_t u, int g)
 }
 
 uintptr_t
-detatch_chld(uintptr_t u, int k)
+detatch(uintptr_t u, int k)
 {
-	struct frag_node *g = untag(u);
-	struct frag_node *h = untag(g->link[k]);
-	uintptr_t r = g->link[k];
+	struct frag_node *U = untag(u);
+	struct frag_node *V = untag(U->link[k]);
+	uintptr_t r = U->link[k];
 
-	if (!h) return 0;
+	if (!V) return 0;
 
-	if (h->link[!k] == h->link[2]) h->link[!k] = 0;
-	h->link[2] = 0;
+	if (V->link[!k] == V->link[2]) V->link[!k] = 0;
+	V->link[2] = 0;
 
-	r = g->link[k];
-	g->link[k] = 0;
+	r = U->link[k];
+	U->link[k] = 0;
 
 	set_off(u, k, 0);
 	return r;
@@ -129,34 +130,68 @@ increment_chld(uintptr_t u, int k)
 }
 
 void
-init_node(struct frag_node *node, size_t pos)
+init_node(struct frag_node *d, size_t x)
 {
-	*node = (struct frag_node){.len = node->len};
-	node->off[1] = 0;
-	node->off[0] = pos;
+	d[0] = (struct frag_node){.len = d->len};
+	d->off[1] = 0;
+	d->off[0] = x;
+}
+
+bool
+is_leaf(uintptr_t t)
+{
+	return !get_chld(t, 0) || !get_chld(t, 1);
 }
 
 uintptr_t
 get_chld(uintptr_t u, int k)
 {
-	struct frag_node *n = untag(u);
-	if (n->link[k] == n->link[2]) return 0x0;
-	return n->link[k];
+	struct frag_node *g = untag(u);
+	if (g->link[k] == g->link[2]) return 0x0;
+	return g->link[k];
 }
 
 size_t
 get_off(uintptr_t u, int b)
 {
-	struct frag_node *d = untag(u);
-	return d->off[b];
+	struct frag_node *g = untag(u);
+	return g->off[b];
 }
 
 uintptr_t
-get_prnt(uintptr_t t)
+get_next(uintptr_t u, int k)
 {
-	struct frag_node *c;
-	c = untag(t);
-	return c->link[2];
+	uintptr_t c;
+
+	u = get_chld(u, k);
+	if (!u) return 0x0;
+
+	c = get_chld(u, !k);
+	return c ? c : u;
+}
+
+uintptr_t
+get_prnt(uintptr_t u)
+{
+	struct frag_node *g;
+	g = untag(u);
+	return g->link[2];
+}
+
+uintptr_t
+get_tag(struct frag_node *g)
+{
+	uintptr_t u=tag0(g);
+
+	if (get_chld(u, 0)) {
+		u = get_prnt(g->link[0]);
+	} else if (get_chld(u, 1)) {
+		u = get_prnt(g->link[1]);
+	} else {
+		u = 0x0;
+	}
+
+	return tag_of(u);
 }
 
 int
@@ -173,7 +208,7 @@ find_leftmost_leaf(struct frag *fg)
 }
 
 int
-find_nearest_leaf(struct frag *fg, size_t where)
+find_empty_chld(struct frag *fg, size_t where)
 {
 	struct frag_node *node;
 	uintptr_t pred = 0;
@@ -230,23 +265,30 @@ frag_cmp(struct frag *fg, size_t pos)
 }
 
 void
-frag_delete(struct frag *fg, size_t pos)
+frag_delete(struct frag *f, struct frag_node *T)
 {
-	struct frag_node *match;
-	struct frag_node *prnt;
+	uintptr_t t, p;
 	int k;
 
-	match = frag_stab(fg, pos);
-	if (!match) return;
+	if (!T) return;
 
-	rebalance(fg->cur, 0);
+	t = tag0(T) + get_tag(T);
 
-	fg->cur = match->link[2];
-	prnt = untag(match->link[2]);
-	if (!prnt) return;
-	k = untag(prnt->link[1]) == match;
-	prnt->link[k] = 0;
+	if (!is_leaf(t)) f->cur = swap(t, 1);
 
+	rebalance(T, 0);
+
+	if (f->cur == t) {
+		if (get_prnt(t)) frag_step(f, 2);
+		else if (get_chld(t, 1)) f->cur = get_chld(t, 1);
+		else f->cur = get_chld(t, 0);
+	}
+
+	p = T->link[2];
+	if (!p) return;
+
+	k = get_chld(p, 1) == t;
+	detatch(p, k);
 }
 
 void
@@ -258,27 +300,29 @@ frag_flush(struct frag *fg)
 }
 
 int
-frag_insert(struct frag *fg, size_t where, struct frag_node *new)
+frag_insert(struct frag *f, size_t x, struct frag_node *g)
 {
+	uintptr_t u;
 	int k;
 
-	if (!fg) return EINVAL;
-	if (!new) return EINVAL;
+	if (!f) return EINVAL;
+	if (!g) return EINVAL;
 
-	if (!fg->cur) {
-		init_node(new, where);
-		fg->cur = tag0(new);
+	u = tag0(g);
+
+	if (!f->cur) {
+		init_node(g, x);
+		f->cur = u;
 		return 0;
 	}
 
-	k = find_nearest_leaf(fg, where);
+	k = find_empty_chld(f, x);
 
-	set_link(fg->cur, k, tag0(new));
-	new->link[2] = fg->cur;
-	new->link[!k] = fg->cur;
-	fg->cur = tag0(new);
+	set_link(f->cur, k, u);
+	g->link[2] = g->link[!k] = f->cur;
+	f->cur = u;
 
-	rebalance(fg->cur, 1);
+	rebalance(g, 1);
 
 	return 0;
 }
@@ -313,10 +357,11 @@ frag_step(struct frag *fg, int k)
 	struct frag_node *next = untag(prev->link[k]);
 
 	assert(fg->cur > 0x3);
-	assert(prev->link[k] > 0x3);
 
 	fg->cur = prev->link[k];
 	
+	if (!next) return;
+
 	if (k == 0) {
 		fg->rem += prev->off[1] + prev->len;
 		return;
@@ -335,26 +380,25 @@ frag_step(struct frag *fg, int k)
 }
 
 void
-rebalance(uintptr_t u, int r)
+rebalance(struct frag_node *g, int r)
 {
-	struct frag_node *n;
+	struct frag_node *G = g;
 	size_t a;
 	int k;
 
-	n = untag(u);
-	a = r ? n->len : -n->len;
+	a = r ? g->len : -g->len;
 
-	while (n = untag(n->link[2])) {
+	while (G = untag(G->link[2])) {
 
-		k = u == n->link[1];
+		k = g == untag(G->link[1]);
 
-		if (k) n->off[1] += a;
-		else n->off[0] += a;
+		if (k) G->off[1] += a;
+		else G->off[0] += a;
 
-		increment_chld(get_prnt(u), k == r);
+		increment_chld(g->link[2], k == r);
 
-		u = get_prnt(u);
-		if (!tag_of(u)) return;
+		if (!tag_of(g->link[2])) return;
+		g = untag(g->link[2]);
 
 	}
 }
@@ -365,8 +409,8 @@ rotate(uintptr_t p, int k)
 	uintptr_t h;
 	uintptr_t v;
 
-	h = detatch_chld(p, !k);
-	v = detatch_chld(h, k);
+	h = detatch(p, !k);
+	v = detatch(h, k);
 
 	if (v) add_chld(p, !k, v);
 	else set_link(p, !k, h);
@@ -380,7 +424,7 @@ rotate2(uintptr_t t, int k)
 {
 	uintptr_t c;
 
-	c = detatch_chld(t, !k);
+	c = detatch(t, !k);
 	c = rotate(c, !k);
 	add_chld(t, !k, c);
 
@@ -401,4 +445,29 @@ set_off(uintptr_t u, int b, size_t n)
 {
 	struct frag_node *d = untag(u);
 	d->off[b] = n;
+}
+
+uintptr_t
+swap(uintptr_t u, int k)
+{
+	struct frag_node *U=untag(u);
+	struct frag_node *X;
+	uintptr_t x;
+	
+	x = get_next(u, k);
+	X = untag(x);
+
+	if (X->link[2] == u) X->link[2] = x;
+	memswp(X->link+2, U->link+2, sizeof U->link[2]);
+
+	if (U->link[k] == x) U->link[k] = u;
+	memswp(X->link+k, U->link+k, sizeof U->link[k]);
+
+	if (X->link[!k] == u) X->link[!k] = x;
+	memswp(X->link+!k, U->link+!k, sizeof U->link[!k]);
+
+	memswp(U->off, X->off, sizeof U->off);
+	X->off[k] -= X->len, X->off[k] += U->len;
+
+	return x;
 }

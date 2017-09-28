@@ -9,7 +9,6 @@ static void test_adjust_leaves(void);
 static void test_adjust_parent(void);
 static void test_adjust_single(void);
 
-static void test_delete_absent(void);
 static void test_delete_branch(void);
 static void test_delete_empty(void);
 static void test_delete_leaf(void);
@@ -33,6 +32,9 @@ static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_tail(void);
 
+static void test_rebalance_expand_two(void);
+static void test_rebalance_expand_single(void);
+
 static void test_rotate_left(void);
 static void test_rotate_null(void);
 static void test_rotate_right(void);
@@ -46,6 +48,8 @@ static void test_stab_empty(void);
 static void test_stab_nearest(void);
 static void test_stab_root(void);
 
+static void test_swap_succ(void);
+
 struct unit_test tests[] = {
 	{.msg = "should fail on stabbing an empty graphs",
 	 .fun = unit_list(test_stab_empty),},
@@ -54,12 +58,12 @@ struct unit_test tests[] = {
 	{.msg = "should do nothing when deleting from an empty graph",
 	 .fun = unit_list(test_delete_empty),},
 
-	{.msg = "should stay at nearest piece in the graph after stabbing",
+	{.msg = "should stay at nearest node in the graph after stabbing",
 	 .fun = unit_list(test_stab_nearest),},
 
 	{.msg = "should stab the root piece",
 	 .fun = unit_list(test_stab_root),},
-	{.msg = "should not stab pieces not in the graph",
+	{.msg = "should not stab node not in the graph",
 	 .fun = unit_list(test_stab_absent),},
 
 	{.msg = "should prepend a fragment into a graph",
@@ -83,11 +87,8 @@ struct unit_test tests[] = {
 	{.msg = "should reset the displacement after flushing a graph",
 	 .fun = unit_list(test_flush_offset),},
 
-	{.msg = "should delete root pieces",
+	{.msg = "should delete root nodes",
 	 .fun = unit_list(test_delete_root),},
-	{.msg = "should do nothing when deleting absent pieces",
-	 .fun = unit_list(test_delete_absent),},
-
 	{.msg = "should delete leaf nodes",
 	 .fun = unit_list(test_delete_leaf),},
 
@@ -121,10 +122,18 @@ struct unit_test tests[] = {
 	{.msg = "should double rotate on balance tag overflow",
 	 .fun = unit_list(test_increment_rotate2),},
 
+	{.msg = "should rebalance on expansion with two nodes",
+	 .fun = unit_list(test_rebalance_expand_two),},
+	{.msg = "should rebalance on expansion with threes (single case)",
+	 .fun = unit_list(test_rebalance_expand_single),},
+
 	{.msg = "should rebalance the tree with single rotations on insertion",
 	 .fun = unit_list(test_insert_balance_single),},
 	{.msg = "should rebalance the tree with double rotations on insertion",
 	 .fun = unit_list(test_insert_balance_double),},
+
+	{.msg = "should swap nodes with their successor children",
+	 .fun = unit_list(test_swap_succ),},
 
 	{.msg = "should delete branch nodes",
 	 .fun = unit_list(test_delete_branch),},
@@ -225,18 +234,6 @@ test_adjust_single(void)
 }
 
 void
-test_delete_absent(void)
-{
-	struct frag_node one[1]={{.len=5}};
-	struct frag fg[1] = {{0}};
-
-	expect(0, frag_insert(fg, 1, one));
-	try(frag_delete(fg, 9));
-	ok(fg->cur);
-	ok(frag_stab(fg, 2) == one);
-}
-
-void
 test_delete_branch(void)
 {
 	struct frag fg[1] = {{0}};
@@ -244,11 +241,14 @@ test_delete_branch(void)
 
 	a = make_tree(1, 0,0,0);
 	c = make_tree(3, 0,0,0);
-	b = make_tree(2, a,c,0);
+	b = make_tree(2, 0,a,c);
 
 	fg->cur = b;
 
-	try(frag_delete(fg, 2));
+	try(frag_delete(fg, untag(b)));
+
+	ok(untag(fg->cur) == untag(c));
+	ok(fg->cur == c + 2);
 }
 
 void
@@ -269,7 +269,7 @@ test_delete_leaf(void)
 	expect(0, frag_insert(fg, 0, one));
 	expect(0, frag_insert(fg, 3, two));
 
-	try(frag_delete(fg, 6));
+	try(frag_delete(fg, two));
 
 	ok(untag(fg->cur) == one);
 	ok(fg->cur == (uintptr_t)one);
@@ -288,8 +288,9 @@ test_delete_root(void)
 	struct frag_node root[1] = {{.len = 4}};
 	struct frag fg[1] = {{0}};
 
-	expect(0, frag_insert(fg, 0,  root));
-	try(frag_delete(fg, 1));
+	expect(0, frag_insert(fg, 0, root));
+
+	try(frag_delete(fg, root));
 	ok(!frag_stab(fg, 1));
 	ok(!fg->cur);
 }
@@ -576,6 +577,51 @@ test_insert_tail(void)
 }
 
 void
+test_rebalance_expand_single(void)
+{
+	struct frag_node *g;
+	uintptr_t b, c;
+
+	make_tree(1, 1, 0, b = make_tree(2,0,0,0));
+
+	c = make_tree(3,0,0,0);
+
+	set_link(b, 1, c), set_link(c, 2, b), set_link(c, 0, b);
+
+	g = untag(c);
+	try(rebalance(g, 1));
+
+	ok(untag(g->link[2]) == untag(b));
+	expect(0, tag_of(g->link[2]));
+	
+	expect(0,tag_of(g->link[2]));
+
+	expect(3, get_off(b, 1));
+}
+
+void
+test_rebalance_expand_two(void)
+{
+	struct frag_node *g;
+	uintptr_t a, b;
+
+	a = make_tree(1,0,0,0);
+	b = make_tree(2,0,0,0);
+
+	set_link(b, 0, a);
+	set_link(a, 2, b);
+
+	g = untag(a);
+	try(rebalance(g, 1));
+
+	expect(2, tag_of(g->link[2]));
+	g = untag(b);
+	expect(1, g->off[0]);
+
+	kill_tree(b);
+}
+
+void
 test_rotate_left(void)
 {
 	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}}, h[1]={{.len=30}};
@@ -778,4 +824,30 @@ test_stab_root(void)
 	ok(frag_stab(fg, 4));
 	ok(frag_stab(fg, 0) == root);
 	ok(frag_stab(fg, 4) == root);
+}
+
+void
+test_swap_succ(void)
+{
+	struct frag_node f[1]={{.len=10}}, g[1]={{.len=20}};
+	uintptr_t a, b;
+
+	b = make_tree(2,-1, 0, tag0(g));
+	a = make_tree(1, 0, tag0(f), b);
+
+	try(swap(a, 1));
+
+	ok(get_chld(a, 0) == 0);
+	ok(get_chld(a, 1) == tag0(g));
+	ok(get_prnt(a) == b);
+
+	ok(get_chld(b, 0) == tag0(f));
+	ok(get_chld(b, 1) == a);
+	ok(get_prnt(b) == 0);
+
+	expect(0, get_off(a, 0));
+	expect(20, get_off(a, 1));
+
+	expect(10, get_off(b, 0));
+	expect(21, get_off(b, 1));
 }
