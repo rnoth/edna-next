@@ -139,7 +139,7 @@ test_signals(void)
 }
 
 int
-main(int argc, char **argv)
+main()
 {
 	int err;
 

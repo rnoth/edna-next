@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include <util.h>
+
 #define unit_catch() sigsetjmp(unit_checkpoint, 1)
 
 #define unit_error_fmt(...) do {         \
