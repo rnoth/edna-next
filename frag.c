@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -7,134 +6,149 @@
 #include <util.h>
 #include <tag.h>
 
-static void add_chld(uintptr_t p, int k, uintptr_t c);
-static void adjust_balance(uintptr_t u, int d);
-static void adjust_by_chld(uintptr_t u, int k, int d);
-static void adjust_by_prnt(uintptr_t u, int d);
+static inline uintptr_t get_chld(uintptr_t t, int k);
+static inline size_t    get_end(uintptr_t t);
+static inline uintptr_t get_len(uintptr_t t);
+static inline uintptr_t get_link(uintptr_t t, int k);
+
+static inline size_t    get_off(uintptr_t t, int k);
+static inline uintptr_t get_prnt(uintptr_t t);
+
+static void      add_chld(uintptr_t p, int k, uintptr_t c);
+static uintptr_t adjust(uintptr_t t, int b);
+static int       branch_of(uintptr_t t, uintptr_t p);
+
+static int       cmp(uintptr_t t, size_t p);
 static uintptr_t detatch(uintptr_t p, int k);
-static void increment_chld(uintptr_t u, int k);
-static void init_node(struct frag_node *d, size_t x);
-static uintptr_t get_chld(uintptr_t n, int k);
-static uintptr_t get_prnt(uintptr_t prnt);
-static int find_leftmost_leaf(struct frag *fg);
-static int find_empty_chld(struct frag *fg, size_t where);
-static void init_node(struct frag_node *node, size_t pos);
-static int frag_cmp(struct frag *fg, size_t pos);
-static void frag_step(struct frag *fg, int k);
-static void rebalance(struct frag_node *g, int r);
+static uintptr_t increment(uintptr_t t, int k);
+
+static void      init(struct frag *d, size_t p);
+static int       find_rightmost_leaf(uintptr_t *t);
+static int       find_empty_chld(uintptr_t *t, size_t p);
+
+static uintptr_t get_next(uintptr_t t, int k, size_t *);
+static uintptr_t get_tag(struct frag *F);
+static void      offset(uintptr_t p, size_t n);
+
+static void      rm_max(uintptr_t t);
 static uintptr_t rotate(uintptr_t, int k);
 static uintptr_t rotate2(uintptr_t, int k);
-static void set_link(uintptr_t u, int k, uintptr_t t);
-static void set_off(uintptr_t u, int b, size_t n);
+
+static void      set_link(uintptr_t u, int k, uintptr_t t);
+static void      set_max(uintptr_t t, size_t n);
+static size_t    step(uintptr_t t, int k);
+
 static uintptr_t swap(uintptr_t u, int k);
+static size_t    try_max(uintptr_t t, size_t m);
+
+#define get_field(P, F) (((struct frag *)untag(P))->F)
+
+#define foreach_ancestor(P, K) \
+	for(uintptr_t*_p=&P,_g;*_p;K=(_g=get_prnt(*_p))?branch_of(*_p,_g):0,*_p=_g)
+
+uintptr_t
+get_chld(uintptr_t t, int k)
+{
+	return get_field(t, link[k]);
+}
+
+size_t get_end(uintptr_t t) { return get_off(t,0) + get_len(t); }
+uintptr_t get_len(uintptr_t t) { return get_field(t, len); }
+uintptr_t get_link(uintptr_t t, int k) { return get_field(t, link[k]); }
+size_t get_off(uintptr_t t, int b) { return get_field(t, off[b]); }
+uintptr_t get_prnt(uintptr_t t) { return get_field(t, link[2]); }
 
 void
 add_chld(uintptr_t p, int k, uintptr_t c)
 {
-	struct frag_node *pp;
-	struct frag_node *cc;
+	struct frag *P=untag(p), *C=untag(c);
 
-	assert(k == 0 || k == 1);
-	assert(p > 0x3);
-	assert(c > 0x3);
-
-	pp = untag(p);
-	cc = untag(c);
-
-	if (!cc->link[!k]) cc->link[!k] = p;
-
-	pp->link[k] = c;
-	cc->link[2] = p;
-
-	pp->off[k] = cc->off[0] + cc->off[1] + cc->len;
+	P->link[k] = c, C->link[2] = p;
+	rm_max(p);
 }
 
-void
-adjust_balance(uintptr_t u, int g)
+uintptr_t
+adjust(uintptr_t t, int b)
 {
-	assert(u > 0x3);
-	assert(g == 0 || g == 2 || g == 3);
+	uintptr_t c, p, u = t & ~3 | b;
 
-	adjust_by_prnt(u, g);
-	adjust_by_chld(u, 0, g);
-	adjust_by_chld(u, 1, g);
+	if (c = get_chld(t, 0)) set_link(c, 2, u);
+	if (c = get_chld(t, 1)) set_link(c, 2, u);
+	if (p = get_prnt(t)) set_link(p, branch_of(t, p), u);
+
+	return u;
 }
 
-void
-adjust_by_chld(uintptr_t u, int k, int g)
+int
+branch_of(uintptr_t t, uintptr_t p)
 {
-	uintptr_t c = get_chld(u, k);
-	uintptr_t t = u & ~3 | g;
-
-	if (c) {
-		if (!get_chld(c, !k)) set_link(c, !k, t);
-		set_link(c, 2, t);
-	}
+	return t == get_chld(p, 1);
 }
 
-void
-adjust_by_prnt(uintptr_t u, int g)
+int
+cmp(uintptr_t t, size_t p)
 {
-	uintptr_t p = get_prnt(u);
-	uintptr_t t = u & ~3 | g;
-	int k;
-
-	if (p) {
-		k = u == get_chld(p, 1);
-		set_link(p, k, t);
-	}
+	if (p <= get_off(t, 0)) return 0;
+	if (p < get_off(t, 1)) return 1;
+	return 2;
 }
 
 uintptr_t
 detatch(uintptr_t u, int k)
 {
-	struct frag_node *U = untag(u);
-	struct frag_node *V = untag(U->link[k]);
-	uintptr_t r = U->link[k];
+	struct frag *U = untag(u);
+	struct frag *V = untag(U->link[k]);
+	uintptr_t r;
 
 	if (!V) return 0;
 
-	if (V->link[!k] == V->link[2]) V->link[!k] = 0;
 	V->link[2] = 0;
 
 	r = U->link[k];
 	U->link[k] = 0;
+	rm_max(u);
 
-	set_off(u, k, 0);
 	return r;
 }
 
 void
-increment_chld(uintptr_t u, int k)
+inc_max(uintptr_t t, size_t n)
 {
-	uintptr_t c = get_chld(u, k);
-	uintptr_t g = c ? get_chld(c, !k) : 0;
-	int w = tag_of(g);
-	int b = tag_of(u);
-
-	if (!b || b-2 != k) {
-		adjust_balance(u, b ? 0 : 2|k);
-		return;
-	}
-
-	if (b == tag_of(c)) {
-		adjust_balance(u, w ? w ^ 1 : 0);
-		adjust_balance(c, 0);
-		rotate(u & ~3, !k);
-		return;
-	}
-
-	adjust_balance(u, 0);
-	adjust_balance(c, w);
-	rotate2(u ^ b, !k);
+	get_field(t, off[1]) += n;
 }
 
 void
-init_node(struct frag_node *d, size_t x)
+inc_off(uintptr_t t, size_t n)
 {
-	d[0] = (struct frag_node){.len = d->len};
-	d->off[1] = 0;
-	d->off[0] = x;
+	get_field(t, off[0]) += n;
+}
+
+uintptr_t
+increment(uintptr_t t, int k)
+{
+	uintptr_t u = get_chld(t, k);
+	uintptr_t v = u ? get_chld(u, !k) : 0;
+	int b = tag_of(t), d = tag_of(v);
+
+	if (!b || b-2 != k) return adjust(t, b ? 0 : 2|k);
+
+	if (b == tag_of(u)) {
+		adjust(t, d ? d ^ 1 : 0);
+		adjust(u, 0);
+		return rotate(t & ~3, !k);
+	}
+
+	adjust(t, 0);
+	adjust(u, d);
+	return rotate2(t ^ b, !k);
+}
+
+void
+init(struct frag *n, size_t x)
+{
+	n[0] = (struct frag){.len = n->len};
+	n->off[0] = x;
+	n->off[1] = n->len;
 }
 
 bool
@@ -144,276 +158,170 @@ is_leaf(uintptr_t t)
 }
 
 uintptr_t
-get_chld(uintptr_t u, int k)
+get_next(uintptr_t t, int k, size_t *f)
 {
-	struct frag_node *U = untag(u);
-	if (U->link[k] == U->link[2]) return 0x0;
-	return U->link[k];
-}
-
-size_t
-get_off(uintptr_t u, int b)
-{
-	struct frag_node *g = untag(u);
-	return g->off[b];
-}
-
-uintptr_t
-get_next(uintptr_t u, int k)
-{
-	uintptr_t c;
-
-	u = get_chld(u, k);
-	if (!u) return 0x0;
-
-	c = get_chld(u, !k);
-	return c ? c : u;
-}
-
-uintptr_t
-get_prnt(uintptr_t u)
-{
-	struct frag_node *U;
-	U = untag(u);
-	return U->link[2];
-}
-
-uintptr_t
-get_tag(struct frag_node *g)
-{
-	uintptr_t u=tag0(g);
-
-	if (get_chld(u, 0)) {
-		u = get_prnt(g->link[0]);
-	} else if (get_chld(u, 1)) {
-		u = get_prnt(g->link[1]);
-	} else {
-		u = 0x0;
+	t = get_chld(t, k), *f += k ? get_off(t, 0) : 0;
+	for (uintptr_t x; x = get_chld(t, !k); t = x) {
+		*f += !k ? get_off(t, 0) : 0;
 	}
+	return t;
+}
 
-	return tag_of(u);
+uintptr_t
+get_tag(struct frag *F)
+{
+	uintptr_t f=tag0(F);
+
+	if (!F->link[0] && !F->link[1]) return f;
+
+	if (!F->link[0]) return f|3;
+	if (!F->link[1]) return f|2;
+
+	return get_prnt(F->link[0]);
 }
 
 int
-find_leftmost_leaf(struct frag *fg)
+find_empty_chld(uintptr_t *t, size_t p)
 {
-	struct frag_node *node;
-
-	while (node = untag(fg->cur)) {
-		if (!node->link[1]) break;
-		frag_step(fg, 1);
-	}
-
-	return 1;
-}
-
-int
-find_empty_chld(struct frag *fg, size_t where)
-{
-	struct frag_node *node;
-	uintptr_t pred = 0;
-	uintptr_t succ = 0;
+	uintptr_t x;
 	int k;
 
-	assert(fg != 0x0);
-	assert(fg->cur > 0x3);
-
-	while (node = untag(fg->cur)) {
-
-		k = frag_cmp(fg, where);
-
-		if (!node->link[k]) {
-			break;
-		}
-
-		if (node->link[k] == pred || node->link[k] == succ) {
-			return where - fg->off > node->off[0];
-		}
-
-		if (k == 0) succ = fg->cur;
-		if (k == 1) pred = fg->cur;
-
-		frag_step(fg, k);
-
+	while (k = cmp(*t, p), x = get_link(*t, k)) {
+		p -= step(*t, k), *t = x;
 	}
 
-	if (k == 2) {
-		find_leftmost_leaf(fg);
-		return 1;
-	}
+	if (k == 2) return find_rightmost_leaf(t);
 
 	return k;
 }
 
 int
-frag_cmp(struct frag *fg, size_t pos)
+find_rightmost_leaf(uintptr_t *t)
 {
-	struct frag_node *node = untag(fg->cur);
-
-	pos -= fg->off;
-	if (pos <= node->off[0]) {
-		return 0;
-	}
-
-	pos -= node->off[0];
-	if (pos < node->off[1]) {
-		return 1;
-	}
-
-	return 2;
-
+	uintptr_t x;
+	while (x = get_chld(*t, 1)) *t = x;
+	return 1;
 }
 
 void
-frag_delete(struct frag *f, struct frag_node *T)
+frag_delete(struct frag *T)
 {
-	uintptr_t t, p;
+	uintptr_t t, p, q;
 	int k;
 
 	if (!T) return;
 
-	t = tag0(T) + get_tag(T);
+	t = get_tag(T);
 
 	if (!is_leaf(t)) swap(t, 1);
-
-	rebalance(T, 0);
-
-	if (f->cur == t) {
-		if (get_chld(t, 1)) frag_step(f, 1);
-		else if (get_chld(t, 0)) frag_step(f, 0);
-		else frag_step(f, 2);
-	}
-
-	p = T->link[2];
+	
+	p = q = get_prnt(t);
 	if (!p) return;
 
-	k = get_chld(p, 1) == t;
+	k = branch_of(t, p);
 	detatch(p, k);
-}
 
-void
-frag_flush(struct frag *fg)
-{
-	if (!fg->cur) return;
-
-	while (get_prnt(fg->cur)) frag_step(fg, 2);
-}
-
-int
-frag_insert(struct frag *f, size_t x, struct frag_node *g)
-{
-	uintptr_t u;
-	int k;
-
-	if (!f) return EINVAL;
-	if (!g) return EINVAL;
-
-	u = tag0(g);
-
-	if (!f->cur) {
-		init_node(g, x);
-		f->cur = u;
-		return 0;
+	foreach_ancestor (q, k) {
+		rm_max(q);
+		//q = increment(q, !k);
+		if (!tag_of(q)) break;
 	}
-
-	k = find_empty_chld(f, x);
-
-	set_link(f->cur, k, u);
-	g->link[2] = g->link[!k] = f->cur;
-	f->cur = u;
-
-	rebalance(g, 1);
-
-	return 0;
 }
 
 void *
-frag_stab(struct frag *fg, size_t pos)
+frag_get_root(struct frag *T)
 {
-	struct frag_node *node;
-	int k;
+	uintptr_t x;
 
-	if (!fg) return 0;
-	if (!fg->cur) return 0;
+	if (!T) return 0;
+	while (x=T->link[2]) T=untag(x);
 
-	node = untag(fg->cur);
-
-	while (!in_range(node->off[0], node->len, pos - fg->off)) {
-
-		k = frag_cmp(fg, pos);
-		if (!node->link[k]) return 0;
-		frag_step(fg, k);
-		node = untag(fg->cur);
-
-	}
-
-	return node;
+	return T;
 }
 
 void
-frag_step(struct frag *fg, int k)
+frag_insert(struct frag *H, size_t n, struct frag *F)
 {
-	struct frag_node *prev = untag(fg->cur);
-	struct frag_node *next = untag(prev->link[k]);
+	uintptr_t p, t=tag0(F);
+	size_t m;
+	int k;
 
-	assert(fg->cur > 0x3);
+	if (!H) { init(F, n); return; }
 
-	fg->cur = prev->link[k];
-	
-	if (!next) return;
+	p = get_tag(H);
+	k = find_empty_chld(&p, n);
 
-	if (k == 0) {
-		fg->rem += prev->off[1] + prev->len;
-		return;
-	} else if (k == 1) {
-		fg->off += prev->off[0] + prev->len;
-		return;
-	}
+	set_link(p, k, t);
+	set_link(t, 2, p);
 
-	if (untag(next->link[0]) == prev) {
-		fg->rem -= next->off[1];
-		return;
-	} else {
-		fg->off -= next->off[0];
-		return;
+	if (k) F->off[0] = get_len(p);
+	m = F->off[0] + F->len;
+
+	foreach_ancestor (p, k) {
+		if (!k) offset(p, F->len);
+		else if (m) m = try_max(p, m);
+
+		p = increment(p, k);
+		if (!tag_of(p)) break;
 	}
 }
 
-void
-rebalance(struct frag_node *g, int r)
+void *
+frag_stab(struct frag *H, size_t p)
 {
-	struct frag_node *G = g;
-	size_t a;
+	uintptr_t h, x;
 	int k;
 
-	a = r ? g->len : -g->len;
+	if (!H) return 0;
 
-	while (G = untag(G->link[2])) {
+	h = get_tag(H);
 
-		k = g == untag(G->link[1]);
-
-		if (k) G->off[1] += a;
-		else G->off[0] += a;
-
-		increment_chld(g->link[2], k == r);
-
-		if (!tag_of(g->link[2])) return;
-		g = untag(g->link[2]);
-
+	while (!in_range(get_off(h, 0), get_len(h), p)) {
+		k = cmp(h, p);
+		p+= step(h, k);
+		x = get_link(h, k);
+		if (!x) return 0x0;
+		h = x;
 	}
+
+	return untag(h);
+}
+
+void
+offset(uintptr_t p, size_t n)
+{
+	inc_off(p, n);
+	inc_max(p, n);
+}
+
+void
+rm_max(uintptr_t t)
+{
+	uintptr_t c;
+	size_t m[3]={0};
+	size_t r;
+
+	m[2] = get_end(t);
+	if (c=get_chld(t,0)) m[0] = get_off(c, 1);
+	if (c=get_chld(t,1)) m[1] = get_off(t, 0) + get_off(c, 1);
+
+	r = umax(m[0], umax(m[1], m[2]));
+	set_max(t, r);
 }
 
 uintptr_t
 rotate(uintptr_t p, int k)
 {
-	uintptr_t h;
-	uintptr_t v;
+	uintptr_t h = detatch(p, !k);
+	uintptr_t v = detatch(h, k);
 
-	h = detatch(p, !k);
-	v = detatch(h, k);
+	if (!k) {
+		inc_off(h, get_off(p, 0));
+	} else {
+		inc_off(p, -get_off(h, 0));
+	}
 
 	if (v) add_chld(p, !k, v);
-	else set_link(p, !k, h);
 	add_chld(h, k, p);
 
 	return h;
@@ -428,46 +336,73 @@ rotate2(uintptr_t t, int k)
 	c = rotate(c, !k);
 	add_chld(t, !k, c);
 
-	t = rotate(t, k);
-
-	return t;
+	return rotate(t, k);
 }
 
 void
 set_link(uintptr_t u, int k, uintptr_t t)
 {
-	struct frag_node *n = untag(u);
+	struct frag *n = untag(u);
 	n->link[k] = t;
 }
 
 void
-set_off(uintptr_t u, int b, size_t n)
+set_max(uintptr_t u, size_t n)
 {
-	struct frag_node *d = untag(u);
-	d->off[b] = n;
+	get_field(u, off[1]) = n;
+}
+
+size_t
+step(uintptr_t t, int k)
+{
+	uintptr_t x;
+
+	if (k == 0) return 0;
+	if (k == 1) return get_off(t, 0);
+
+	x = get_prnt(t);
+	if (!x) return 0;
+
+	if (branch_of(t, x)) return -get_off(x, 0);
+
+	return 0;
 }
 
 uintptr_t
 swap(uintptr_t u, int k)
 {
-	struct frag_node *U=untag(u);
-	struct frag_node *X;
 	uintptr_t x;
-	
-	x = get_next(u, k);
-	X = untag(x);
+	uintptr_t p, q;
+	uintptr_t c, v;
+	size_t f=0;
 
-	if (X->link[2] == u) X->link[2] = x;
-	memswp(X->link+2, U->link+2, sizeof U->link[2]);
+	x = get_next(u, k, &f), q = get_prnt(x), v = detatch(x, k);
 
-	if (U->link[k] == x) U->link[k] = u;
-	memswp(X->link+k, U->link+k, sizeof U->link[k]);
+	detatch(q, branch_of(x, q));
 
-	if (X->link[!k] == u) X->link[!k] = x;
-	memswp(X->link+!k, U->link+!k, sizeof U->link[!k]);
+	if (p = get_prnt(u)) add_chld(p, branch_of(u, p), x);
 
-	memswp(U->off, X->off, sizeof U->off);
-	X->off[k] -= X->len, X->off[k] += U->len;
+	if (q != u) add_chld(q, !k, u);
+	else detatch(u, k), add_chld(x, k, u);
 
-	return x;
+	if (c = detatch(u, 0)) add_chld(x, 0, c);
+	if (c = detatch(u, 1)) add_chld(x, 1, c);
+	if (v) add_chld(u, k, v);
+
+	inc_off(x, f);
+	rm_max(x);
+
+	return x ^ tag_of(u);
+}
+
+size_t
+try_max(uintptr_t t, size_t n)
+{
+	size_t h=get_off(t, 1);
+	size_t r=get_off(t, 0) + n;
+
+	if (h < r) set_max(t, r);
+	else return 0;
+
+	return r;
 }
