@@ -5,6 +5,7 @@
 
 struct frag;
 
+void frag_append(struct frag *hint_node, size_t off, struct frag *new_node);
 void frag_delete(struct frag *del_node);
 void *frag_get_root(struct frag *cur_node);
 void frag_insert(struct frag *hint_node, size_t off, struct frag *new_node);

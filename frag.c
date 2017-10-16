@@ -201,6 +201,12 @@ find_rightmost_leaf(uintptr_t *t)
 }
 
 void
+frag_append(struct frag *H, size_t n, struct frag *F)
+{
+	__builtin_trap();
+}
+
+void
 frag_delete(struct frag *T)
 {
 	uintptr_t t, p, q;
@@ -264,9 +270,15 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 }
 
 void
-frag_offset(struct frag *T, size_t p)
+frag_offset(struct frag *T, size_t f)
 {
-	T->off += p;
+	uintptr_t t=get_tag(T);
+	int k=0;
+
+	foreach_ancestor (t, k) {
+		if (k) return;
+		inc_off(t, f);
+	}
 }
 
 void *

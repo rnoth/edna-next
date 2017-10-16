@@ -125,7 +125,6 @@ struct unit_test tests[] = {
 
 	{.msg = "should offset a node and its children",
 	 .fun = unit_list(test_offset_uptree),},
-
 };
 
 #include <unit.t>
@@ -549,12 +548,12 @@ test_offset_uptree(void)
 	c = make_tree(1,0,f,g);
 	b = make_tree(1,0,d,e);
 
-	a = make_tree(1,0,c,b);
+	a = make_tree(1,0,b,c);
 
 	try(frag_offset(untag(f), 1));
 
-	expect(1, get_off(f));
-	expect(2, get_off(c));
+	expect(2, get_off(f));
+	expect(3, get_off(c));
 	expect(3, get_off(a));
 }
 
