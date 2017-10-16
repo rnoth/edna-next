@@ -30,6 +30,7 @@ static void test_find_empty_chld(void);
 static void test_find_empty_chld2(void);
 
 static void test_offset_one(void);
+static void test_offset_uptree(void);
 
 static void test_rotate_left(void);
 static void test_rotate_null(void);
@@ -121,6 +122,10 @@ struct unit_test tests[] = {
 
 	{.msg = "should offset one node",
 	 .fun = unit_list(test_offset_one),},
+
+	{.msg = "should offset a node and its children",
+	 .fun = unit_list(test_offset_uptree),},
+
 };
 
 #include <unit.t>
@@ -527,10 +532,30 @@ void
 test_offset_one(void)
 {
 	struct frag a[1]={{.len=1}};
-
 	try(frag_offset(a, 1));
-
 	expect(1, a->off);
+}
+
+void
+test_offset_uptree(void)
+{
+	uintptr_t a, b, c, d, e, f, g;
+
+	d = make_tree(1,0,0,0);
+	e = make_tree(1,0,0,0);
+	f = make_tree(1,0,0,0);
+	g = make_tree(1,0,0,0);
+
+	c = make_tree(1,0,f,g);
+	b = make_tree(1,0,d,e);
+
+	a = make_tree(1,0,c,b);
+
+	try(frag_offset(untag(f), 1));
+
+	expect(1, get_off(f));
+	expect(2, get_off(c));
+	expect(3, get_off(a));
 }
 
 void
