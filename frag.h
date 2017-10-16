@@ -12,7 +12,8 @@ void *frag_stab(struct frag *hint_node, size_t point);
 
 struct frag {
 	uintptr_t link[3];
-	size_t    off[2];
+	size_t    off;
+	size_t    max;
 	size_t    len;
 };
 

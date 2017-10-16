@@ -111,11 +111,11 @@ struct unit_test tests[] = {
 	{.msg = "should rebalance the tree with double rotations on insertion",
 	 .fun = unit_list(test_insert_balance_double),},
 
-	/* {.msg = "should swap nodes with their successor children", */
-	/*  .fun = unit_list(test_swap_succ),}, */
+	{.msg = "should swap nodes with their successor children",
+	 .fun = unit_list(test_swap_succ),},
 
-	/* {.msg = "should delete branch nodes", */
-	/*  .fun = unit_list(test_delete_branch),}, */
+	{.msg = "should delete branch nodes",
+	 .fun = unit_list(test_delete_branch),},
 };
 
 #include <unit.t>
@@ -164,21 +164,21 @@ make_tree(size_t n, int b, uintptr_t l, uintptr_t r)
 	ok(d = calloc(1, sizeof *d));
 	u = tag0(d) + (b ? 2|b>0 : 0);
 	d->len = n;
-	d->off[1] = n;
+	d->max = n;
 
 	if (l) {
-		d->off[0] += get_off(l, 1);
+		d->off += get_max(l);
 		add_chld(u, 0, l);
 	}
 
 	if (r) {
 		i = r;
 		do {
-			get_field(i, off[0]) += n;
-			get_field(i, off[1]) += n;
+			get_field(i, off) += n;
+			get_field(i, max) += n;
 		} while (i = get_chld(i, 0));
 
-		d->off[1] = d->off[0] + get_off(r, 1);
+		d->max = d->off + get_max(r);
 
 		add_chld(u, 1, r);
 	}
@@ -275,16 +275,18 @@ test_delete_branch(void)
 	expect_has_chld(c ^ 2, 0, a);
 	expect_has_chld(c, 1, 0);
 
-	expect(0, get_off(a, 0));
-	expect(1, get_off(a, 1));
-	expect(3, get_off(c, 0));
-	expect(7, get_off(c, 1));
+	expect(0, get_off(a));
+	expect(1, get_max(a));
+	expect(3, get_off(c));
+	expect(7, get_max(c));
 
 	ok(frag_stab(untag(c), 0) == untag(a));
-	ok(frag_stab(untag(c), 1) == untag(c));
-	ok(frag_stab(untag(c), 2) == untag(c));
+	ok(frag_stab(untag(c), 1) == 0);
+	ok(frag_stab(untag(c), 2) == 0);
 	ok(frag_stab(untag(c), 3) == untag(c));
-
+	ok(frag_stab(untag(c), 4) == untag(c));
+	ok(frag_stab(untag(c), 5) == untag(c));
+	ok(frag_stab(untag(c), 6) == untag(c));
 }
 
 void
@@ -300,8 +302,8 @@ test_delete_leaf(void)
 	expect_is_leaf(a);
 	expect_is_root(a);
 
-	expect(0, get_off(a, 0));
-	expect(3, get_off(a, 1));
+	expect(0, get_off(a));
+	expect(3, get_max(a));
 }
 
 void
@@ -453,8 +455,8 @@ test_insert_head(void)
 	expect_is_root(a);
 	expect_has_chld(a^2, 0, b);
 
-	expect(6, get_off(a, 0));
-	expect(10, get_off(a, 1));
+	expect(6, get_off(a));
+	expect(10, get_max(a));
 
 	kill_tree(a);
 }
@@ -473,10 +475,10 @@ test_insert_tail(void)
 	expect_is_root(a);
 	expect_has_chld(a^2, 1, b);
 
-	expect(0, get_off(a, 0));
-	expect(10, get_off(a, 1));
+	expect(0, get_off(a));
+	expect(10, get_max(a));
 
-	expect(4, get_off(b, 0));
+	expect(4, get_off(b));
 
 	kill_tree(a);
 }
@@ -538,10 +540,10 @@ test_rotate_left(void)
 
 	expect_is_root(b);
 
-	expect( 4, get_off(a, 0));
-	expect(13, get_off(a, 1));
-	expect(13, get_off(b, 0));
-	expect(31, get_off(b, 1));
+	expect( 4, get_off(a));
+	expect(13, get_max(a));
+	expect(13, get_off(b));
+	expect(31, get_max(b));
 
 	kill_tree(b);
 }
@@ -581,10 +583,10 @@ test_rotate_right(void)
 
 	expect_is_root(b);
 
-	expect(10, get_off(a, 0));
-	expect(27, get_off(a, 1));
-	expect( 4, get_off(b, 0));
-	expect(31, get_off(b, 1));
+	expect(10, get_off(a));
+	expect(27, get_max(a));
+	expect( 4, get_off(b));
+	expect(31, get_max(b));
 }
 
 void
@@ -615,14 +617,14 @@ test_rotate2_left(void)
 	ok(get_chld(c, 1) == b);
 	ok(get_prnt(c) == 0);
 
-	expect(2, get_off(a, 0));
-	expect(19, get_off(a, 1));
+	expect(2, get_off(a));
+	expect(19, get_max(a));
 
-	expect(40, get_off(b, 0));
-	expect(108, get_off(b, 1));
+	expect(40, get_off(b));
+	expect(108, get_max(b));
 
-	expect(19, get_off(c, 0));
-	expect(127, get_off(c, 1));
+	expect(19, get_off(c));
+	expect(127, get_max(c));
 
 	kill_tree(b);
 }
@@ -674,14 +676,14 @@ test_rotate2_right(void)
 
 	expect_is_root(c);
 
-	expect(4, get_off(a, 0));
-	expect(22, get_off(a, 1));
+	expect(4, get_off(a));
+	expect(22, get_max(a));
 
-	expect(40, get_off(b, 0));
-	expect(105, get_off(b, 1));
+	expect(40, get_off(b));
+	expect(105, get_max(b));
 
-	expect(22, get_off(c, 0));
-	expect(127, get_off(c, 1));
+	expect(22, get_off(c));
+	expect(127, get_max(c));
 
 	kill_tree(b);
 }
@@ -719,11 +721,11 @@ test_swap_succ(void)
 	uintptr_t f, g;
 	uintptr_t a, b;
 
-	f = make_tree(4, 0, 0, 0);
-	g = make_tree(8, 0, 0, 0);
+	f = make_tree(4,0,0,0);
+	g = make_tree(8,0,0,0);
 
-	b = make_tree(2,-1, 0, g);
-	a = make_tree(1, 0, f, b);
+	b = make_tree(2,1,0,g);
+	a = make_tree(1,1,f,b);
 
 	try(swap(a, 1));
 
@@ -734,9 +736,9 @@ test_swap_succ(void)
 	expect_has_chld(b, 1, a);
 	expect_is_root(b);
 
-	expect(0, get_off(a, 0));
-	expect(20, get_off(a, 1));
+	expect(4, get_off(a));
+	expect(14, get_max(a));
 
-	expect(10, get_off(b, 0));
-	expect(21, get_off(b, 1));
+	expect(5, get_off(b));
+	expect(19, get_max(b));
 }
