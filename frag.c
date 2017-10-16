@@ -263,6 +263,12 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 	}
 }
 
+void
+frag_offset(struct frag *T, size_t p)
+{
+	T->off += p;
+}
+
 void *
 frag_stab(struct frag *H, size_t p)
 {

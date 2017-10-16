@@ -29,6 +29,8 @@ static void test_insert_tail(void);
 static void test_find_empty_chld(void);
 static void test_find_empty_chld2(void);
 
+static void test_offset_one(void);
+
 static void test_rotate_left(void);
 static void test_rotate_null(void);
 static void test_rotate_right(void);
@@ -116,6 +118,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should delete branch nodes",
 	 .fun = unit_list(test_delete_branch),},
+
+	{.msg = "should offset one node",
+	 .fun = unit_list(test_offset_one),},
 };
 
 #include <unit.t>
@@ -516,6 +521,16 @@ test_find_empty_chld2(void)
 	t=a;
 	ok(find_empty_chld(&t, 15) == 1);
 	ok(t == b);
+}
+
+void
+test_offset_one(void)
+{
+	struct frag a[1]={{.len=1}};
+
+	try(frag_offset(a, 1));
+
+	expect(1, a->off);
 }
 
 void
