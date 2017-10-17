@@ -9,10 +9,10 @@ static void test_adjust_leaves(void);
 static void test_adjust_parent(void);
 static void test_adjust_single(void);
 
+static void test_delete_balance_single(void);
 static void test_delete_branch(void);
 static void test_delete_leaf(void);
 static void test_delete_root(void);
-static void test_delete_balance(void);
 
 static void test_get_root(void);
 
@@ -136,7 +136,7 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_adjust),},
 
 	{.msg = "should rebalace on deletion",
-	 .fun = unit_list(test_delete_balance),},
+	 .fun = unit_list(test_delete_balance_single),},
 };
 
 #include <unit.t>
@@ -281,7 +281,7 @@ test_adjust_single(void)
 }
 
 void
-test_delete_balance(void)
+test_delete_balance_single(void)
 {
 	uintptr_t a, b, c, d, e, f, g;
 
