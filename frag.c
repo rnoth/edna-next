@@ -148,6 +148,26 @@ init(struct frag *n, size_t x)
 	n->max = n->len;
 }
 
+#if 0
+size_t
+insert(uinptr_t *p, size_t n)
+{
+	uintptr_t p;
+	int k;
+
+	if (!H) { init(F, n); return n; }
+
+	p = get_tag(H);
+	k = find_empty_chld(&p, n);
+
+	set_link(p, k, t);
+	set_link(t, 2, p);
+
+	if (k) F->off = get_len(p);
+	return F->off + F->len;
+}
+#endif
+
 bool
 is_leaf(uintptr_t t)
 {
@@ -203,7 +223,27 @@ find_rightmost_leaf(uintptr_t *t)
 void
 frag_append(struct frag *H, size_t n, struct frag *F)
 {
-	__builtin_trap();
+	uintptr_t p, t=tag0(F);
+	size_t m;
+	int k;
+
+	if (!H) { init(F, n); return; }
+
+	p = get_tag(H);
+	k = find_empty_chld(&p, n);
+
+	set_link(p, k, t);
+	set_link(t, 2, p);
+
+	if (k) F->off = get_len(p);
+	m = F->off + F->len;
+
+	foreach_ancestor (p, k) {
+		if (m) m = try_max(p, m);
+
+		p = increment(p, k);
+		if (!tag_of(p)) break;
+	}
 }
 
 void
