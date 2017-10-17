@@ -12,6 +12,7 @@ static void test_adjust_single(void);
 static void test_delete_branch(void);
 static void test_delete_leaf(void);
 static void test_delete_root(void);
+static void test_delete_balance(void);
 
 static void test_get_root(void);
 
@@ -19,6 +20,7 @@ static void test_increment_adjust(void);
 static void test_increment_rotate(void);
 static void test_increment_rotate2(void);
 
+static void test_insert_adjust(void);
 static void test_insert_balance_double(void);
 static void test_insert_balance_single(void);
 static void test_insert_balance_soft(void);
@@ -130,8 +132,8 @@ struct unit_test tests[] = {
 	{.msg = "should rebalance up to parents",
 	 .fun = unit_list(test_insert_parent)},
 
-	/* {.msg = "should continue to adjust nodes after rebalance", */
-	/*  .fun = unit_list(test_insert_adjust),}, */
+	{.msg = "should continue to adjust nodes after rebalance",
+	 .fun = unit_list(test_insert_adjust),},
 };
 
 #include <unit.t>
@@ -413,7 +415,7 @@ test_insert_balance_double(void)
 }
 
 void
-test_insert_parent(void)
+test_insert_adjust(void)
 {
 	uintptr_t a, b, c, d, e;
 
@@ -433,6 +435,11 @@ test_insert_parent(void)
 	expect_is_leaf(e);
 	expect_is_leaf(b);
 	expect_is_leaf(c);
+
+	expect(0, get_off(e));
+	expect(8, get_off(b));
+	expect(16, get_off(d));
+	expect(26, get_off(a));
 }
 
 void
@@ -498,6 +505,29 @@ test_insert_head(void)
 	expect(10, get_max(a));
 
 	kill_tree(a);
+}
+
+void
+test_insert_parent(void)
+{
+	uintptr_t a, b, c, d, e;
+
+	e = make_tree(16,0, 0, 0);
+
+	d = make_tree(8, 0, 0, 0);
+	c = make_tree(4, 0, 0, 0);
+	b = make_tree(2,-1, d, 0);
+	a = make_tree(1,-1, b, c);
+
+	try(frag_insert(untag(a), 0, untag(e)));
+
+	expect_has_chld(a, 0, d);
+	expect_has_chld(a, 1, c);
+	expect_has_chld(d, 0, e);
+	expect_has_chld(d, 1, b ^ 2);
+	expect_is_leaf(e);
+	expect_is_leaf(b);
+	expect_is_leaf(c);
 }
 
 void

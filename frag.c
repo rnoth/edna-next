@@ -30,7 +30,6 @@ static int       find_empty_chld(uintptr_t *t, size_t p);
 
 static uintptr_t get_next(uintptr_t t, int k, size_t *);
 static uintptr_t get_tag(struct frag *F);
-static void      offset(uintptr_t p, size_t n);
 
 static uintptr_t rotate(uintptr_t, int k);
 static uintptr_t rotate2(uintptr_t, int k);
@@ -293,6 +292,7 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 {
 	uintptr_t p, t=tag0(F);
 	size_t m;
+	bool b=true;
 	int k;
 
 	if (!H) { init(F, n); return; }
@@ -300,18 +300,16 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 	p = get_tag(H);
 	k = find_empty_chld(&p, n);
 
-	set_link(p, k, t);
-	set_link(t, 2, p);
+	add_chld(p, k, t);
 
 	if (k) F->off = get_len(p);
 	m = F->off + F->len;
 
 	foreach_ancestor (p, k) {
-		if (!k) offset(p, F->len);
+		if (!k) inc_off(p, F->len), set_max(p);
 		else if (m) m = try_max(p, m);
 
-		p = increment(p, k);
-		if (!tag_of(p)) break;
+		if (b) p = increment(p, k), b = !!tag_of(p);
 	}
 }
 
@@ -349,13 +347,6 @@ frag_stab(struct frag *H, size_t p)
 }
 
 void
-offset(uintptr_t p, size_t n)
-{
-	inc_off(p, n);
-	inc_max(p, n);
-}
-
-void
 set_max(uintptr_t t)
 {
 	uintptr_t c;
@@ -363,8 +354,8 @@ set_max(uintptr_t t)
 	size_t r;
 
 	m[2] = get_end(t);
-	if (c=get_chld(t,0)) m[0] = get_max(c);
-	if (c=get_chld(t,1)) m[1] = get_off(t) + get_max(c);
+	if (c = get_chld(t,0)) m[0] = get_max(c);
+	if (c = get_chld(t,1)) m[1] = get_off(t) + get_max(c);
 
 	r = umax(m[0], umax(m[1], m[2]));
 	get_field(t, max) = r;
@@ -453,11 +444,6 @@ swap(uintptr_t u, int k)
 size_t
 try_max(uintptr_t t, size_t n)
 {
-	size_t h=get_max(t);
-	size_t r=get_off(t) + n;
-
-	if (h < r) get_field(t, max) = r;
-	else return 0;
-
-	return r;
+	size_t r = get_off(t) + n;
+	return r > get_max(t) ? get_field(t, max) = r : 0;
 }
