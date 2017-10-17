@@ -35,7 +35,7 @@ static uintptr_t rotate(uintptr_t, int k);
 static uintptr_t rotate2(uintptr_t, int k);
 
 static void      set_link(uintptr_t u, int k, uintptr_t t);
-static void      set_max(uintptr_t t);
+static size_t    set_max(uintptr_t t);
 static size_t    step(uintptr_t t, int k);
 
 static uintptr_t swap(uintptr_t u, int k);
@@ -255,7 +255,8 @@ void
 frag_delete(struct frag *T)
 {
 	uintptr_t t, p, q;
-	bool b=true;
+	bool b=true, m=true;
+	size_t z;
 	int k;
 
 	if (!T) return;
@@ -271,8 +272,9 @@ frag_delete(struct frag *T)
 	detatch(p, k);
 
 	foreach_ancestor (q, k) {
-		set_max(q); // XXX
+		if (m) z = get_max(q), m = z == set_max(q);
 		if (b) q = increment(q, !k), b = !tag_of(q);
+		if (!m || !b) break;
 	}
 }
 
@@ -346,19 +348,17 @@ frag_stab(struct frag *H, size_t p)
 	return untag(h);
 }
 
-void
+size_t
 set_max(uintptr_t t)
 {
 	uintptr_t c;
 	size_t m[3]={0};
-	size_t r;
 
 	m[2] = get_end(t);
 	if (c = get_chld(t,0)) m[0] = get_max(c);
 	if (c = get_chld(t,1)) m[1] = get_off(t) + get_max(c);
 
-	r = umax(m[0], umax(m[1], m[2]));
-	get_field(t, max) = r;
+	return get_field(t, max) = umax(m[0], umax(m[1], m[2]));
 }
 
 uintptr_t
