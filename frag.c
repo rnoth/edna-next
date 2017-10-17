@@ -125,19 +125,25 @@ increment(uintptr_t t, int k)
 {
 	uintptr_t u = get_chld(t, k);
 	uintptr_t v = u ? get_chld(u, !k) : 0;
+	uintptr_t p = get_prnt(t);
 	int b = tag_of(t), d = tag_of(v);
+	int l = p ? branch_of(t, p) : 0;
 
 	if (!b || b-2 != k) return adjust(t, b ? 0 : 2|k);
 
 	if (b == tag_of(u)) {
 		adjust(t, d ? d ^ 1 : 0);
 		adjust(u, 0);
-		return rotate(t & ~3, !k);
+		t = rotate(t & ~3, !k);
+		if (p) add_chld(p, l, t);
+		return t;
 	}
 
 	adjust(t, 0);
 	adjust(u, d);
-	return rotate2(t ^ b, !k);
+	t = rotate2(t ^ b, !k);
+	if (p) add_chld(p, l, t);
+	return t;
 }
 
 void
