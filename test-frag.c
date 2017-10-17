@@ -134,6 +134,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should continue to adjust nodes after rebalance",
 	 .fun = unit_list(test_insert_adjust),},
+
+	{.msg = "should rebalace on deletion",
+	 .fun = unit_list(test_delete_balance),},
 };
 
 #include <unit.t>
@@ -275,6 +278,28 @@ test_adjust_single(void)
 	try(adjust(a, 0));
 
 	kill_tree(a);
+}
+
+void
+test_delete_balance(void)
+{
+	uintptr_t a, b, c, d, e;
+
+	e = make_tree(16,0, 0, 0);
+	d = make_tree( 8,0, 0, 0);
+	c = make_tree( 4,0, d, e);
+	b = make_tree( 2,0, 0, 0);
+	a = make_tree( 1,1, b, c);
+
+	try(frag_delete(untag(d)));
+
+	expect_has_chld(a, 0, b);
+	expect_has_chld(a, 1, 0);
+	expect_is_leaf(c);
+	expect_is_leaf(b);
+	expect_has_chld(d, 0, a);
+	expect_has_chld(d, 1, c);
+	expect_is_root(d);
 }
 
 void
