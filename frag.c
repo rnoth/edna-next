@@ -255,6 +255,7 @@ void
 frag_delete(struct frag *T)
 {
 	uintptr_t t, p, q;
+	bool b=true;
 	int k;
 
 	if (!T) return;
@@ -270,9 +271,8 @@ frag_delete(struct frag *T)
 	detatch(p, k);
 
 	foreach_ancestor (q, k) {
-		set_max(q);
-		//q = increment(q, !k);
-		if (!tag_of(q)) break;
+		set_max(q); // XXX
+		if (b) q = increment(q, !k), b = !tag_of(q);
 	}
 }
 

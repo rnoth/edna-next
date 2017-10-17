@@ -283,23 +283,24 @@ test_adjust_single(void)
 void
 test_delete_balance(void)
 {
-	uintptr_t a, b, c, d, e;
+	uintptr_t a, b, c, d, e, f, g;
 
-	e = make_tree(16,0, 0, 0);
-	d = make_tree( 8,0, 0, 0);
-	c = make_tree( 4,0, d, e);
-	b = make_tree( 2,0, 0, 0);
-	a = make_tree( 1,1, b, c);
+	g = make_tree(64,0,0,0);
+	f = make_tree(32,1,0,g);
+	e = make_tree(16,0,0,0);
+	d = make_tree( 8,1,e,f);
+	c = make_tree( 4,0,0,0);
+	b = make_tree( 2,1,c,0);
+	a = make_tree( 1,1,b,d);
 
-	try(frag_delete(untag(d)));
+	try(frag_delete(untag(e)));
 
-	expect_has_chld(a, 0, b);
-	expect_has_chld(a, 1, 0);
-	expect_is_leaf(c);
-	expect_is_leaf(b);
-	expect_has_chld(d, 0, a);
-	expect_has_chld(d, 1, c);
-	expect_is_root(d);
+	expect_is_leaf(g);
+	expect_is_leaf(d);
+	expect_has_chld(f ^ 3, 0, d ^ 3);
+	expect_has_chld(f ^ 3, 1, g);
+	expect_has_chld(a ^ 3, 1, f ^ 3);
+	expect_is_root(a);
 }
 
 void
