@@ -24,6 +24,7 @@ static void test_insert_balance_single(void);
 static void test_insert_balance_soft(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
+static void test_insert_parent(void);
 static void test_insert_tail(void);
 
 static void test_find_empty_chld(void);
@@ -125,6 +126,12 @@ struct unit_test tests[] = {
 
 	{.msg = "should offset a node and its children",
 	 .fun = unit_list(test_offset_uptree),},
+
+	{.msg = "should rebalance up to parents",
+	 .fun = unit_list(test_insert_parent)},
+
+	/* {.msg = "should continue to adjust nodes after rebalance", */
+	/*  .fun = unit_list(test_insert_adjust),}, */
 };
 
 #include <unit.t>
@@ -386,16 +393,6 @@ test_increment_rotate2(void)
 }
 
 void
-test_insert_empty(void)
-{
-	struct frag a[1]={{.len=14}};
-
-	try(frag_insert(0, 0, a));
-
-	expect_is_leaf(tag0(a));
-}
-
-void
 test_insert_balance_double(void)
 {
 	uintptr_t a, b, c;
@@ -412,6 +409,29 @@ test_insert_balance_double(void)
 	expect_is_root(b);
 
 	expect_is_leaf(a);
+	expect_is_leaf(c);
+}
+
+void
+test_insert_parent(void)
+{
+	uintptr_t a, b, c, d, e;
+
+	e = make_tree(16,0, 0, 0);
+
+	d = make_tree(8, 0, 0, 0);
+	c = make_tree(4, 0, 0, 0);
+	b = make_tree(2,-1, d, 0);
+	a = make_tree(1,-1, b, c);
+
+	try(frag_insert(untag(a), 0, untag(e)));
+
+	expect_has_chld(a, 0, d);
+	expect_has_chld(a, 1, c);
+	expect_has_chld(d, 0, e);
+	expect_has_chld(d, 1, b ^ 2);
+	expect_is_leaf(e);
+	expect_is_leaf(b);
 	expect_is_leaf(c);
 }
 
@@ -448,6 +468,16 @@ test_insert_balance_soft(void)
 	expect_is_root(b);
 	expect_is_leaf(c);
 	expect_has_chld(b ^ 2, 1, c);
+}
+
+void
+test_insert_empty(void)
+{
+	struct frag a[1]={{.len=14}};
+
+	try(frag_insert(0, 0, a));
+
+	expect_is_leaf(tag0(a));
 }
 
 void
