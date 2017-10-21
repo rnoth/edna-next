@@ -32,6 +32,7 @@ static void test_back();
 
 static void test_delete_empty();
 static void test_delete_end();
+static void test_delete_one();
 
 static void test_empty_line();
 static void test_ends();
@@ -122,6 +123,8 @@ struct unit_test tests[] = {
 
 	{.msg = "should error when deleting empty selections",
 	 .fun = edna_list(test_delete_empty),},
+	{.msg = "should delete the only line in the buffer",
+	 .fun = edna_list(test_delete_one),},
 	{.msg = "should delete text at the end of buffer",
 	 .fun = edna_list(test_delete_end),},
 
@@ -399,7 +402,23 @@ void
 test_delete_end()
 {
 	expect_prompt();
-	insert_lines("delete me");
+	send_line("p");
+	read_line("?");
+
+	insert_lines("don't delete me!", "take me instead!");
+
+	expect_prompt();
+	send_line("d");
+	expect_prompt();
+	send_line("p");
+	read_line("don't delete me!");
+}
+
+void
+test_delete_one()
+{
+	expect_prompt();
+	insert_lines("tell my wife I love her");
 
 	expect_prompt();
 	send_line("d");
@@ -407,14 +426,6 @@ test_delete_end()
 	expect_prompt();
 	send_line("p");
 	read_line("?");
-
-	insert_lines("don't delete me!", "take me instead");
-
-	expect_prompt();
-	send_line("d");
-	expect_prompt();
-	send_line("p");
-	read_line("don't delete me!");
 }
 
 void

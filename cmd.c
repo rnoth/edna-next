@@ -17,7 +17,6 @@ do_insert(struct edna *edna)
 	static char buffer[4096];
 	struct frag *p;
 	ssize_t len;
-	int err;
 
 	len = read(0, buffer, 4096);
 	if (len == -1) return errno;
@@ -29,13 +28,7 @@ do_insert(struct edna *edna)
 
 	p = edna->lines;
 
-	err = edna_text_insert(edna, edna->dot[0] + edna->dot[1], buffer, len);
-	if (err) return err;
-
-	edna->dot[0] += p ? p->len : 0;
-	edna->dot[1] = edna->lines->len;
-
-	return 0;
+	return edna_text_insert(edna, edna->dot[0] + edna->dot[1], buffer, len);
 }
 
 int
@@ -74,14 +67,14 @@ edna_cmd_forth(struct edna *a)
 }
 
 int
-edna_cmd_delete(struct edna *edna)
+edna_cmd_delete(struct edna *a)
 {
-	if (!edna->dot[1]) {
-		edna_fail(edna, "empty selection");
+	if (!a->dot[1]) {
+		edna_fail(a, "empty selection");
 		return 0;
 	}
 
-	return edna_text_delete(edna, edna->dot[0], edna->dot[1]);
+	return edna_text_delete(a, a->dot[0], a->dot[1]);
 }
 
 int

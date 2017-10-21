@@ -69,30 +69,29 @@ nodes_from_lines(char *s, size_t n)
 void
 ln_delete(struct frag **f, size_t x, size_t n)
 {
-	struct frag *p;
 	struct frag *Q=0x0;
 	struct frag *q=0x0;
-	size_t z = x+n, d, b;
+	size_t d, b;
 
-	b = x, p = frag_stab(*f, &b);
+	if (!*f) return;
+
+	b = x, *f = frag_stab(*f, &b);
 
 	if (b) {
-		d = p->len - b, p->len = b;
-		p = frag_next(p, 1), frag_offset(p, d);
+		d = f[0]->len - b, f[0]->len = b;
+		frag_offset(*f, d), *f = frag_next(*f, 1);
 		x += d, n -= d;
 	}
 
-	while (x < z) {
-		if (p->len > n) break;
-
-		q = p, p = frag_next(p, 1);
+	while (f[0]->len <= n) {
+		q = *f, *f = frag_next(q, 1);
+		if (!*f) *f = frag_next(q, 0);
 		x += q->len, n -= q->len;
-		frag_delete(q), Q = link_node(q, Q);
+		frag_remove(q), Q = link_node(q, Q);
+		if (!*f) break;
 	}
 
-	if (n) {
-		frag_offset(p, n);
-	}
+	if (n) frag_offset(*f, -n);
 
 	foreach_node(q, Q) free(q);
 }

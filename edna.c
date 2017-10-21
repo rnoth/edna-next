@@ -216,6 +216,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 {
 	struct action *act;
 	struct piece *ctx[2];
+	struct frag *p = frag_next(edna->lines, 1);
 	int err;
 
 	act = calloc(1, sizeof *act);
@@ -231,9 +232,12 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	act->arg = tag0(ctx[0]);
 	act->chld = edna->hist->acts;
 
-	ln_delete(&edna->lines, offset, extent);
+	ln_delete(&edna->lines, offset - edna->dot[0], extent);
 
 	edna->hist->acts = act;
+
+	edna->dot[1] = edna->lines ? edna->lines->len : 0;
+	if (p) edna->dot[0] -= edna->dot[1];
 
 	return 0;
 }
@@ -244,6 +248,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 {
 	struct action *act;
 	struct piece *ctx[2];
+	struct frag *p=edna->lines;
 	int err;
 
 	ctx[0] = edna->chain, ctx[1] = 0;
@@ -263,7 +268,10 @@ edna_text_insert(struct edna *edna, size_t offset,
 		return err;
 	}
 
-	err = ln_insert(&edna->lines, offset, text, length);
+	err = ln_insert(&edna->lines,
+	                offset - edna->dot[0] + edna->dot[1],
+	                text,
+	                length);
 	if (err) {
 		revert_insert(act);
 		free(act);
@@ -271,6 +279,9 @@ edna_text_insert(struct edna *edna, size_t offset,
 	}
 
 	edna->hist->acts = act;
+
+	edna->dot[0] += p ? p->len : 0;
+	edna->dot[1] = edna->lines->len;
 
 	return 0;
 }

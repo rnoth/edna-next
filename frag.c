@@ -338,12 +338,41 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 void
 frag_offset(struct frag *T, size_t f)
 {
+	if (!T) return;
 	uintptr_t t=get_tag(T);
 	int k=0;
 
 	foreach_ancestor (t, k) {
 		if (k) return;
 		inc_off(t, f);
+	}
+}
+
+void
+frag_remove(struct frag *T)
+{
+	uintptr_t t, p, q;
+	bool b=true, m=true;
+	size_t z;
+	int k;
+
+	if (!T) return;
+
+	t = get_tag(T);
+
+	if (!is_leaf(t)) swap(t, 1);
+	
+	p = q = get_prnt(t);
+	if (!p) return;
+
+	k = branch_of(t, p);
+	detatch(p, k);
+
+	foreach_ancestor (q, k) {
+		if (!k) inc_off(q, -T->len), set_max(q);
+		else if (m) z = get_max(q), m = z == set_max(q);
+
+		if (b) q = increment(q, !k), b = !tag_of(q);
 	}
 }
 
