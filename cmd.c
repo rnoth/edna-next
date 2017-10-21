@@ -48,9 +48,9 @@ edna_cmd_back(struct edna *edna)
 		return 0;
 	}
 
-	p = frag_prev(edna->lines);
+	p = frag_next(edna->lines, 0);
 	if (!p) __builtin_trap();
-	edna->lines = frag_prev(edna->lines);
+	edna->lines = frag_next(edna->lines, 0);
 	edna->dot[0] -= edna->dot[1] = edna->lines->len;
 
 	return 0;
@@ -61,7 +61,7 @@ edna_cmd_forth(struct edna *edna)
 {
 	struct ext_node *p;
 
-	p = frag_next(edna->lines);
+	p = frag_next(edna->lines, 1);
 	if (!p) {
 		edna_fail(edna, "end of file");
 		return 0;
@@ -119,6 +119,7 @@ edna_cmd_print(struct edna *edna)
 		ext -= min;
 		text_step(ctx);
 	}
+
 	while (ext) {
 		txt = edna->edit->map + ctx[0]->offset + off;
 		min = umin(ctx[0]->length, ext);

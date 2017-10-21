@@ -33,6 +33,7 @@ static void test_find_empty_chld(void);
 static void test_find_empty_chld2(void);
 
 static void test_frag_next(void);
+static void test_frag_next_succ(void);
 
 static void test_offset_one(void);
 static void test_offset_uptree(void);
@@ -142,6 +143,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should not segfault inside frag_next()",
 	 .fun = unit_list(test_frag_next),},
+
+	{.msg = "should get successor nodes",
+	 .fun = unit_list(test_frag_next_succ),},
 };
 
 #include <unit.t>
@@ -622,8 +626,27 @@ void
 test_frag_next(void)
 {
 	struct frag a[1]={{0}};
-	ok(!frag_next(0));
-	ok(!frag_next(a));
+	ok(!frag_next(0, 0));
+	ok(!frag_next(a, 0));
+	ok(!frag_next(0, 1));
+	ok(!frag_next(a, 1));
+}
+
+void
+test_frag_next_succ(void)
+{
+	uintptr_t a, b, c;
+
+	c = make_tree(4, 0, 0, 0);
+	b = make_tree(2, 0, 0, 0);
+	a = make_tree(1, 0, b, c);
+
+	ok(frag_next(untag(a), 1) == untag(c));
+	ok(frag_next(untag(a), 1) == untag(b));
+	ok(!frag_next(untag(b), 0));
+	ok(!frag_next(untag(c), 1));
+	ok(frag_next(untag(b), 1) == untag(a));
+	ok(frag_next(untag(c), 0) == untag(a));
 }
 
 void

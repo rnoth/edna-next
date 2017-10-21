@@ -289,6 +289,26 @@ frag_get_root(struct frag *T)
 	return T;
 }
 
+void *
+frag_next(struct frag *T, int k)
+{
+	uintptr_t u, x;
+
+	if (k != 0 && k != 1) return 0;
+
+	if (!T) return 0;
+	u = T->link[k];
+	if (!u) {
+		u = tag0(T);
+		for (; (x = get_prnt(u)) && k == branch_of(u, x); u = x);
+		if (!x) return 0;
+		return untag(x);
+	}
+
+	for (; x = get_chld(u, !k); u = x);
+	return untag(u);
+}
+
 void
 frag_insert(struct frag *H, size_t n, struct frag *F)
 {
@@ -315,16 +335,6 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 	}
 }
 
-void *
-frag_next(struct frag *T)
-{
-	if (!T) return 0;
-	uintptr_t u = T->link[1];
-	if (!u) return 0;
-	for (uintptr_t x; x = get_chld(u, 0); u = x);
-	return untag(u);
-}
-
 void
 frag_offset(struct frag *T, size_t f)
 {
@@ -335,16 +345,6 @@ frag_offset(struct frag *T, size_t f)
 		if (k) return;
 		inc_off(t, f);
 	}
-}
-
-void *
-frag_prev(struct frag *T)
-{
-	if (!T) return 0;
-	uintptr_t u = T->link[0];
-	if (!u) return 0;
-	for (uintptr_t x; x = get_chld(u, 1); u = x);
-	return untag(u);
 }
 
 void *

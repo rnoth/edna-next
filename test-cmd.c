@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <cmd.c>
@@ -49,12 +50,12 @@ readf(char *fmt, ...)
 	va_end(args);
 	va_end(args1);
 
-	avail = fd_peek(1);
+	avail = fd_peek(0);
 	ok(t = calloc(avail, 1));
 
-	ok(read(1, t, avail));
+	ok(read(0, t, avail));
 
-	if (avail == len && !strncmp(s, t, len)) {
+	if (avail == len && !memcmp(s, t, len)) {
 		free(s), free(t);
 		return;
 	}
@@ -107,5 +108,5 @@ test_cmd_print(void)
 	expect(0, do_insert(a));
 	expect(0, edna_cmd_print(a));
 
-	readf("hi");
+	readf("hey");
 }
