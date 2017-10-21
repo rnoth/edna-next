@@ -3,8 +3,8 @@
 #include <stdlib.h>
 
 #include <frag.h>
-#include <util.h>
 #include <tag.h>
+#include <util.h>
 
 static inline uintptr_t get_chld(uintptr_t t, int k);
 static inline size_t    get_end(uintptr_t t);
@@ -315,6 +315,16 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 	}
 }
 
+void *
+frag_next(struct frag *T)
+{
+	if (!T) return 0;
+	uintptr_t u = T->link[1];
+	if (!u) return 0;
+	for (uintptr_t x; x = get_chld(u, 0); u = x);
+	return untag(u);
+}
+
 void
 frag_offset(struct frag *T, size_t f)
 {
@@ -328,7 +338,17 @@ frag_offset(struct frag *T, size_t f)
 }
 
 void *
-frag_stab(struct frag *H, size_t p)
+frag_prev(struct frag *T)
+{
+	if (!T) return 0;
+	uintptr_t u = T->link[0];
+	if (!u) return 0;
+	for (uintptr_t x; x = get_chld(u, 1); u = x);
+	return untag(u);
+}
+
+void *
+frag_stab(struct frag *H, size_t *p)
 {
 	uintptr_t h, x, d=0;
 	int k;
@@ -337,15 +357,21 @@ frag_stab(struct frag *H, size_t p)
 
 	h = get_tag(H);
 
-	while (!in_range(get_off(h), get_len(h), p)) {
-		k = cmp(h, p);
-		p+= step(h, k);
+	while (!in_range(get_off(h), get_len(h), *p)) {
+		k = cmp(h, *p);
+		*p += step(h, k);
 		x = get_link(h, k);
 		if (!x || x == d) return 0x0;
 		d = h, h = x;
 	}
 
 	return untag(h);
+}
+
+void *
+frag_query(struct frag *H, size_t p)
+{
+	return frag_stab(H, &p);
 }
 
 size_t

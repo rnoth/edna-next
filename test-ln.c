@@ -8,47 +8,25 @@ static void test_convert(void);
 struct unit_test tests[] = {
 	{.msg = "should convert lines to buffers",
 	 .fun = unit_list(test_convert),},
-	//{.msg = "should adjust lines",
-	//.fun = unit_list(test_adjust),},
 };
 
 #include <unit.t>
 
 void
-test_adjust(void)
-{
-	struct ext lines[1]={{0}};
-	struct ext_node *d;
-	struct ext_node *e;
-	char s[]="---><---";
-	char t[]="~";
-
-	ln_insert(lines, 0, s, sizeof s);
-	ln_insert(lines, 3, t, sizeof t);
-
-	try(d = ext_stab(lines, 1));
-	try(e = ext_stab(lines, 3));
-	ok(e == d);
-	expect(9, d->ext);
-}
-
-void
 test_convert(void)
 {
-	struct ext_node *list;
-	struct ext_node *node;
+	struct frag *Q;
+	struct frag *q;
 	char s[]="one\ntwo\nthree\n";
-	size_t n = sizeof s - 1;
-	size_t f=n;
+	size_t n = sizeof s - 1, f=n;
 	char *t=s+f;
 
-	ok(list = nodes_from_lines(s, n));
-	foreach_node(node, list) {
-		f -= node->ext;
-		t -= node->ext;
+	ok(Q = nodes_from_lines(s, n));
+	foreach_node(q, Q) {
+		f -= q->len, t -= q->len;
 		okf(!strcmp(t, s + f),
 		    "extent mismatch. s=%s, t=%s", s + f, t);
 	}
 
-	foreach_node(node, list) free(node);
+	foreach_node(q, Q) free(q);
 }

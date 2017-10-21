@@ -8,12 +8,18 @@
 #define UNIT_TESTS tests
 #endif
 
+#ifndef UNIT_INIT
+#define UNIT_INIT
+#endif
+
 #include <sysexits.h>
 
 int
 main(int argc, char **argv)
 {
 	int err;
+
+        UNIT_INIT;
 
 	err = unit_parse_argv(argc, argv);
 	if (err) return EX_USAGE;

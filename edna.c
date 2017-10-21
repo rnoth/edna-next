@@ -159,15 +159,14 @@ revert_insert(struct action *act)
 }
 
 void
-edna_fini(struct edna *edna)
+edna_fini(struct edna *e)
 {
-	struct piece *dead;
+	struct piece *p;
 
-	dead = arrange_pieces(edna->chain);
-	dead = rec_free(edna->hist, dead);
-	free_pieces(dead);
-	ext_free(edna->lines);
-	edit_dtor(edna->edit);
+	p = arrange_pieces(e->chain);
+	p = rec_free(e->hist, p);
+	free_pieces(p);
+	edit_dtor(e->edit);
 }
 
 int
@@ -209,9 +208,7 @@ edna_file_open(struct edna *edna, size_t offset, char *fn)
 	err = text_insert(ctx, offset, edna->file, 0, edna->file->length);
 	if (err) return err;
 
-	ln_insert(edna->lines, offset, edna->file->map, edna->file->length);
-
-	return 0;
+	return ln_insert(&edna->lines, offset, edna->file->map, edna->file->length);
 }
 
 int
@@ -234,7 +231,7 @@ edna_text_delete(struct edna *edna, size_t offset, size_t extent)
 	act->arg = tag0(ctx[0]);
 	act->chld = edna->hist->acts;
 
-	ln_delete(edna->lines, offset, extent);
+	ln_delete(&edna->lines, offset, extent);
 
 	edna->hist->acts = act;
 
@@ -266,7 +263,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 		return err;
 	}
 
-	err = ln_insert(edna->lines, offset, text, length);
+	err = ln_insert(&edna->lines, offset, text, length);
 	if (err) {
 		revert_insert(act);
 		free(act);

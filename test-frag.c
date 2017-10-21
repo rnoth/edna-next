@@ -32,6 +32,8 @@ static void test_insert_tail(void);
 static void test_find_empty_chld(void);
 static void test_find_empty_chld2(void);
 
+static void test_frag_next(void);
+
 static void test_offset_one(void);
 static void test_offset_uptree(void);
 
@@ -137,6 +139,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should rebalace on deletion",
 	 .fun = unit_list(test_delete_balance_single),},
+
+	{.msg = "should not segfault inside frag_next()",
+	 .fun = unit_list(test_frag_next),},
 };
 
 #include <unit.t>
@@ -324,13 +329,13 @@ test_delete_branch(void)
 	expect(3, get_off(c));
 	expect(7, get_max(c));
 
-	ok(frag_stab(untag(c), 0) == untag(a));
-	ok(frag_stab(untag(c), 1) == 0);
-	ok(frag_stab(untag(c), 2) == 0);
-	ok(frag_stab(untag(c), 3) == untag(c));
-	ok(frag_stab(untag(c), 4) == untag(c));
-	ok(frag_stab(untag(c), 5) == untag(c));
-	ok(frag_stab(untag(c), 6) == untag(c));
+	ok(frag_query(untag(c), 0) == untag(a));
+	ok(frag_query(untag(c), 1) == 0);
+	ok(frag_query(untag(c), 2) == 0);
+	ok(frag_query(untag(c), 3) == untag(c));
+	ok(frag_query(untag(c), 4) == untag(c));
+	ok(frag_query(untag(c), 5) == untag(c));
+	ok(frag_query(untag(c), 6) == untag(c));
 }
 
 void
@@ -614,6 +619,14 @@ test_find_empty_chld2(void)
 }
 
 void
+test_frag_next(void)
+{
+	struct frag a[1]={{0}};
+	ok(!frag_next(0));
+	ok(!frag_next(a));
+}
+
+void
 test_offset_one(void)
 {
 	struct frag a[1]={{.len=1}};
@@ -819,13 +832,13 @@ test_stab_absent(void)
 	struct frag root[1]={{.len = 10}};
 
 	try(frag_insert(0, 0, root));
-	ok(!frag_stab(root, 11));
+	ok(!frag_query(root, 11));
 }
 
 void
 test_stab_empty(void)
 {
-	ok(!frag_stab(0, 5));
+	ok(!frag_query(0, 5));
 }
 
 void
@@ -834,10 +847,10 @@ test_stab_root(void)
 	struct frag r[1]={{.len = 10}};
 
 	try(frag_insert(0, 0, r));
-	ok(frag_stab(r, 0));
-	ok(frag_stab(r, 4));
-	ok(frag_stab(r, 0) == r);
-	ok(frag_stab(r, 4) == r);
+	ok(frag_query(r, 0));
+	ok(frag_query(r, 4));
+	ok(frag_query(r, 0) == r);
+	ok(frag_query(r, 4) == r);
 }
 
 void

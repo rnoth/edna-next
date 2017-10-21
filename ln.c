@@ -3,101 +3,96 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <ext.h>
 #include <tag.h>
 
 #include <ln.h>
 #include <util.h>
 
-// I'm so sorry
-#define foreach_node(NODE, LIST) \
-	for (struct ext_node *_node, **_listp; \
-	     _listp = &(LIST), \
-	     (_node = (NODE) = *_listp) \
-	     && (*_listp = untag(_node->chld[0]), true);)
+/* sorry */
+#define foreach_node(N, L)	  \
+	for (struct frag *_n, **_l=&(L); \
+	     (_n = (N) = *_l) \
+	     && (*_l = untag(_n->link[0]), true);)
 
-static struct ext_node *nodes_from_lines(char *buffer, size_t length);
-static struct ext_node *link_node(struct ext_node *node, struct ext_node *list);
+static struct frag *nodes_from_lines(char *buffer, size_t length);
+static struct frag *link_node(struct frag *node, struct frag *list);
 
 int
-ln_insert(struct ext *lines, size_t start, char *buffer, size_t length)
+ln_insert(struct frag **f, size_t x, char *s, size_t n)
 {
-	struct ext_node *list, *node;
+	struct frag *Q, *q;
 
-	list = nodes_from_lines(buffer, length);
-	if (!list) return ENOMEM;
+	Q = nodes_from_lines(s, n);
+	if (!Q) return ENOMEM;
 
-	foreach_node (node, list) {
-		ext_insert(lines, start, node);
+	foreach_node (q, Q) {
+		frag_insert(*f, x, q);
+		x += q->len, *f = q;
 	}
 
 	return 0;
 }
 
-struct ext_node *
-link_node(struct ext_node *node, struct ext_node *list)
+struct frag *
+link_node(struct frag *q, struct frag *Q)
 {
-	node->chld[0] = tag0(list);
-	return node;
+	q->link[0] = tag0(Q);
+	return q;
 }
 
-struct ext_node *
-nodes_from_lines(char *buffer, size_t length)
+struct frag *
+nodes_from_lines(char *s, size_t n)
 {
-	struct ext_node *list=0x0;
-	struct ext_node *node=0;
-	size_t extent=0;
+	struct frag *Q=0x0;
+	struct frag *q=0;
+	size_t z=0;
 
-	while (length) {
-		extent = next_line(buffer, length);
+	while (n) {
+		z = next_line(s, n);
 
-		node = calloc(1, sizeof *node);
-		if (!node) goto fail;
+		q = calloc(1, sizeof *q);
+		if (!q) goto fail;
 
-		node->ext = extent;
-		list = link_node(node, list);
+		q->len = z;
+		Q = link_node(q, Q);
 
-		buffer += extent, length -= extent;
+		s += z, n -= z;
 	}
 
-	return list;
+	return Q;
 
  fail:
-	foreach_node(node, list) free(node);
+	foreach_node(q, Q) free(q);
 	return 0x0;
 }
 
 void
-ln_delete(struct ext *lines, size_t offset, size_t extent)
+ln_delete(struct frag **f, size_t x, size_t n)
 {
-	struct ext_node *dead;
-	struct ext_node *list=0x0;
-	struct ext_node *node=0x0;
-	size_t endoff = offset + extent;
-	size_t diff;
-	size_t start;
+	struct frag *p;
+	struct frag *Q=0x0;
+	struct frag *q=0x0;
+	size_t z = x+n, d, b;
 
-	start = ext_tell(lines, offset);
-	if (start < offset) {
-		node = ext_stab(lines, offset);
-		ext_adjust(lines, offset, offset - start + node->ext);
+	b = x, p = frag_stab(*f, &b);
 
-		diff = offset - start + node->ext;
-		offset += diff;
+	if (b) {
+		d = p->len - b, p->len = b;
+		p = frag_next(p), frag_offset(p, d);
+		x += d, n -= d;
 	}
 
-	while (offset < endoff) {
-		node = ext_stab(lines, offset);
-		if (node->ext > extent) break;
+	while (x < z) {
+		if (p->len > n) break;
 
-		dead = ext_remove(lines, offset);
-		offset += dead->ext;
-		list = link_node(dead, list);
+		q = p, p = frag_next(p);
+		x += q->len, n -= q->len;
+		frag_delete(q), Q = link_node(q, Q);
 	}
 
-	ext_adjust(lines, offset, offset - endoff);
+	if (n) {
+		frag_offset(p, n);
+	}
 
-	foreach_node(dead, list) free(dead);
-
-	return;
+	foreach_node(q, Q) free(q);
 }
