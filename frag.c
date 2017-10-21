@@ -299,7 +299,7 @@ frag_next(struct frag *T, int k)
 	if (!T) return 0;
 	u = T->link[k];
 	if (!u) {
-		u = tag0(T);
+		u = get_tag(T);
 		for (; (x = get_prnt(u)) && k == branch_of(u, x); u = x);
 		if (!x) return 0;
 		return untag(x);

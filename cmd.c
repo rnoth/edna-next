@@ -39,36 +39,36 @@ do_insert(struct edna *edna)
 }
 
 int
-edna_cmd_back(struct edna *edna)
+edna_cmd_back(struct edna *a)
 {
 	struct frag *p;
 
-	if (!edna->dot[0]) {
-		edna_fail(edna, "beginning of file");
+	p = frag_next(a->lines, 0);
+	if (!p) {
+		edna_fail(a, "beginning of file");
 		return 0;
 	}
-
-	p = frag_next(edna->lines, 0);
-	if (!p) __builtin_trap();
-	edna->lines = frag_next(edna->lines, 0);
-	edna->dot[0] -= edna->dot[1] = edna->lines->len;
+	a->lines = p;
+	a->dot[0] -= p->len;
+	a->dot[1] = p->len;
 
 	return 0;
 }
 
 int
-edna_cmd_forth(struct edna *edna)
+edna_cmd_forth(struct edna *a)
 {
-	struct ext_node *p;
+	struct frag *p;
 
-	p = frag_next(edna->lines, 1);
+	p = frag_next(a->lines, 1);
 	if (!p) {
-		edna_fail(edna, "end of file");
+		edna_fail(a, "end of file");
 		return 0;
 	}
 
-	edna->dot[0] += edna->dot[1];
-	edna->dot[1] = p->ext;
+	a->lines = p;
+	a->dot[0] += a->dot[1];
+	a->dot[1] = p->len;
 
 	return 0;
 }
@@ -111,21 +111,12 @@ edna_cmd_print(struct edna *edna)
 	text_start(ctx, edna->chain);
 	off = text_walk(ctx, off);
 
-	if (off) {
+	while (ext) {
 		txt = ctx[0]->edit->map + ctx[0]->offset + off;
 		min = umin(ctx[0]->length - off, ext);
 		write(1, txt, min);
 
-		ext -= min;
-		text_step(ctx);
-	}
-
-	while (ext) {
-		txt = edna->edit->map + ctx[0]->offset + off;
-		min = umin(ctx[0]->length, ext);
-		write(1, txt, min);
-
-		ext -= min;
+		ext -= min, off=0;
 		text_step(ctx);
 	}
 
