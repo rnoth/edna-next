@@ -642,7 +642,7 @@ test_frag_next_succ(void)
 	a = make_tree(1, 0, b, c);
 
 	ok(frag_next(untag(a), 1) == untag(c));
-	ok(frag_next(untag(a), 1) == untag(b));
+	ok(frag_next(untag(a), 0) == untag(b));
 	ok(!frag_next(untag(b), 0));
 	ok(!frag_next(untag(c), 1));
 	ok(frag_next(untag(b), 1) == untag(a));
