@@ -237,7 +237,7 @@ edna_text_delete(struct edna *a, size_t x, size_t n)
 	a->hist->acts = c;
 
 	a->dot[1] = a->ln ? a->ln->len : 0;
-	if (p) a->dot[0] -= a->dot[1];
+	if (!p) a->dot[0] -= a->dot[1];
 
 	return 0;
 }
