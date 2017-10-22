@@ -25,9 +25,11 @@ ln_insert(struct frag **f, size_t x, char *s, size_t n)
 	Q = nodes_from_lines(s, n);
 	if (!Q) return ENOMEM;
 
+	*f = frag_query(*f, x);
+
 	foreach_node (q, Q) {
-		frag_insert(*f, x, q);
-		x += q->len, *f = q;
+		frag_insert(*f, *f ? f[0]->len : 0, q);
+		*f = q;
 	}
 
 	return 0;
