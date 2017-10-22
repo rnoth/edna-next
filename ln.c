@@ -71,22 +71,22 @@ ln_delete(struct frag **f, size_t x, size_t n)
 {
 	struct frag *Q=0x0;
 	struct frag *q=0x0;
-	size_t d, b;
+	size_t d;
 
 	if (!*f) return;
 
-	b = x, *f = frag_stab(*f, &b);
+	*f = frag_stab(*f, &x);
 
-	if (b) {
-		d = f[0]->len - b, f[0]->len = b;
+	if (x) {
+		d = f[0]->len - x, frag_trunc(*f, x);
 		frag_offset(*f, d), *f = frag_next(*f, 1);
-		x += d, n -= d;
+		n -= d;
 	}
 
 	while (f[0]->len <= n) {
 		q = *f, *f = frag_next(q, 1);
 		if (!*f) *f = frag_next(q, 0);
-		x += q->len, n -= q->len;
+		n -= q->len;
 		frag_remove(q), Q = link_node(q, Q);
 		if (!*f) break;
 	}

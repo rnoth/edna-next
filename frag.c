@@ -153,26 +153,6 @@ init(struct frag *n, size_t x)
 	n->max = n->len;
 }
 
-#if 0
-size_t
-insert(uinptr_t *p, size_t n)
-{
-	uintptr_t p;
-	int k;
-
-	if (!H) { init(F, n); return n; }
-
-	p = get_tag(H);
-	k = find_empty_chld(&p, n);
-
-	set_link(p, k, t);
-	set_link(t, 2, p);
-
-	if (k) F->off = get_len(p);
-	return F->off + F->len;
-}
-#endif
-
 bool
 is_leaf(uintptr_t t)
 {
@@ -395,6 +375,12 @@ frag_stab(struct frag *H, size_t *p)
 	}
 
 	return untag(h);
+}
+
+void
+frag_trunc(struct frag *T, size_t n)
+{
+	T->len = n; // XXX This does not work and breaks the tree.
 }
 
 void *
