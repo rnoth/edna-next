@@ -4,10 +4,13 @@
 
 //static void test_adjust(void);
 static void test_convert(void);
+static void test_insert_many(void);
 
 struct unit_test tests[] = {
 	{.msg = "should convert lines to buffers",
 	 .fun = unit_list(test_convert),},
+	{.msg = "should insert many lines at once",
+	 .fun = unit_list(test_insert_many)}
 };
 
 #include <unit.t>
@@ -29,4 +32,13 @@ test_convert(void)
 	}
 
 	foreach_node(q, Q) free(q);
+}
+
+void
+test_insert_many(void)
+{
+	char s[]="1\n12\n123\n1234\n12345\n";
+	struct frag *f=0;
+
+	try(ln_insert(&f, 0, s, sizeof s));
 }
