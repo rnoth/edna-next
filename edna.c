@@ -243,45 +243,42 @@ edna_text_delete(struct edna *a, size_t x, size_t n)
 }
 
 int
-edna_text_insert(struct edna *edna, size_t offset,
-                 char *text, size_t length)
+edna_text_insert(struct edna *a, size_t x, char *s, size_t n)
 {
-	struct action *act;
-	struct piece *ctx[2];
-	struct frag *p=edna->ln;
-	int err;
+	struct action *c;
+	struct piece *t[2];
+	struct frag *p=a->ln;
+	int e;
 
-	ctx[0] = edna->chain, ctx[1] = 0;
-	err = text_insert(ctx, offset, edna->edit, edna->edit->offset, length);
-	if (err) return err;
+	text_start(t, a->chain);
+	e = text_insert(t, x, a->edit, a->edit->offset, n);
+	if (e) return e;
 
-	act = calloc(1, sizeof *act);
-	if (!act) return ENOMEM;
-	act->arg = tag1(ctx[0]);
-	act->prev = ctx[1];
-	act->chld = edna->hist->acts;
+	c = calloc(1, sizeof *c);
+	if (!c) return ENOMEM;
 
-	err = edit_append(edna->edit, text, length);
-	if (err) {
-		revert_insert(act);
-		free(act);
-		return err;
+	c->arg = tag1(t[0]);
+	c->prev = t[1];
+	c->chld = a->hist->acts;
+
+	e = edit_append(a->edit, s, n);
+	if (e) {
+		revert_insert(c);
+		free(c);
+		return e;
 	}
 
-	err = ln_insert(&edna->ln,
-	                offset - edna->dot[0] - edna->dot[1],
-	                text,
-	                length);
-	if (err) {
-		revert_insert(act);
-		free(act);
-		return err;
+	e = ln_insert(&a->ln, x - a->dot[0] - a->dot[1], s, n);
+	if (e) {
+		revert_insert(c);
+		free(c);
+		return e;
 	}
 
-	edna->hist->acts = act;
+	a->hist->acts = c;
 
-	edna->dot[0] += p ? p->len : 0;
-	edna->dot[1] = edna->ln->len;
+	a->dot[0] += p ? p->len : 0;
+	a->dot[1] = a->ln->len;
 
 	return 0;
 }
