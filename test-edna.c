@@ -49,6 +49,7 @@ static void test_insert_flat();
 static void test_insert_empty();
 static void test_insert_large();
 static void test_insert_simple();
+static void test_insert_succ_dec();
 static void test_insert_three();
 static void test_insert_two();
 static void test_insert_seperate();
@@ -130,6 +131,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should expand the edit buffer as necessary",
 	 .fun = edna_list(test_insert_large),},
+
+	{.msg = "should not hang on successive lines of decreasing length",
+	 .fun = edna_list(test_insert_succ_dec),},
 
 	/* {.msg = "should read file arguments", */
 	/*  .fun = unit_list(create_test_file, */
@@ -249,7 +253,8 @@ readf(char *fmt, ...)
 
 	if (!waitpid(edna_pid, &ws, WNOHANG)) {
 		kill_edna();
-		unit_fail_fmt("expected \"%s\", got \"%s\"", s, t);
+		if (!*t) unit_fail_fmt("expected \"%s\", instead edna hangs",s);
+		else unit_fail_fmt("expected \"%s\", got \"%s\"", s, t);
 		free(s), free(t);
 		unit_yield();
 	}
@@ -613,6 +618,14 @@ test_insert_simple()
 	expect_prompt();
 	send_line("p");
 	read_line("Hello, world!");
+}
+
+void
+test_insert_succ_dec()
+{
+	expect_prompt();
+	insert_lines("one two three", "one two", "one");
+	expect_prompt();
 }
 
 void
