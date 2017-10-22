@@ -14,8 +14,8 @@
 	     (_n = (N) = *_l) \
 	     && (*_l = untag(_n->link[0]), true);)
 
-static struct frag *nodes_from_lines(char *buffer, size_t length);
-static struct frag *link_node(struct frag *node, struct frag *list);
+static struct frag *nodes_from_lines(char *s, size_t n);
+static struct frag *link_node(struct frag *q, struct frag *Q);
 
 int
 ln_insert(struct frag **f, size_t x, char *s, size_t n)
@@ -46,19 +46,18 @@ struct frag *
 nodes_from_lines(char *s, size_t n)
 {
 	struct frag *Q=0x0;
-	struct frag *q=0;
-	size_t z=0;
+	struct frag *q=0x0;
+	size_t y=0;
 
 	while (n) {
-		z = next_line(s, n);
+		y = next_line(s, n);
+		s += y, n -= y;
 
 		q = calloc(1, sizeof *q);
 		if (!q) goto fail;
 
-		q->len = z;
+		q->len = y;
 		Q = link_node(q, Q);
-
-		s += z, n -= z;
 	}
 
 	return Q;
