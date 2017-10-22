@@ -196,19 +196,22 @@ edna_init(struct edna *edna)
 }
 
 int
-edna_file_open(struct edna *edna, size_t offset, char *fn)
+edna_file_open(struct edna *a, size_t x, char *fn)
 {
-	struct piece *ctx[2];
-	int err;
+	struct piece *t[2];
+	int e;
 
-	err = filemap_ctor(edna->file, fn);
-	if (err) return err;
+	e = filemap_ctor(a->file, fn);
+	if (e) return e;
 
-	text_start(ctx, edna->chain);
-	err = text_insert(ctx, offset, edna->file, 0, edna->file->length);
-	if (err) return err;
+	text_start(t, a->chain);
+	e = text_insert(t, x, a->file, 0, a->file->length);
+	if (e) return e;
 
-	return ln_insert(&edna->ln, offset, edna->file->map, edna->file->length);
+	e = ln_insert(&a->ln, x, a->file->map, a->file->length);
+	if (e) __builtin_trap();
+
+	return 0;
 }
 
 int
@@ -247,7 +250,7 @@ edna_text_insert(struct edna *a, size_t x, char *s, size_t n)
 {
 	struct action *c;
 	struct piece *t[2];
-	struct frag *p=a->ln;
+	struct frag *p;
 	int e;
 
 	text_start(t, a->chain);
@@ -277,6 +280,7 @@ edna_text_insert(struct edna *a, size_t x, char *s, size_t n)
 
 	a->hist->acts = c;
 
+	p = frag_next(a->ln, 0);
 	a->dot[0] += p ? p->len : 0;
 	a->dot[1] = a->ln->len;
 
