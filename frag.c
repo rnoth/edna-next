@@ -360,15 +360,18 @@ void *
 frag_stab(struct frag *H, size_t *p)
 {
 	uintptr_t h, x, d=0;
+	size_t y, z;
 	int k;
 
 	if (!H) return 0;
 
+	z = *p + H->off, *p = 0;
+
 	h = get_tag(H);
 
-	while (!in_range(get_off(h), get_len(h), *p)) {
+	while (!in_range(get_off(h), get_len(h), z)) {
 		k = cmp(h, *p);
-		*p += step(h, k);
+		y = step(h, k), *p += y, z -= y;
 		x = get_link(h, k);
 		if (!x || x == d) return 0x0;
 		d = h, h = x;

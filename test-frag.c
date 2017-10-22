@@ -333,13 +333,15 @@ test_delete_branch(void)
 	expect(3, get_off(c));
 	expect(7, get_max(c));
 
-	ok(frag_query(untag(c), 0) == untag(a));
-	ok(frag_query(untag(c), 1) == 0);
-	ok(frag_query(untag(c), 2) == 0);
-	ok(frag_query(untag(c), 3) == untag(c));
-	ok(frag_query(untag(c), 4) == untag(c));
-	ok(frag_query(untag(c), 5) == untag(c));
-	ok(frag_query(untag(c), 6) == untag(c));
+	ok(frag_query(untag(c), -3) == untag(a));
+	ok(frag_query(untag(c), -2) == 0);
+	ok(frag_query(untag(c), -1) == 0);
+	ok(frag_query(untag(c),  0) == untag(c));
+	ok(frag_query(untag(c),  1) == untag(c));
+	ok(frag_query(untag(c),  2) == untag(c));
+	ok(frag_query(untag(c),  3) == untag(c));
+	ok(frag_query(untag(c),  4) == 0);
+	ok(frag_query(untag(c),  5) == 0);
 }
 
 void
