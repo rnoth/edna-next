@@ -463,7 +463,7 @@ test_insert_adjust(void)
 	b = make_tree(2,-1, d, 0);
 	a = make_tree(1,-1, b, c);
 
-	try(frag_insert(untag(a), 0, untag(e)));
+	try(frag_insert(untag(a), -10, untag(e)));
 
 	expect_has_chld(a, 0, d);
 	expect_has_chld(a, 1, c);
@@ -556,7 +556,7 @@ test_insert_parent(void)
 	b = make_tree(2,-1, d, 0);
 	a = make_tree(1,-1, b, c);
 
-	try(frag_insert(untag(a), 0, untag(e)));
+	try(frag_insert(untag(a), -10, untag(e)));
 
 	expect_has_chld(a, 0, d);
 	expect_has_chld(a, 1, c);
@@ -854,10 +854,10 @@ test_rotate2_right(void)
 void
 test_stab_absent(void)
 {
-	struct frag root[1]={{.len = 10}};
+	struct frag R[1]={{.len = 10}};
 
-	try(frag_insert(0, 0, root));
-	ok(!frag_query(root, 11));
+	try(frag_insert(0, 0, R));
+	ok(!frag_query(R, 11));
 }
 
 void
@@ -869,13 +869,13 @@ test_stab_empty(void)
 void
 test_stab_root(void)
 {
-	struct frag r[1]={{.len = 10}};
+	struct frag R[1]={{.len = 10}};
 
-	try(frag_insert(0, 0, r));
-	ok(frag_query(r, 0));
-	ok(frag_query(r, 4));
-	ok(frag_query(r, 0) == r);
-	ok(frag_query(r, 4) == r);
+	try(frag_insert(0, 0, R));
+	ok(frag_query(R, 0));
+	ok(frag_query(R, 4));
+	ok(frag_query(R, 0) == R);
+	ok(frag_query(R, 4) == R);
 }
 
 void

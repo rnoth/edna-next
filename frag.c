@@ -299,6 +299,7 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 
 	if (!H) { init(F, n); return; }
 
+	n += H->off;
 	p = get_tag(H);
 	k = find_empty_chld(&p, n);
 

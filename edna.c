@@ -269,7 +269,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 	}
 
 	err = ln_insert(&edna->ln,
-	                offset - edna->dot[0] + edna->dot[1],
+	                offset - edna->dot[0] - edna->dot[1],
 	                text,
 	                length);
 	if (err) {
