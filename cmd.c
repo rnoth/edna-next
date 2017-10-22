@@ -11,28 +11,27 @@
 #include <txt.h>
 #include <util.h>
 
+static int do_insert(struct edna *a);
+
 int
-do_insert(struct edna *edna)
+do_insert(struct edna *a)
 {
-	static char buffer[4096];
-	struct frag *p;
-	ssize_t len;
+	static char b[4096];
+	ssize_t n;
 
-	len = read(0, buffer, 4096);
-	if (len == -1) return errno;
-	if (!len) return -1;
+	n = read(0, b, 4096);
+	if (n == -1) return errno;
+	if (!n) return -1;
 
-	if (len > 1 && !memcmp(buffer, ".\n", 2)) {
+	if (n > 1 && !memcmp(b, ".\n", 2)) {
 		return -1;
 	}
 
-	p = edna->ln;
-
-	return edna_text_insert(edna, edna->dot[0] + edna->dot[1], buffer, len);
+	return edna_text_insert(a, a->dot[0] + a->dot[1], b, n);
 }
 
 int
-edna_cmd_back(struct edna *a)
+cmd_back(struct edna *a)
 {
 	struct frag *p;
 
@@ -49,7 +48,7 @@ edna_cmd_back(struct edna *a)
 }
 
 int
-edna_cmd_forth(struct edna *a)
+cmd_forth(struct edna *a)
 {
 	struct frag *p;
 
@@ -67,7 +66,7 @@ edna_cmd_forth(struct edna *a)
 }
 
 int
-edna_cmd_delete(struct edna *a)
+cmd_delete(struct edna *a)
 {
 	if (!a->dot[1]) {
 		edna_fail(a, "empty selection");
@@ -78,7 +77,7 @@ edna_cmd_delete(struct edna *a)
 }
 
 int
-edna_cmd_insert(struct edna *a)
+cmd_insert(struct edna *a)
 {
 	int err=0;
 	while (!err) err = do_insert(a);
@@ -88,7 +87,7 @@ edna_cmd_insert(struct edna *a)
 }
 
 int
-edna_cmd_print(struct edna *edna)
+cmd_print(struct edna *edna)
 {
 	struct piece *ctx[2];
 	size_t ext = edna->dot[1];

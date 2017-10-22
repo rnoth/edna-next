@@ -70,7 +70,7 @@ test_cmd_forth_eof(void)
 {
 	struct edna a[1];
 	expect(0, edna_init(a));
-	expect(0, edna_cmd_forth(a));
+	expect(0, cmd_forth(a));
 	ok(a->errmsg);
 }
 
@@ -106,7 +106,7 @@ test_cmd_print(void)
 
 	write_str(1, "hey");
 	expect(0, do_insert(a));
-	expect(0, edna_cmd_print(a));
+	expect(0, cmd_print(a));
 
 	readf("hey");
 }

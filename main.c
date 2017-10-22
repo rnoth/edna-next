@@ -30,13 +30,13 @@ static char *errmsg;
 static struct command commands[] = {
 	cmd("q", cmd_quit, 0),
 	cmd("h", cmd_help, 0),
-	cmd("d", edna_cmd_delete, 0),
-	cmd("a", edna_cmd_insert, "a"),
-	cmd("c", edna_cmd_insert, "c"),
-	cmd("i", edna_cmd_insert, "i"),
-	cmd("p", edna_cmd_print, 0),
-	cmd("-", edna_cmd_back, 0),
-	cmd("+", edna_cmd_forth, 0),
+	cmd("d", cmd_delete, 0),
+	cmd("a", cmd_insert, "a"),
+	cmd("c", cmd_insert, "c"),
+	cmd("i", cmd_insert, "i"),
+	cmd("p", cmd_print, 0),
+	cmd("-", cmd_back, 0),
+	cmd("+", cmd_forth, 0),
 };
 
 int

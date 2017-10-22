@@ -9,11 +9,11 @@ struct command;
 void edna_add_cmd(struct edna *edna, struct command *cmd);
 struct command *edna_lookup_cmd(struct edna *edna, char *name, size_t len);
 
-int edna_cmd_back();
-int edna_cmd_forth();
-int edna_cmd_delete();
-int edna_cmd_insert();
-int edna_cmd_print();
+int cmd_back();
+int cmd_forth();
+int cmd_delete();
+int cmd_insert();
+int cmd_print();
 
 struct command {
 	struct set_node node[1];
