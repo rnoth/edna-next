@@ -26,6 +26,7 @@ static void test_insert_balance_single(void);
 static void test_insert_balance_soft(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
+static void test_insert_nontrivial(void);
 static void test_insert_parent(void);
 static void test_insert_tail(void);
 
@@ -146,6 +147,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should get successor nodes",
 	 .fun = unit_list(test_frag_next_succ),},
+
+	{.msg = "should create nontrivial trees by insertion",
+	 .fun = unit_list(test_insert_nontrivial),},
 };
 
 #include <unit.t>
@@ -542,6 +546,32 @@ test_insert_head(void)
 	expect(10, get_max(a));
 
 	kill_tree(a);
+}
+
+void
+test_insert_nontrivial(void)
+{
+	struct frag A[1]={{.len=1}};
+	struct frag B[1]={{.len=2}};
+	struct frag C[1]={{.len=4}};
+	struct frag D[1]={{.len=8}};
+	struct frag E[1]={{.len=16}};
+	uintptr_t a=tag0(A), b=tag0(B), c=tag0(C), d=tag0(D), e=tag0(E);
+
+	try(frag_insert(0, 0, A));
+	try(frag_insert(A, 1, B));
+	try(frag_insert(B, 2, C));
+	try(frag_insert(C, 4, D));
+	try(frag_insert(D, 8, E));
+
+	expect_is_root(b);
+	expect_has_chld(b ^ 3, 0, a);
+	expect_has_chld(b ^ 3, 1, d);
+	expect_is_leaf(a);
+	expect_has_chld(d, 0, c);
+	expect_has_chld(d, 1, e);
+	expect_is_leaf(c);
+	expect_is_leaf(e);
 }
 
 void

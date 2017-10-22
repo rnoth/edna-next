@@ -15,63 +15,62 @@
 	     && (*_l = untag(_n->link[0]), true);)
 
 static struct frag *nodes_from_lines(char *s, size_t n);
-static struct frag *link_node(struct frag *q, struct frag *Q);
-
-int
-ln_insert(struct frag **f, size_t x, char *s, size_t n)
-{
-	struct frag *Q, *q;
-
-	Q = nodes_from_lines(s, n);
-	if (!Q) return ENOMEM;
-
-	*f = frag_query(*f, x);
-
-	foreach_node (q, Q) {
-		frag_insert(*f, *f ? f[0]->len : 0, q);
-		*f = q;
-	}
-
-	return 0;
-}
+static struct frag *link_node(struct frag *q, struct frag *r);
 
 struct frag *
-link_node(struct frag *q, struct frag *Q)
+link_node(struct frag *q, struct frag *r)
 {
-	q->link[0] = tag0(Q);
-	return q;
+	if (q) q->link[0] = tag0(r);
+	return r;
 }
 
 struct frag *
 nodes_from_lines(char *s, size_t n)
 {
-	struct frag *Q=0x0;
-	struct frag *q=0x0;
+	struct frag *p=0, *q=0, *r;
 	size_t y=0;
 
 	while (n) {
 		y = next_line(s, n);
 		s += y, n -= y;
 
-		q = calloc(1, sizeof *q);
-		if (!q) goto fail;
+		r = calloc(1, sizeof *r);
+		if (!r) goto fail;
+		if (!p) p = r;
 
-		q->len = y;
-		Q = link_node(q, Q);
+		r->len = y;
+		q = link_node(q, r);
 	}
 
-	return Q;
+	return p;
 
  fail:
-	foreach_node(q, Q) free(q);
+	foreach_node(q, p) free(q);
 	return 0x0;
+}
+
+int
+ln_insert(struct frag **p, size_t x, char *s, size_t n)
+{
+	struct frag *q, *r;
+
+	q = nodes_from_lines(s, n);
+	if (!q) return ENOMEM;
+
+	*p = frag_query(*p, x);
+
+	foreach_node (r, q) {
+		frag_insert(*p, fozin(*p, len), r);
+		*p = r;
+	}
+
+	return 0;
 }
 
 void
 ln_delete(struct frag **f, size_t x, size_t n)
 {
-	struct frag *Q=0x0;
-	struct frag *q=0x0;
+	struct frag *q, *Q=0x0;
 	size_t d;
 
 	if (!*f) return;
@@ -88,7 +87,8 @@ ln_delete(struct frag **f, size_t x, size_t n)
 		q = *f, *f = frag_next(q, 1);
 		if (!*f) *f = frag_next(q, 0);
 		n -= q->len;
-		frag_remove(q), Q = link_node(q, Q);
+		frag_remove(q);
+		Q = link_node(Q, q);
 		if (!*f) break;
 	}
 

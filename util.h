@@ -8,6 +8,7 @@
 
 #define argv(...) ((char *[]){__VA_ARGS__})
 #define arr_len(arr) (sizeof (arr) / sizeof *(arr))
+#define fozin(P, F) ((P) ? (P)->F : 0)
 #define write_str(fd, str) write(fd, str, strlen(str))
 
 #define repeat(NTIMES) for (size_t _i=0; _i<NTIMES; ++i)

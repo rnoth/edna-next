@@ -211,6 +211,9 @@ edna_file_open(struct edna *a, size_t x, char *fn)
 	e = ln_insert(&a->ln, x, a->file->map, a->file->length);
 	if (e) __builtin_trap();
 
+	a->dot[0] = a->file->length - a->ln->len;
+	a->dot[1] = a->ln->len;
+
 	return 0;
 }
 
@@ -239,7 +242,7 @@ edna_text_delete(struct edna *a, size_t x, size_t n)
 
 	a->hist->acts = c;
 
-	a->dot[1] = a->ln ? a->ln->len : 0;
+	a->dot[1] = fozin(a->ln, len);
 	if (!p) a->dot[0] -= a->dot[1];
 
 	return 0;
@@ -281,7 +284,7 @@ edna_text_insert(struct edna *a, size_t x, char *s, size_t n)
 	a->hist->acts = c;
 
 	p = frag_next(a->ln, 0);
-	a->dot[0] += p ? p->len : 0;
+	a->dot[0] += fozin(p, len);
 	a->dot[1] = a->ln->len;
 
 	return 0;

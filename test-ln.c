@@ -40,5 +40,5 @@ test_insert_many(void)
 	char s[]="1\n12\n123\n1234\n";
 	struct frag *f=0;
 
-	try(ln_insert(&f, 0, s, sizeof s));
+	try(ln_insert(&f, 0, s, sizeof s - 1));
 }
