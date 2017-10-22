@@ -208,36 +208,36 @@ edna_file_open(struct edna *edna, size_t offset, char *fn)
 	err = text_insert(ctx, offset, edna->file, 0, edna->file->length);
 	if (err) return err;
 
-	return ln_insert(&edna->lines, offset, edna->file->map, edna->file->length);
+	return ln_insert(&edna->ln, offset, edna->file->map, edna->file->length);
 }
 
 int
-edna_text_delete(struct edna *edna, size_t offset, size_t extent)
+edna_text_delete(struct edna *a, size_t x, size_t n)
 {
-	struct action *act;
-	struct piece *ctx[2];
-	struct frag *p = frag_next(edna->lines, 1);
-	int err;
+	struct action *c;
+	struct piece *t[2];
+	struct frag *p = frag_next(a->ln, 1);
+	int e;
 
-	act = calloc(1, sizeof *act);
-	if (!act) return ENOMEM;
+	c = calloc(1, sizeof *c);
+	if (!c) return ENOMEM;
 
-	text_start(ctx, edna->chain);
-	err = text_delete(ctx, offset, extent);
-	if (err) {
-		free(act);
-		return err;
+	text_start(t, a->chain);
+	e = text_delete(t, x, n);
+	if (e) {
+		free(c);
+		return e;
 	}
 
-	act->arg = tag0(ctx[0]);
-	act->chld = edna->hist->acts;
+	c->arg = tag0(t[0]);
+	c->chld = a->hist->acts;
 
-	ln_delete(&edna->lines, offset - edna->dot[0], extent);
+	ln_delete(&a->ln, x - a->dot[0], n);
 
-	edna->hist->acts = act;
+	a->hist->acts = c;
 
-	edna->dot[1] = edna->lines ? edna->lines->len : 0;
-	if (p) edna->dot[0] -= edna->dot[1];
+	a->dot[1] = a->ln ? a->ln->len : 0;
+	if (p) a->dot[0] -= a->dot[1];
 
 	return 0;
 }
@@ -248,7 +248,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 {
 	struct action *act;
 	struct piece *ctx[2];
-	struct frag *p=edna->lines;
+	struct frag *p=edna->ln;
 	int err;
 
 	ctx[0] = edna->chain, ctx[1] = 0;
@@ -268,7 +268,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 		return err;
 	}
 
-	err = ln_insert(&edna->lines,
+	err = ln_insert(&edna->ln,
 	                offset - edna->dot[0] + edna->dot[1],
 	                text,
 	                length);
@@ -281,7 +281,7 @@ edna_text_insert(struct edna *edna, size_t offset,
 	edna->hist->acts = act;
 
 	edna->dot[0] += p ? p->len : 0;
-	edna->dot[1] = edna->lines->len;
+	edna->dot[1] = edna->ln->len;
 
 	return 0;
 }

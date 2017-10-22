@@ -16,7 +16,7 @@ int edna_text_insert(struct edna *edna, size_t offset, char *text, size_t length
 struct edna {
 	struct record *hist;
 	struct piece *chain;
-	struct frag *lines;
+	struct frag *ln;
 	struct set cmds[1];
 	struct map edit[1];
 	struct map file[1];

@@ -85,7 +85,7 @@ test_cmd_insert(void)
 	expect(0, do_insert(a));
 	ok(!memcmp(a->edit->map, "hi", 2));
 
-	expect(2, a->lines->len);
+	expect(2, a->ln->len);
 	expect(0, a->dot[0]);
 	expect(2, a->dot[1]);
 

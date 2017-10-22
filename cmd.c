@@ -26,7 +26,7 @@ do_insert(struct edna *edna)
 		return -1;
 	}
 
-	p = edna->lines;
+	p = edna->ln;
 
 	return edna_text_insert(edna, edna->dot[0] + edna->dot[1], buffer, len);
 }
@@ -36,12 +36,12 @@ edna_cmd_back(struct edna *a)
 {
 	struct frag *p;
 
-	p = frag_next(a->lines, 0);
+	p = frag_next(a->ln, 0);
 	if (!p) {
 		edna_fail(a, "beginning of file");
 		return 0;
 	}
-	a->lines = p;
+	a->ln = p;
 	a->dot[0] -= p->len;
 	a->dot[1] = p->len;
 
@@ -53,13 +53,13 @@ edna_cmd_forth(struct edna *a)
 {
 	struct frag *p;
 
-	p = frag_next(a->lines, 1);
+	p = frag_next(a->ln, 1);
 	if (!p) {
 		edna_fail(a, "end of file");
 		return 0;
 	}
 
-	a->lines = p;
+	a->ln = p;
 	a->dot[0] += a->dot[1];
 	a->dot[1] = p->len;
 
