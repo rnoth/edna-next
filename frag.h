@@ -17,10 +17,12 @@ void frag_trunc(struct frag *node, size_t off);
 void *frag_query(struct frag *hint_node, size_t point);
 
 struct frag {
+	size_t    len;
+
 	uintptr_t link[3];
 	size_t    off;
 	size_t    max;
-	size_t    len;
+	size_t    pop;
 };
 
 #endif
