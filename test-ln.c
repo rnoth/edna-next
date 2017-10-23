@@ -21,20 +21,20 @@ struct unit_test tests[] = {
 void
 test_convert(void)
 {
-	struct frag *Q;
+	struct frag *p;
 	struct frag *q;
-	char s[]="one\ntwo\nthree\n";
-	size_t n = sizeof s - 1, f=n;
-	char *t=s+f;
+	char s[]="greetings\nhello\nhi\n";
+	size_t n = sizeof s - 1, x=0, y;
 
-	ok(Q = nodes_from_lines(s, n));
-	foreach_node(q, Q) {
-		f -= q->len, t -= q->len;
-		okf(!strcmp(t, s + f),
-		    "extent mismatch. s=%s, t=%s", s + f, t);
+	ok(p = nodes_from_lines(s, n));
+	foreach_node(q, p) {
+		y = next_line(s, strlen(s+x));
+		okf(y == q->len, "extent mismatch; y=%zu, q->len=%zu",
+		    y, q->len);
+		x -= q->len;
 	}
 
-	foreach_node(q, Q) free(q);
+	foreach_node(q, p) free(q);
 }
 
 void
@@ -53,6 +53,7 @@ test_navigate(void)
 	struct frag *p=0, *q;
 
 	try(ln_insert(&p, 0, s, sizeof s - 1));
+	ok(!frag_next(p, 1));
 	q = frag_next(p, 0);
 	expect(4, q->len);
 }
