@@ -5,12 +5,15 @@
 //static void test_adjust(void);
 static void test_convert(void);
 static void test_insert_many(void);
+static void test_navigate(void);
 
 struct unit_test tests[] = {
 	{.msg = "should convert lines to buffers",
 	 .fun = unit_list(test_convert),},
 	{.msg = "should insert many lines at once",
-	 .fun = unit_list(test_insert_many)}
+	 .fun = unit_list(test_insert_many),},
+	{.msg = "should navigate the lines",
+	 .fun = unit_list(test_navigate),},
 };
 
 #include <unit.t>
@@ -41,4 +44,15 @@ test_insert_many(void)
 	struct frag *f=0;
 
 	try(ln_insert(&f, 0, s, sizeof s - 1));
+}
+
+void
+test_navigate(void)
+{
+	char s[]="12345\n123\n1\n";
+	struct frag *p=0, *q;
+
+	try(ln_insert(&p, 0, s, sizeof s - 1));
+	q = frag_next(p, 0);
+	expect(4, q->len);
 }
