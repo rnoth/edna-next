@@ -24,6 +24,7 @@ static void test_insert_adjust(void);
 static void test_insert_balance_double(void);
 static void test_insert_balance_single(void);
 static void test_insert_balance_soft(void);
+static void test_insert_basic(void);
 static void test_insert_empty(void);
 static void test_insert_head(void);
 static void test_insert_nontrivial(void);
