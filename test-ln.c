@@ -28,10 +28,10 @@ test_convert(void)
 
 	ok(p = nodes_from_lines(s, n));
 	foreach_node(q, p) {
-		y = next_line(s, strlen(s+x));
+		y = next_line(s+x, strlen(s+x));
 		okf(y == q->len, "extent mismatch; y=%zu, q->len=%zu",
 		    y, q->len);
-		x -= q->len;
+		x += y;
 	}
 
 	foreach_node(q, p) free(q);

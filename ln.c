@@ -15,14 +15,6 @@
 	     && (*_l = untag(_n->link[0]), true);)
 
 static struct frag *nodes_from_lines(char *s, size_t n);
-static struct frag *link_node(struct frag *q, struct frag *r);
-
-struct frag *
-link_node(struct frag *q, struct frag *r)
-{
-	if (q) q->link[0] = tag0(r);
-	return r;
-}
 
 struct frag *
 nodes_from_lines(char *s, size_t n)
@@ -39,7 +31,8 @@ nodes_from_lines(char *s, size_t n)
 		if (!p) p = r;
 
 		r->len = y;
-		q = link_node(q, r);
+		if (q) q->link[0] = tag0(r);
+		q = r;
 	}
 
 	return p;
@@ -60,6 +53,7 @@ ln_insert(struct frag **p, size_t x, char *s, size_t n)
 	*p = frag_query(*p, x);
 
 	foreach_node (r, q) {
+		r->link[0]=0;
 		frag_insert(*p, fozin(*p, len), r);
 		*p = r;
 	}
@@ -88,7 +82,8 @@ ln_delete(struct frag **f, size_t x, size_t n)
 		if (!*f) *f = frag_next(q, 0);
 		n -= q->len;
 		frag_remove(q);
-		Q = link_node(Q, q);
+		if (Q) Q->link[0] = tag0(q);
+		Q = q;
 		if (!*f) break;
 	}
 
