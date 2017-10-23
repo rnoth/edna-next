@@ -123,7 +123,10 @@ main(int argc, char **argv)
 
 	init(edna);
 
-	if (argc > 1) err = edna_file_open(edna, 0, argv[1]);
+	if (argc > 1) {
+		err = edna_file_open(edna, 0, argv[1]);
+		if (err) perror("file open failed");
+	}
 	
 	while (!err) err = run(edna);
 
