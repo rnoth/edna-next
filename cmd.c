@@ -100,7 +100,7 @@ cmd_print(struct edna *edna)
 		return 0;
 	}
 
-	text_start(ctx, edna->chain);
+	text_start(ctx, edna->txt);
 	off = text_walk(ctx, off);
 
 	while (ext) {

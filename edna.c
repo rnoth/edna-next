@@ -163,7 +163,7 @@ edna_fini(struct edna *e)
 {
 	struct piece *p;
 
-	p = arrange_pieces(e->chain);
+	p = arrange_pieces(e->txt);
 	p = rec_free(e->hist, p);
 	free_pieces(p);
 	edit_dtor(e->edit);
@@ -179,8 +179,8 @@ edna_init(struct edna *edna)
 	edna->hist = calloc(1, sizeof *edna->hist);
 	if (!edna->hist) return ENOMEM;
 
-	edna->chain = text_ctor();
-	if (!edna->chain) {
+	edna->txt = text_ctor();
+	if (!edna->txt) {
 		free(edna->hist);
 		return ENOMEM;
 	}
@@ -188,7 +188,7 @@ edna_init(struct edna *edna)
 	err = edit_ctor(edna->edit);
 	if (err) {
 		free(edna->hist);
-		text_dtor(edna->chain);
+		text_dtor(edna->txt);
 		return err;
 	}
 
@@ -204,7 +204,7 @@ edna_file_open(struct edna *a, size_t x, char *fn)
 	e = filemap_ctor(a->file, fn);
 	if (e) return e;
 
-	text_start(t, a->chain);
+	text_start(t, a->txt);
 	e = text_insert(t, x, a->file, 0, a->file->length);
 	if (e) return e;
 
@@ -228,7 +228,7 @@ edna_text_delete(struct edna *a, size_t x, size_t n)
 	c = calloc(1, sizeof *c);
 	if (!c) return ENOMEM;
 
-	text_start(t, a->chain);
+	text_start(t, a->txt);
 	e = text_delete(t, x, n);
 	if (e) {
 		free(c);
@@ -256,7 +256,7 @@ edna_text_insert(struct edna *a, size_t x, char *s, size_t n)
 	struct frag *p;
 	int e;
 
-	text_start(t, a->chain);
+	text_start(t, a->txt);
 	e = text_insert(t, x, a->edit, a->edit->offset, n);
 	if (e) return e;
 

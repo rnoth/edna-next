@@ -89,7 +89,7 @@ test_cmd_insert(void)
 	expect(0, a->dot[0]);
 	expect(2, a->dot[1]);
 
-	p = a->chain;
+	p = a->txt;
 	p = untag(p->link);
 	expect(0, p->offset);
 	expect(2, p->length);
