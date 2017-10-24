@@ -269,24 +269,26 @@ frag_get_root(struct frag *T)
 	return T;
 }
 
-void *
-frag_next(struct frag *T, int k)
+void
+frag_free(struct frag *T)
 {
-	uintptr_t u, x;
+	uintptr_t t, p, c0, c1;
 
-	if (k != 0 && k != 1) return 0;
+	if (!T) return;
+	t = get_tag(T);
 
-	if (!T) return 0;
-	u = T->link[k];
-	if (!u) {
-		u = get_tag(T);
-		for (; (x = get_prnt(u)) && k == branch_of(u, x); u = x);
-		if (!x) return 0;
-		return untag(x);
+ again:
+	p = get_prnt(t);
+	while ((c0 = get_chld(t, 0)) || (c1 = get_chld(t, 1))) {
+		p = t; if (c0) t = c0; else t = c1;
 	}
 
-	for (; x = get_chld(u, !k); u = x);
-	return untag(u);
+	free(untag(t));
+	if (p){
+		set_link(p, branch_of(t, p), 0);
+		t = p;
+		goto again;
+	}
 }
 
 void
@@ -314,6 +316,26 @@ frag_insert(struct frag *H, size_t n, struct frag *F)
 
 		if (b) p = increment(p, k), b = !!tag_of(p);
 	}
+}
+
+void *
+frag_next(struct frag *T, int k)
+{
+	uintptr_t u, x;
+
+	if (k != 0 && k != 1) return 0;
+
+	if (!T) return 0;
+	u = T->link[k];
+	if (!u) {
+		u = get_tag(T);
+		for (; (x = get_prnt(u)) && k == branch_of(u, x); u = x);
+		if (!x) return 0;
+		return untag(x);
+	}
+
+	for (; x = get_chld(u, !k); u = x);
+	return untag(u);
 }
 
 void

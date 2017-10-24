@@ -159,14 +159,15 @@ revert_insert(struct action *act)
 }
 
 void
-edna_fini(struct edna *e)
+edna_fini(struct edna *a)
 {
 	struct piece *p;
 
-	p = arrange_pieces(e->txt);
-	p = rec_free(e->hist, p);
+	p = arrange_pieces(a->txt);
+	p = rec_free(a->hist, p);
 	free_pieces(p);
-	edit_dtor(e->edit);
+	edit_dtor(a->edit);
+	frag_free(a->ln);
 }
 
 int

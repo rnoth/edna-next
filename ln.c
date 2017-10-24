@@ -12,7 +12,7 @@
 #define foreach_node(N, L)	  \
 	for (struct frag *_n, **_l=&(L); \
 	     (_n = (N) = *_l) \
-	     && (*_l = untag(_n->link[0]), true);)
+	     && (*_l = untag(_n->link[0]), _n->link[0]=0, true);)
 
 static struct frag *nodes_from_lines(char *s, size_t n);
 
@@ -53,7 +53,6 @@ ln_insert(struct frag **p, size_t x, char *s, size_t n)
 	*p = frag_query(*p, x);
 
 	foreach_node (r, q) {
-		r->link[0]=0;
 		frag_insert(*p, fozin(*p, len), r);
 		*p = r;
 	}
