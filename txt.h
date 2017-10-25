@@ -28,14 +28,14 @@ size_t text_walk(struct piece **dest, size_t extent);
 struct piece {
 	uintptr_t link;
 	struct map *edit;
-	size_t offset;
-	size_t length;
+	size_t off;
+	size_t len;
 };
 
 void
-text_start(struct piece **ctx, struct piece *beg)
+text_start(struct piece **t, struct piece *a)
 {
-	ctx[0] = beg, ctx[1] = 0;
+	t[0] = a, t[1] = 0;
 }
 
 #endif

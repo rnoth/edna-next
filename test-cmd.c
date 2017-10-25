@@ -91,8 +91,8 @@ test_cmd_insert(void)
 
 	p = a->txt;
 	p = untag(p->link);
-	expect(0, p->offset);
-	expect(2, p->length);
+	expect(0, p->off);
+	expect(2, p->len);
 	ok(p->edit == a->edit);
 
 	try(edna_fini(a));

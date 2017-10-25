@@ -81,10 +81,10 @@ make_chain(size_t *lens)
 		ok(pie = calloc(1, sizeof *pie));
 		text_link(pie, prev);
 
-		pie->length = lens[i];
-		pie->offset = off;
+		pie->len = lens[i];
+		pie->off = off;
 
-		off += pie->length;
+		off += pie->len;
 
 		prev = pie;
 	}
@@ -129,10 +129,10 @@ test_delete()
 	ok(pie1 = text_next(pie, beg));
 	ok(end = text_next(pie1, pie));
 
-	expect(2, pie->length);
-	expect(0, pie->offset);
-	expect(2, pie1->length);
-	expect(3, pie1->offset);
+	expect(2, pie->len);
+	expect(0, pie->off);
+	expect(2, pie1->len);
+	expect(3, pie1->off);
 
 	text_dtor(beg);
 }
@@ -150,10 +150,10 @@ test_delete2()
 
 	expect(0, text_delete(ctx, 4, 4));
 
-	expect(4, one->length);
-	expect(0, one->offset);
-	expect(4, two->length);
-	expect(8, two->offset);
+	expect(4, one->len);
+	expect(0, one->off);
+	expect(4, two->len);
+	expect(8, two->off);
 
 	text_dtor(beg);
 }
@@ -170,8 +170,8 @@ test_delete3()
 	text_start(ctx, beg);
 	expect(0, text_delete(ctx, 5, 7));
 
-	expect(5, one->length);
-	expect(9, thr->length);
+	expect(5, one->len);
+	expect(9, thr->len);
 
 	ok(ctx[0] == two && !ctx[1]);
 	ok(text_next(one, beg) == thr);
@@ -188,13 +188,13 @@ test_empty()
 
 	ok(one = text_ctor());
 	ok(one->link);
-	ok(!one->offset);
-	ok(!one->length);
+	ok(!one->off);
+	ok(!one->len);
 	ok(two = text_next(one, 0));
 	ok(two->link == (uintptr_t)one);
 	ok(one->link == (uintptr_t)two);
-	ok(!two->offset);
-	ok(!two->length);
+	ok(!two->off);
+	ok(!two->len);
 
 	try(text_dtor(one));
 }
@@ -214,22 +214,22 @@ test_insert()
 	ok(!text_insert(ctx, 5, edit, edit->length, strlen(insert)));
 	ok(!edit_concat(edit, ", friend"));
 
-	expect(5, one->length);
-	expect(0, one->offset);
+	expect(5, one->len);
+	expect(0, one->off);
 
 	ok(new = text_next(one, beg));
 	ok(new != one);
 	ok(new != beg);
 	ok(new != end);
-	expect(6, new->offset);
-	expect(8, new->length);
+	expect(6, new->off);
+	expect(8, new->len);
 
 	new1 = text_next(new, one);
 	ok(new1 != new);
 	ok(new1 != end);
 
-	expect(5, new1->offset);
-	expect(1, new1->length);
+	expect(5, new1->off);
+	expect(1, new1->len);
 
 	try(text_dtor(beg));
 	try(free(edit->map));
@@ -254,8 +254,8 @@ test_insert2()
 	ok(new = text_next(beg, 0));
 	ok(new != pie);
 
-	expect(3, new->offset);
-	expect(strlen(one), new->length);
+	expect(3, new->off);
+	expect(strlen(one), new->len);
 
 	ok(text_next(new, beg) == pie);
 
@@ -268,8 +268,8 @@ test_insert2()
 	ok(new1 != new);
 	ok(new1 != end);
 
-	expect(8, new1->offset);
-	expect(strlen(thr), new1->length);
+	expect(8, new1->off);
+	expect(strlen(thr), new1->len);
 	
 	ok(text_next(new1, end) == pie);
 
@@ -297,11 +297,11 @@ test_insert3()
 	ok(text_next(new, beg) == end);
 	ok(text_next(end, new) == 0);
 
-	expect(0, new->offset);
-	expect(strlen(hi), new->length);
+	expect(0, new->off);
+	expect(strlen(hi), new->len);
 
-	expect(0, beg->length);
-	expect(0, end->length);
+	expect(0, beg->len);
+	expect(0, end->len);
 
 	text_dtor(beg);
 	try(free(edit->map));
@@ -363,7 +363,7 @@ test_merge(void)
 
 	ok(text_next(pie, beg) == end);
 	ok(text_next(pie, end) == beg);
-	ok(pie->length = 6);
+	ok(pie->len = 6);
 
 	text_dtor(beg);
 	try(free(ctx[0]));
@@ -374,9 +374,9 @@ void
 test_traverse()
 {
 	struct piece beg[1] = {{0}};
-	struct piece foo[1] = {{.offset=0, .length=3}};
-	struct piece bar[1] = {{.offset=3, .length=3}};
-	struct piece baz[1] = {{.offset=6, .length=3}};
+	struct piece foo[1] = {{.off=0, .len=3}};
+	struct piece bar[1] = {{.off=3, .len=3}};
+	struct piece baz[1] = {{.off=6, .len=3}};
 	struct piece end[1] = {{0}};
 	struct piece *ctx[2];
 

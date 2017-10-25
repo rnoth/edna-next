@@ -104,8 +104,8 @@ cmd_print(struct edna *edna)
 	off = text_walk(ctx, off);
 
 	while (ext) {
-		txt = ctx[0]->edit->map + ctx[0]->offset + off;
-		min = umin(ctx[0]->length - off, ext);
+		txt = ctx[0]->edit->map + ctx[0]->off + off;
+		min = umin(ctx[0]->len - off, ext);
 		write(1, txt, min);
 
 		ext -= min, off=0;

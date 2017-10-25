@@ -12,240 +12,212 @@ static int text_split(struct piece **ctx, size_t offset, size_t extent);
 struct piece *
 text_ctor(void)
 {
-	struct piece *beg;
-	struct piece *end;
+	struct piece *a, *z;
 
-	beg = calloc(1, sizeof *beg);
-	if (!beg) return 0;
-	end = calloc(1, sizeof *end);
-	if (!end) {
-		free(beg);
-		return 0;
-	}
+	a = calloc(1, sizeof *a);
+	if (!a) return 0;
+	z = calloc(1, sizeof *z);
+	if (!z) { free(a); return 0; }
 
-	text_link(beg, end);
+	text_link(a, z);
 
-	return beg;
+	return a;
 }
 
 void
-text_step(struct piece **ctx)
+text_step(struct piece **t)
 {
-	struct piece *next;
-	next = text_next(ctx[0], ctx[1]);
-	ctx[1] = ctx[0], ctx[0] = next;
+	struct piece *x = text_next(t[0], t[1]);
+	t[1] = t[0], t[0] = x;
 }
 
 int
-text_delete(struct piece **ctx, size_t offset, size_t extent)
+text_delete(struct piece **t, size_t i, size_t n)
 {
-	if (offset >= ctx[0]->length) offset = text_walk(ctx, offset);
-
-	if (offset + extent < ctx[0]->length) {
-		return text_delete_within(ctx, offset, extent);
-	}
-
-	text_delete_across(ctx, offset, extent);
+	if (i >= t[0]->len) i = text_walk(t, i);
+	if (i + n < t[0]->len) return text_delete_within(t, i, n);
+	text_delete_across(t, i, n);
 	return 0;
 }
 
 void
-text_delete_across(struct piece **ctx, size_t offset, size_t extent)
+text_delete_across(struct piece **t, size_t i, size_t n)
 {
-	struct piece *end[2];
+	struct piece *u[2];
 
-	if (offset) {
-		extent -= ctx[0]->length - offset;
-		ctx[0]->length = offset;
-		offset = 0;
-
-		text_step(ctx);
+	if (i) {
+		n -= t[0]->len - i;
+		t[0]->len = i, i = 0;
+		text_step(t);
 	}
 
-	if (!ctx[0]->length) {
-		ctx[0] = 0, ctx[0] = 0;
+	if (!t[0]->len) {
+		t[0] = 0, t[0] = 0;
 		return;
 	}
 
-	end[0] = ctx[0], end[1] = ctx[1];
+	u[0] = t[0], u[1] = t[1];
 
-	if (extent >= ctx[0]->length) {
-		extent = text_walk(end, extent);
+	if (n >= t[0]->len) {
+		n = text_walk(u, n);
 
-		text_unlink(ctx[0], ctx[1]);
-		text_unlink(end[0], end[1]);
+		text_unlink(t[0], t[1]);
+		text_unlink(u[0], u[1]);
 
-		text_link(end[0], ctx[1]);
-		end[1] = ctx[1];
+		text_link(u[0], t[1]);
+		u[1] = t[1];
+	} else t[0] = 0;
+	t[1] = 0;
 
-	} else ctx[0] = 0;
-	ctx[1] = 0;
-
-	if (extent) {
-		end[0]->length -= extent;
-		end[0]->offset += extent;
+	if (n) {
+		u[0]->len -= n;
+		u[0]->off += n;
 	}
 
-	text_merge(end);
+	text_merge(u);
 }
 
 int
-text_delete_within(struct piece **ctx, size_t offset, size_t extent)
+text_delete_within(struct piece **t, size_t i, size_t n)
 {
-	int err;
+	int e = text_split(t, i, n);
+	if (e) return e;
 
-	err = text_split(ctx, offset, extent);
-	if (err) return err;
-
-	ctx[0] = 0, ctx[1] = 0;
+	t[0] = 0, t[1] = 0;
 	return 0;
 }
 
 void
-text_dtor(struct piece *txt)
+text_dtor(struct piece *t)
 {
-	struct piece *next=txt;
-	struct piece *cur=0;
-	struct piece *prev;
+	struct piece *v, *u=0, *x=t;
 
-	while (next) {
-		prev = cur, cur = next;
-		next = text_next(cur, prev);
-		free(cur);
+	while (x) {
+		v = u, u = x;
+		x = text_next(u, v);
+		free(u);
 	}
 }
 
 int
-text_insert(struct piece **dest, size_t where,
-            struct map *edit, size_t offset, size_t length)
+text_insert(struct piece **t, size_t i, struct map *d, size_t o, size_t n)
 {
-	struct piece *new;
-	int err;
+	struct piece *u;
+	int e;
 
-	new = calloc(1, sizeof *new);
-	if (!new) return ENOMEM;
+	u = calloc(1, sizeof *u);
+	if (!u) return ENOMEM;
 
-	new->edit = edit;
-	new->offset = offset;
-	new->length = length;
+	u->edit = d, u->off = o, u->len = n;
+	i = text_walk(t, i);
 
-	where = text_walk(dest, where);
+	e = text_split(t, i, 0);
+	if (e) { free(u); return e; }
 
-	err = text_split(dest, where, 0);
-	if (err) {
-		free(new);
-		return err;
-	}
-
-	text_relink(dest[0], new, dest[1]);
-	dest[0] = new;
+	text_relink(t[0], u, t[1]);
+	t[0] = u;
 
 	return 0;
-
 }
 
 void
-text_link(struct piece *lef, struct piece *rit)
+text_link(struct piece *l, struct piece *r)
 {
-	if (lef) lef->link ^= (uintptr_t)rit;
-	if (rit) rit->link ^= (uintptr_t)lef;
+	if (l) l->link ^= (uintptr_t)r;
+	if (r) r->link ^= (uintptr_t)l;
 }
 
 void
-text_merge(struct piece **ctx)
+text_merge(struct piece **t)
 {
-	struct piece *dead;
-	struct piece *next;
-	size_t end;
+	struct piece *v;
+	struct piece *x;
+	size_t z;
 
-	if (!ctx[1]->length) return;
-	if (ctx[0]->edit != ctx[1]->edit) return;
+	if (!t[1]->len) return;
+	if (t[0]->edit != t[1]->edit) return;
 
-	end = ctx[1]->offset + ctx[1]->length;
-	if (end != ctx[0]->offset) return;
+	z = t[1]->off + t[1]->len;
+	if (z != t[0]->off) return;
 
-	ctx[1]->length += ctx[0]->length;
+	t[1]->len += t[0]->len;
 
-	next = text_next(ctx[0], ctx[1]);
-	text_unlink(ctx[0], ctx[1]);
-	text_unlink(next, ctx[0]);
-	text_link(next, ctx[1]);
+	x = text_next(t[0], t[1]);
+	text_unlink(t[0], t[1]);
+	text_unlink(x, t[0]);
+	text_link(x, t[1]);
 
-	dead = ctx[0];
-	ctx[1] = next;
+	v = t[0];  // XXX
+	t[1] = x;
 
-	free(dead);
+	free(v);
 }
 
 struct piece *
-text_next(struct piece *cur, struct piece *prev)
+text_next(struct piece *t, struct piece *v)
 {
-	uintptr_t res;
+	uintptr_t r;
 
-	res = cur->link ^ (uintptr_t)prev;
+	r = t->link ^ (uintptr_t)v;
 
-	return (void *)res;
+	return (void *)r;
 }
 
 void
-text_relink(struct piece *next, struct piece *new, struct piece *prev)
+text_relink(struct piece *x, struct piece *u, struct piece *v)
 {
-	if (next && prev) text_unlink(next, prev);
-	text_link(next, new);
-	text_link(new, prev);
+	if (x && v) text_unlink(x, v);
+	text_link(x, u);
+	text_link(u, v);
 }
 
 int
-text_split(struct piece **dest, size_t start, size_t length)
+text_split(struct piece **t, size_t i, size_t n)
 {
-	struct piece *next;
-	struct piece *new;
+	struct piece *x;
+	struct piece *u;
 
-	if (start + length == 0) return 0;
+	if (i + n == 0) return 0;
 
-	new = calloc(1, sizeof *new);
-	if (!new) return ENOMEM;
+	u = calloc(1, sizeof *u);
+	if (!u) return ENOMEM;
 
-	new->length = dest[0]->length - start - length;
-	new->offset = dest[0]->offset + start + length;
-	new->edit = dest[0]->edit;
+	u->len = t[0]->len - i - n;
+	u->off = t[0]->off + i + n;
+	u->edit = t[0]->edit;
 
-	dest[0]->length = start;
+	t[0]->len = i;
 
-	next = text_next(dest[0], dest[1]);
+	x = text_next(t[0], t[1]);
 
-	text_relink(next, new, dest[0]);
+	text_relink(x, u, t[0]);
 
-	dest[1] = dest[0];
-	dest[0] = new;
+	t[1] = t[0];
+	t[0] = u;
 
 	return 0;
 }
 
 void
-text_unlink(struct piece *lef, struct piece *rit)
+text_unlink(struct piece *l, struct piece *r)
 {
-	lef->link ^= (uintptr_t)rit;
-	rit->link ^= (uintptr_t)lef;
+	l->link ^= (uintptr_t)r;
+	r->link ^= (uintptr_t)l;
 }
 
 size_t
-text_walk(struct piece **dest, size_t extent)
+text_walk(struct piece **t, size_t i)
 {
-	struct piece *next;
-	size_t offset = 0;
+	struct piece *x;
+	size_t o = 0;
 
-	do {
-		next = text_next(dest[0], dest[1]);
-		if (!next) break;
+	while (o + t[0]->len <= i) {
+		x = text_next(t[0], t[1]);
+		if (!x) break;
 
-		if (offset + dest[0]->length > extent) {
-			break;
-		}
-		offset += dest[0]->length;
-		dest[1] = dest[0];
-		dest[0] = next;
-	} while (offset < extent);
+		o += t[0]->len;
+		t[1] = t[0], t[0] = x;
+	} 
 
-	return extent - offset;
+	return i - o;
 }
