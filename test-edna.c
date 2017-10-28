@@ -712,12 +712,12 @@ wait_edna()
 int
 main(int argc, char **argv)
 {
-	srand(time(0x0));
+	srand(time(0));
 
 	edna_pty = mk_pty();
 	if (edna_pty == -1) unit_perror("couldn't alloc pty");
 
-	unit_opt_flakiness = 5;
+	unit_opt_flakiness = 10;
 	unit_parse_argv(argc, argv);
 	unit_run_tests(tests, arr_len(tests));
 	system("pkill -x edna");
