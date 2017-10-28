@@ -446,7 +446,7 @@ void
 test_index(void)
 {
 	uintptr_t a, b, c, d, e;
-	struct frag *A;
+	struct frag *A, *C, *D;
 
 	e = make_tree(16, 0,0,0);
 	d = make_tree( 8, 0,0,0);
@@ -454,7 +454,7 @@ test_index(void)
 	b = make_tree( 2, 1,0,d);
 	a = make_tree( 1, 0,b,c);
 
-	A=untag(a);
+	A=untag(a), C=untag(c), D=untag(d);
 
 	ok(frag_index(A,0) == untag(a));
 	ok(frag_index(A,1) == untag(e));
@@ -463,6 +463,20 @@ test_index(void)
 	ok(frag_index(A,-1) == untag(d));
 	ok(frag_index(A,-2) == untag(b));
 	ok(frag_index(A,-3) == 0);
+
+	ok(frag_index(C,-1) == untag(e));
+	ok(frag_index(C,-2) == untag(a));
+	ok(frag_index(C,-3) == untag(d));
+	ok(frag_index(C,-4) == untag(b));
+	ok(frag_index(C,-5) == 0);
+	ok(frag_index(C,1) == 0);
+
+	ok(frag_index(D,-1) == untag(b));
+	ok(frag_index(D,1) == untag(a));
+	ok(frag_index(D,2) == untag(e));
+	ok(frag_index(D,3) == untag(c));
+	ok(frag_index(D,4) == 0);
+	ok(frag_index(D,-2) == 0);
 }
 
 void

@@ -6,6 +6,7 @@
 #include <tag.h>
 #include <util.h>
 
+static inline size_t    index_of(uintptr_t t);
 static inline uintptr_t get_chld(uintptr_t t, int k);
 static inline size_t    get_end(uintptr_t t);
 static inline uintptr_t get_len(uintptr_t t);
@@ -48,6 +49,7 @@ static size_t    try_max(uintptr_t t, size_t m);
 #define foreach_ancestor(P, K) \
 	for(uintptr_t*_p=&P,_g;*_p;K=(_g=get_prnt(*_p))?branch_of(*_p,_g):0,*_p=_g)
 
+size_t index_of(uintptr_t t) { return pop_of(get_chld(t, 0)) + 1; }
 uintptr_t get_chld(uintptr_t t, int k) { return get_field(t, link[k]); }
 size_t get_end(uintptr_t t) { return get_off(t) + get_len(t); }
 uintptr_t get_len(uintptr_t t) { return get_field(t, len); }
@@ -303,29 +305,30 @@ frag_free(struct frag *T)
 void *
 frag_index(struct frag *H, size_t i)
 {
-	uintptr_t c0, c1, h, p;
+	uintptr_t c, h, p;
+	int k;
 
 	if (!i) return H;
 
 	h = get_tag(H);
-	c0 = H->link[0], c1 = H->link[1];
+	c = H->link[0];
 
-	while (i > pop_of(c1)) { 
+	while (i + pop_of(c) >= pop_of(h)) {
 		p = get_prnt(h);
 		if (!p) return 0;
 
-		c0 = get_chld(p, 0);
-		if (branch_of(h, p)) i += pop_of(c0);
-		i += pop_of(c0);
-		h = p;
+		k = branch_of(h, p);
+		i += index_of(h) + (k ? 0 : -index_of(p));
+
+		h = p, c = get_chld(h, 0);
 	}
 
-
 	while (i) {
-		if (i + pop_of(c0) < pop_of(c0)) h = c0;
-		else h = c1, i -= pop_of(c0) + 1;
-		c0 = get_chld(h, 0), c1 = get_chld(h, 1);
-		i += pop_of(c0) + 1;
+		k = !uunder(i, index_of(h));
+		h = get_chld(h, k);
+		if (!h) return 0;
+		c = get_chld(h, !k);
+		i += to_sign(!k) * (pop_of(c)+1);
 	}
 
 	return untag(h);
