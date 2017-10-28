@@ -14,11 +14,13 @@ static void test_delete_branch(void);
 static void test_delete_leaf(void);
 static void test_delete_root(void);
 
-static void test_get_root(void);
+static void test_root(void);
 
 static void test_increment_adjust(void);
 static void test_increment_rotate(void);
 static void test_increment_rotate2(void);
+
+static void test_index(void);
 
 static void test_insert_adjust(void);
 static void test_insert_balance_double(void);
@@ -76,7 +78,7 @@ struct unit_test tests[] = {
 	 .fun = unit_list(test_insert_tail),},
 
 	{.msg = "should retrieve the root node",
-	 .fun = unit_list(test_get_root),},
+	 .fun = unit_list(test_root),},
 
 	{.msg = "should delete root nodes",
 	 .fun = unit_list(test_delete_root),},
@@ -92,6 +94,7 @@ struct unit_test tests[] = {
 
 	{.msg = "should update balance information on insert",
 	 .fun = unit_list(test_insert_balance_soft),},
+
 	{.msg = "should delete leaf nodes",
 	 .fun = unit_list(test_delete_leaf),},
 
@@ -150,6 +153,9 @@ struct unit_test tests[] = {
 
 	{.msg = "should create nontrivial trees by insertion",
 	 .fun = unit_list(test_insert_nontrivial),},
+
+	{.msg = "should index trees",
+	 .fun = unit_list(test_index),},
 };
 
 #include <unit.t>
@@ -199,6 +205,7 @@ make_tree(size_t n, int b, uintptr_t l, uintptr_t r)
 	u = tag0(d) + (b ? 2|b>0 : 0);
 	d->len = n;
 	d->max = n;
+	d->pop = 1;
 
 	if (l) {
 		d->off += get_max(l);
@@ -376,7 +383,7 @@ test_delete_root(void)
 }
 
 void
-test_get_root(void)
+test_root(void)
 {
 	struct frag a[1] = {{.len = 10}};
 	struct frag b[1] = {{.len = 5}};
@@ -384,8 +391,8 @@ test_get_root(void)
 	try(frag_insert(0, 0, a));
 	try(frag_insert(a, 10, b));
 
-	ok(a == frag_get_root(a));
-	ok(a == frag_get_root(b));
+	ok(a == frag_root(a));
+	ok(a == frag_root(b));
 }
 
 void
@@ -433,6 +440,29 @@ test_increment_rotate2(void)
 	expect_has_chld(b, 0, a ^ 3);
 	expect_has_chld(b, 1, c ^ 2);
 	expect_is_root(b);
+}
+
+void
+test_index(void)
+{
+	uintptr_t a, b, c, d, e;
+	struct frag *A;
+
+	e = make_tree(16, 0,0,0);
+	d = make_tree( 8, 0,0,0);
+	c = make_tree( 4,-1,e,0);
+	b = make_tree( 2, 1,0,d);
+	a = make_tree( 1, 0,b,c);
+
+	A=untag(a);
+
+	ok(frag_index(A,0) == untag(a));
+	ok(frag_index(A,1) == untag(e));
+	ok(frag_index(A,2) == untag(c));
+	ok(frag_index(A,3) == 0);
+	ok(frag_index(A,-1) == untag(d));
+	ok(frag_index(A,-2) == untag(b));
+	ok(frag_index(A,-3) == 0);
 }
 
 void
@@ -544,6 +574,9 @@ test_insert_head(void)
 
 	expect(6, get_off(a));
 	expect(10, get_max(a));
+
+	expect(2, pop_of(a));
+	expect(1, pop_of(b));
 
 	kill_tree(a);
 }

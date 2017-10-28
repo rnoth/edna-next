@@ -12,9 +12,12 @@ static inline uintptr_t get_len(uintptr_t t);
 
 static inline uintptr_t get_link(uintptr_t t, int k);
 static inline size_t    get_off(uintptr_t t);
-static inline size_t    get_max(uintptr_t t);
+static inline size_t    pop_of(uintptr_t t);
 
+static inline size_t    get_max(uintptr_t t);
 static inline uintptr_t get_prnt(uintptr_t t);
+
+static inline void      set_link(uintptr_t u, int k, uintptr_t t);
 
 static void      add_chld(uintptr_t p, int k, uintptr_t c);
 static uintptr_t adjust(uintptr_t t, int b);
@@ -34,7 +37,6 @@ static uintptr_t get_tag(struct frag *F);
 static uintptr_t rotate(uintptr_t, int k);
 static uintptr_t rotate2(uintptr_t, int k);
 
-static void      set_link(uintptr_t u, int k, uintptr_t t);
 static size_t    set_max(uintptr_t t);
 static size_t    step(uintptr_t t, int k);
 
@@ -49,10 +51,15 @@ static size_t    try_max(uintptr_t t, size_t m);
 uintptr_t get_chld(uintptr_t t, int k) { return get_field(t, link[k]); }
 size_t get_end(uintptr_t t) { return get_off(t) + get_len(t); }
 uintptr_t get_len(uintptr_t t) { return get_field(t, len); }
+
 uintptr_t get_link(uintptr_t t, int k) { return get_field(t, link[k]); }
 size_t get_off(uintptr_t t) { return get_field(t, off); }
 size_t get_max(uintptr_t t) { return get_field(t, max); }
+size_t pop_of(uintptr_t t) { return t ? get_field(t, pop) : 0; }
+
 uintptr_t get_prnt(uintptr_t t) { return get_field(t, link[2]); }
+
+void set_link(uintptr_t t, int k, uintptr_t u) { get_field(t, link[k]) = u; }
 
 void
 add_chld(uintptr_t p, int k, uintptr_t c)
@@ -61,6 +68,7 @@ add_chld(uintptr_t p, int k, uintptr_t c)
 
 	P->link[k] = c, C->link[2] = p;
 	set_max(p);
+	P->pop += C->pop;
 }
 
 uintptr_t
@@ -90,19 +98,21 @@ cmp(uintptr_t t, size_t p)
 }
 
 uintptr_t
-detatch(uintptr_t u, int k)
+detatch(uintptr_t p, int k)
 {
-	struct frag *U = untag(u);
-	struct frag *V = untag(U->link[k]);
+	struct frag *P = untag(p);
+	struct frag *C = untag(P->link[k]);
 	uintptr_t r;
 
-	if (!V) return 0;
+	if (!C) return 0;
 
-	V->link[2] = 0;
+	C->link[2] = 0;
 
-	r = U->link[k];
-	U->link[k] = 0;
-	set_max(u);
+	r = P->link[k];
+	P->link[k] = 0;
+	set_max(p);
+
+	P->pop -= C->pop;
 
 	return r;
 }
@@ -149,8 +159,7 @@ void
 init(struct frag *n, size_t x)
 {
 	n[0] = (struct frag){.len = n->len};
-	n->off = x;
-	n->max = n->len;
+	n->off = x, n->max = n->len, n->pop = 1;
 }
 
 bool
@@ -259,7 +268,7 @@ frag_delete(struct frag *T)
 }
 
 void *
-frag_get_root(struct frag *T)
+frag_root(struct frag *T)
 {
 	uintptr_t x;
 
@@ -289,6 +298,37 @@ frag_free(struct frag *T)
 		t = p;
 		goto again;
 	}
+}
+
+void *
+frag_index(struct frag *H, size_t i)
+{
+	uintptr_t c0, c1, h, p;
+
+	if (!i) return H;
+
+	h = get_tag(H);
+	c0 = H->link[0], c1 = H->link[1];
+
+	while (i > pop_of(c1)) { 
+		p = get_prnt(h);
+		if (!p) return 0;
+
+		c0 = get_chld(p, 0);
+		if (branch_of(h, p)) i += pop_of(c0);
+		i += pop_of(c0);
+		h = p;
+	}
+
+
+	while (i) {
+		if (i + pop_of(c0) < pop_of(c0)) h = c0;
+		else h = c1, i -= pop_of(c0) + 1;
+		c0 = get_chld(h, 0), c1 = get_chld(h, 1);
+		i += pop_of(c0) + 1;
+	}
+
+	return untag(h);
 }
 
 void
@@ -456,13 +496,6 @@ rotate2(uintptr_t t, int k)
 	add_chld(t, !k, c);
 
 	return rotate(t, k);
-}
-
-void
-set_link(uintptr_t u, int k, uintptr_t t)
-{
-	struct frag *n = untag(u);
-	n->link[k] = t;
 }
 
 size_t
