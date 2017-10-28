@@ -53,11 +53,7 @@ cmd_help()
 	return 0;
 }
 
-int
-cmd_quit()
-{
-	return -1;
-}
+int cmd_quit() { return -1; }
 
 void
 init(struct edna *edna)
