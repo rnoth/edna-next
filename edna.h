@@ -2,7 +2,6 @@
 #define _edna_
 
 #include <edit.h>
-#include <ext.h>
 #include <set.h>
 
 struct edna;

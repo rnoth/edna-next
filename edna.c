@@ -7,7 +7,6 @@
 
 #include <cmd.h>
 #include <edna.h>
-#include <ext.h>
 #include <file.h>
 #include <ln.h>
 #include <mem.h>
