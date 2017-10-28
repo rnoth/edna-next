@@ -22,25 +22,29 @@ typedef unsigned long ulong;
 typedef unsigned int uint;
 
 static inline bool in_range(ulong b, ulong e, ulong n);
-static inline void ulrotate(ulong *l, ulong *m, ulong *r);
-static inline void ulshift(ulong *l, ulong *m, ulong r);
 static inline void plshift(void *l, void *m, void *r);
 static inline void *memswp(void *A, void *B, size_t n);
 static inline size_t next_line(char *s, size_t n);
 static inline void pswp(void *A, void *B);
+static inline int to_sign(bool b);
 static inline int ucmp(ulong a, ulong b);
 static inline int uclz(ulong a);
 static inline int ufls(ulong a);
+static inline void ulrotate(ulong *l, ulong *m, ulong *r);
+static inline void ulshift(ulong *l, ulong *m, ulong r);
 static inline ulong umax(ulong a, ulong b);
 static inline ulong umin(ulong a, ulong b);
+static inline bool uunder(ulong n, ulong i);
 
 bool  in_range(ulong a, ulong z, ulong n) { return z > n - a; }
+int   to_sign(bool b) { return 2*b - 1; }
 void  ulshift(ulong *l, ulong *m, ulong r) {*l = *m, *m = r;}
 int   ucmp(ulong a, ulong b) { return (a >= b) - (a <= b); }
 int   uclz(ulong a) { return a ? __builtin_clzl(a) : LONG_BIT; }
 int   ufls(ulong a) { return LONG_BIT - uclz(a); }
-ulong umax(ulong a, ulong b) {return a > b ? a : b;}
-ulong umin(ulong a, ulong b) {return a < b ? a : b;}
+ulong umax(ulong a, ulong b) { return a > b ? a : b; }
+ulong umin(ulong a, ulong b) { return a < b ? a : b; }
+bool  uunder(ulong n, ulong a) { return n + a < a; }
 
 void
 ulrotate(ulong *l, ulong *m, ulong *r)
