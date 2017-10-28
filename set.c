@@ -34,8 +34,6 @@ static void walker_rise(struct walker *);
 static void walker_visit(struct walker *, bit);
 static void walker_walk(struct walker *, void *, size_t);
 
-static inline void lrotate(ulong *lef, ulong *mid, ulong *rit);
-
 bit
 bit_index_bytes(uint8_t *key, size_t len, size_t crit)
 {
@@ -137,7 +135,7 @@ walker_rise(struct walker *wal)
 	b = is_back(chld[1]);
 	chld[b] = flip_tag(chld[b]);
 
-	lrotate(chld+b, &wal->cur, &wal->prev);
+	ulrotate(chld+b, &wal->cur, &wal->prev);
 
 	wal->bit = b;
 	--wal->dep;
@@ -149,7 +147,7 @@ walker_visit(struct walker *wal, bit b)
 	uintptr_t *chld;
 
 	chld = untag_node(wal->cur)->chld;
-	lrotate(chld+b, &wal->prev, &wal->cur);
+	ulrotate(chld+b, &wal->prev, &wal->cur);
 	chld[b] = flip_tag(chld[b]);
 
 	wal->bit = b;

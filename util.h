@@ -21,112 +21,61 @@
 typedef unsigned long ulong;
 typedef unsigned int uint;
 
-static inline
-bool
-in_range(ulong beg, ulong ext, ulong arg)
-{
-	return arg - beg < ext;
-}
+static inline bool in_range(ulong b, ulong e, ulong n);
+static inline void ulrotate(ulong *l, ulong *m, ulong *r);
+static inline void ulshift(ulong *l, ulong *m, ulong r);
+static inline void plshift(void *l, void *m, void *r);
+static inline void *memswp(void *A, void *B, size_t n);
+static inline size_t next_line(char *s, size_t n);
+static inline void pswp(void *A, void *B);
+static inline int ucmp(ulong a, ulong b);
+static inline int uclz(ulong a);
+static inline int ufls(ulong a);
+static inline ulong umax(ulong a, ulong b);
+static inline ulong umin(ulong a, ulong b);
 
-static inline
+bool  in_range(ulong a, ulong z, ulong n) { return z > n - a; }
+void  ulshift(ulong *l, ulong *m, ulong r) {*l = *m, *m = r;}
+int   ucmp(ulong a, ulong b) { return (a >= b) - (a <= b); }
+int   uclz(ulong a) { return a ? __builtin_clzl(a) : LONG_BIT; }
+int   ufls(ulong a) { return LONG_BIT - uclz(a); }
+ulong umax(ulong a, ulong b) {return a > b ? a : b;}
+ulong umin(ulong a, ulong b) {return a < b ? a : b;}
+
 void
-lrotate(ulong *lef, ulong *mid, ulong *rit)
+ulrotate(ulong *l, ulong *m, ulong *r)
 {
-	ulong tmp = *lef;
-	*lef = *mid;
-	*mid = *rit;
-	*rit = tmp;
+	ulong t = *l;
+	*l=*m, *m=*r, *r=t;
 }
 
-static inline
 void
-lshift(ulong *lef, ulong *mid, ulong rit)
+plshift(void *L, void *M, void *r)
 {
-	*lef = *mid;
-	*mid = rit;
+	void **l=L, **m=M;
+	*l=*m, *m=r;
 }
 
-static inline
-void
-lshift_ptr(void *lefp, void *midp, void *rit)
-{
-	*(void **)lefp = *(void **)midp;
-	*(void **)midp = rit;
-}
-
-static inline
 void *
 memswp(void *A, void *B, size_t n)
 {
-	char *a=A, *b=B;
-	char m;
-
-	while (n --> 0) {
-		m = a[n];
-		a[n] = b[n];
-		b[n] = m;
-	}
-
+	char *a=A, *b=B, m;
+	while (n --> 0) m=a[n], a[n]=b[n], b[n]=m;
 	return a;
 }
 
-static inline
 size_t
-next_line(char *buffer, size_t length)
+next_line(char *s, size_t n)
 {
-	char *nl;
-
-	nl = memchr(buffer, '\n', length);
-	if (!nl) return length;
-	return nl - buffer + 1;
+	char *l;
+	return (l = memchr(s, '\n', n)) ? l - s + 1 : n;
 }
 
-static inline
 void
-ptr_swap(void *va, void *vb)
+pswp(void *A, void *B)
 {
-	void **a=va, **b=vb;
-	void *tmp;
-
-	tmp = *a;
-	*a = *b;
-	*b = tmp;
-}
-
-static inline
-int
-ucmp(ulong a, ulong b)
-{
-	return (a >= b) - (a <= b);
-}
-
-static inline
-ulong
-uclz(ulong a)
-{
-	if (!a) return LONG_BIT;
-	return __builtin_clzl(a);
-}
-
-static inline
-ulong
-ufls(ulong a)
-{
-	return LONG_BIT - uclz(a);
-}
-
-static inline
-ulong
-umax(ulong a, ulong b)
-{
-	return a > b ? a : b;
-}
-
-static inline
-ulong
-umin(ulong a, ulong b)
-{
-	return a < b ? a : b;
+	void **a=A, **b=B, *p;
+	p=*a, *a=*b, *b=p;
 }
 
 char *asprintf(char *fmt, ...) __attribute__((format (printf, 1, 2)));
